@@ -1,0 +1,9 @@
+// SPDX-License-Identifier: GPL-2.0
+#pragma once
+
+#define BUFFER_MAX_DATA_SIZE 10240 // 10 KiB
+#define MAX_SESSIONS 8192
+#define EVENT_QUEUE_SIZE 512
+
+#define MAX_HTTP_REQUEST_LENGTH BUFFER_MAX_DATA_SIZE
+#define MIN_HTTP_REQUEST_LENGTH 16

@@ -1,0 +1,14 @@
+/.vscode/
+/.venv/
+/.conan/
+/build/
+/cmake-build-debug/
+/cmake-build-release/
+
+### Gradle
+**/.gradle/
+**/build/
+
+**/vmlinux.h
+/compile_commands.json
+/.cache
