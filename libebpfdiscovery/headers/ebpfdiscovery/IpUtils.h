@@ -1,5 +1,8 @@
+#pragma once
 #include <cstdint>
 #include <vector>
+
+namespace ebpfdiscovery {
 
 using IPv4 = uint32_t;
 
@@ -27,3 +30,5 @@ public:
 	void printAll();
 	bool readNetworks();
 };
+}
+

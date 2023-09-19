@@ -1,7 +1,9 @@
+#include "ebpfdiscovery/IpUtils.h"
 #include <arpa/inet.h>
 #include <gtest/gtest.h>
-#include "ebpfdiscovery/IpUtils.h"
 #include <initializer_list>
+
+using namespace ebpfdiscovery;
 
 class IpUtilsTest : public IpUtils {
 protected:
