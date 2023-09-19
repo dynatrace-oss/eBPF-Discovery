@@ -3,4 +3,4 @@
 	url = https://github.com/libbpf/libbpf.git
 [submodule "thirdparty/bpftool"]
 	path = thirdparty/bpftool
-	url = https://github.com/libbpf/bpftool
+	url = https://github.com/libbpf/bpftool.git
