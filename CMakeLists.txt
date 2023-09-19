@@ -94,6 +94,7 @@ set(LIBBPF_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/thirdparty/libbpf)
 set(LIBBPF_LIBRARIES ${CMAKE_BINARY_DIR}/thirdparty/libbpf/libbpf.a)
 
 add_subdirectory(libbpfload)
+add_subdirectory(libebpfdiscoveryproto)
 add_subdirectory(libebpfdiscovery)
 add_subdirectory(libebpfdiscoveryshared)
 add_subdirectory(libebpfdiscoveryskel)
