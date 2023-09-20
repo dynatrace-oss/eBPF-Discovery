@@ -1,6 +1,4 @@
 syntax = "proto3";
 
 message Dummy {
-  string dummy_name = 1;
-  int32 dumdums_num = 2;
 }

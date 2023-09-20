@@ -7,9 +7,9 @@ eBPF Discovery is a tool for discovering HTTP endpoints on a given host based on
 ```
 conan 2.0
 cmake 3.23
-libelf
-libboost-dev-all
-libfmt
+libelf-dev
+libboost-all-dev
+libfmt-dev
 clang
 ```
 
@@ -18,13 +18,13 @@ clang
 Build release:
 ```
 conan install . --build=missing -s build_type=Release
-cmake --preset conan-release
+cmake --preset conan-release [-DTHIRDPARTY_MAKE_JOBS_COUNT=X]
 cmake --build --preset conan-release
 ```
 Build debug:
 ```
 conan install . --build=missing -s build_type=Debug
-cmake --preset conan-debug
+cmake --preset conan-debug [-DTHIRDPARTY_MAKE_JOBS_COUNT=X]
 cmake --build --preset conan-debug
 ```
 
