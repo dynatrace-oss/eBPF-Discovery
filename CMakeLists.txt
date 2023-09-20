@@ -71,6 +71,8 @@ if(NOT TARGET fmt)
 	find_package(fmt 8.0.1 REQUIRED)
 endif(NOT TARGET fmt)
 
+find_package(Protobuf REQUIRED)
+
 if(BUILD_TESTS)
 	include(FetchContent)
 	FetchContent_Declare(googletest URL https://github.com/google/googletest/archive/03597a01ee50ed33e9dfd640b249b4be3799d395.zip)
