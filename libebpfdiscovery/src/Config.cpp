@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "ebpfdiscovery/Config.h"
+#include "ebpfdiscoveryproto/example.pb.h"
 
 namespace ebpfdiscovery {
 

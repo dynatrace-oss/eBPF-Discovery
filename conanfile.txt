@@ -1,0 +1,8 @@
+[requires]
+protobuf/3.21.9
+protobuf-c/1.4.1
+[generators]
+CMakeDeps
+CMakeToolchain
+[layout]
+cmake_layout
