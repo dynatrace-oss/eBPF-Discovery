@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.23)
 
 option(BUILD_TESTS "Build tests" ON)
 set(THIRDPARTY_MAKE_JOBS_COUNT "1" CACHE STRING "Number of jobs to use when compiling thirdparty submodules")
@@ -71,6 +71,8 @@ if(NOT TARGET fmt)
 	find_package(fmt 8.0.1 REQUIRED)
 endif(NOT TARGET fmt)
 
+find_package(Protobuf REQUIRED)
+
 if(BUILD_TESTS)
 	include(FetchContent)
 	FetchContent_Declare(googletest URL https://github.com/google/googletest/archive/03597a01ee50ed33e9dfd640b249b4be3799d395.zip)
@@ -94,6 +96,7 @@ set(LIBBPF_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/thirdparty/libbpf)
 set(LIBBPF_LIBRARIES ${CMAKE_BINARY_DIR}/thirdparty/libbpf/libbpf.a)
 
 add_subdirectory(libbpfload)
+add_subdirectory(libebpfdiscoveryproto)
 add_subdirectory(libebpfdiscovery)
 add_subdirectory(libebpfdiscoveryshared)
 add_subdirectory(libebpfdiscoveryskel)
