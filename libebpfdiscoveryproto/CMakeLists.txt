@@ -12,7 +12,6 @@ include_directories(${Protobuf_INCLUDE_DIRS})
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${PROTO_SOURCES})
 
-add_library(${TARGET} STATIC ${PROTO_SRCS} ${PROTO_HDRS})
+add_library(${TARGET} STATIC ${PROTO_SRCS})
 target_link_libraries(${TARGET} protobuf::libprotobuf)
-target_link_libraries(${TARGET} protobuf::libprotoc)
 target_include_directories(${TARGET} PUBLIC ${CMAKE_CURRENT_BINARY_DIR}/${PROTO_DIR_NAME})
