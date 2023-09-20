@@ -18,7 +18,7 @@ clang
 Build release:
 ```
 conan install . --build=missing -s build_type=Release
-cmake --preset conan-release -DBUILD_TEST=OFF -DTHIRDPARTY_MAKE_JOBS_COUNT=$((`nproc` / 2))
+cmake --preset conan-release -DBUILD_TESTS=OFF -DTHIRDPARTY_MAKE_JOBS_COUNT=$((`nproc` / 2))
 cmake --build --preset conan-release
 ```
 Build debug:
