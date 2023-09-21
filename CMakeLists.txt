@@ -73,6 +73,11 @@ endif(NOT TARGET fmt)
 
 find_package(Protobuf REQUIRED)
 
+find_package(gsl REQUIRED)
+if(gsl_FOUND)
+	include_directories(${gsl_INCLUDE_DIRS})
+endif()
+
 if(BUILD_TESTS)
 	include(FetchContent)
 	FetchContent_Declare(googletest URL https://github.com/google/googletest/archive/03597a01ee50ed33e9dfd640b249b4be3799d395.zip)
