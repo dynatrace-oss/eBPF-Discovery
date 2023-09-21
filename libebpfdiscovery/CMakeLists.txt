@@ -12,7 +12,7 @@ set(TARGET ebpfdiscovery)
 
 add_library(${TARGET} STATIC ${SOURCES})
 
-target_include_directories(${TARGET} PRIVATE src PUBLIC headers /home/sten/.conan/data/elfutils/0.182.20220704-091150/ci/stable/package/849fae388172c7f2ee94c3a40101d1388f490a52/include /home/sten/.conan/data/gsl/2.0.0.20220628-132757/ci/stable/package/67a7e4f791f896d5af818c657f6da6304cdfff51/include )
+target_include_directories(${TARGET} PRIVATE src PUBLIC headers)
 
 target_link_libraries(${TARGET} bpfload)
 target_link_libraries(${TARGET} ebpfdiscoveryshared)
