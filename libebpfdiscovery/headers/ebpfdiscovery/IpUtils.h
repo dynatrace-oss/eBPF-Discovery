@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 #pragma once
 #include <cstdint>
 #include <vector>
@@ -14,7 +15,7 @@ struct IpIfce {
 	bool isLocalBridge;
 };
 
-class IpUtils {
+class IpAddressChecker {
 protected:
 	std::vector<IpIfce> localNetsIpv4;
 	std::vector<IpIfce>::iterator bridgeEnd = localNetsIpv4.end();
@@ -23,7 +24,7 @@ protected:
 	std::vector<IpIfce>::iterator moveBridges();
 
 public:
-	IpUtils() = default;
+	IpAddressChecker() = default;
 	bool isAddresExternalLocal(IPv4 addr);
 	void addIpIfce(IpIfce&& ifce);
 	void markBridge(int idx);
