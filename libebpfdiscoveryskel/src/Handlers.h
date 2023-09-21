@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0
 #pragma once
 
-#include "DataReading.h"
+#include "DataFuncs.h"
 #include "GlobalData.h"
 #include "Log.h"
 #include "Pid.h"
@@ -16,7 +16,7 @@
 #include <bpf/bpf_helpers.h>
 #include <bpf/bpf_tracing.h>
 
-__attribute__((always_inline)) inline static void handleAcceptIPv4Session(
+__attribute__((always_inline)) inline static void discoveryHandleAcceptIPv4Session(
 		const struct DiscoveryTrackedSessionKey tracked_session_key, const struct AcceptArgs* acceptArgsPtr, int addrlen) {
 	if (acceptArgsPtr->addrSize < sizeof(struct sockaddr_in) || addrlen != sizeof(struct sockaddr_in)) {
 		return;
@@ -24,7 +24,7 @@ __attribute__((always_inline)) inline static void handleAcceptIPv4Session(
 
 	struct DiscoverySession session = {};
 	discoverySessionFlagsSetIPv4(&session.meta.flags);
-	// session.timestamp will be initialized on the first read() call
+	// Session fields are initialized on session's first read() call
 
 	struct DiscoverySockIPv4 sockIPv4 = {};
 	bpf_probe_read(&sockIPv4.addr, sizeof(struct sockaddr_in), acceptArgsPtr->addr);
@@ -33,7 +33,7 @@ __attribute__((always_inline)) inline static void handleAcceptIPv4Session(
 	bpf_map_update_elem(&trackedSessionsMap, &tracked_session_key, &session, BPF_ANY);
 }
 
-__attribute__((always_inline)) inline static void handleAcceptIPv6Session(
+__attribute__((always_inline)) inline static void discoveryHandleAcceptIPv6Session(
 		const struct DiscoveryTrackedSessionKey tracked_session_key, const struct AcceptArgs* acceptArgsPtr, int addrlen) {
 	if (acceptArgsPtr->addrSize < sizeof(struct sockaddr_in6) || addrlen != sizeof(struct sockaddr_in6)) {
 		return;
@@ -71,55 +71,49 @@ __attribute__((always_inline)) inline static void discoveryHandleAccept(struct A
 
 	switch (saFamily) {
 	case AF_INET:
-		handleAcceptIPv4Session(trackedSessionKey, acceptArgsPtr, addrlen);
+		discoveryHandleAcceptIPv4Session(trackedSessionKey, acceptArgsPtr, addrlen);
 		break;
 	case AF_INET6:
-		handleAcceptIPv6Session(trackedSessionKey, acceptArgsPtr, addrlen);
+		discoveryHandleAcceptIPv6Session(trackedSessionKey, acceptArgsPtr, addrlen);
 		break;
 	}
 }
 
-__attribute__((always_inline)) inline static int session_init_fill_saddr_ipv4(
+__attribute__((always_inline)) inline static int sessionFillIPv4(
 		struct DiscoveryTrackedSessionKey* sessionKeyPtr, struct DiscoverySession* sessionPtr) {
-	struct sockaddr_in* addrPtr = (struct sockaddr_in*)bpf_map_lookup_elem(&trackedSessionSockIPv4Map, sessionKeyPtr);
-	if (addrPtr == NULL) {
+	struct sockaddr_in* sockipPtr = (struct sockaddr_in*)bpf_map_lookup_elem(&trackedSessionSockIPv4Map, sessionKeyPtr);
+	if (sockipPtr == NULL) {
 		DEBUG_PRINT("No IPv4 of tracked session. (id: %d)\n", sessionPtr->id);
 		return 1;
 	}
 
-	BPF_CORE_READ_INTO(&sessionPtr->meta.sourceIPData, addrPtr, sin_addr);
+	BPF_CORE_READ_INTO(&sessionPtr->meta.sourceIPData, sockipPtr, sin_addr);
 	bpf_map_delete_elem(&trackedSessionSockIPv4Map, sessionKeyPtr);
 	return 0;
 }
 
-__attribute__((always_inline)) inline static int session_init_fill_saddr_ipv6(
+__attribute__((always_inline)) inline static int sessionFillIPv6(
 		struct DiscoveryTrackedSessionKey* sessionKeyPtr, struct DiscoverySession* sessionPtr) {
-	struct sockaddr_in6* addr_ptr = (struct sockaddr_in6*)bpf_map_lookup_elem(&trackedSessionSockIPv6Map, sessionKeyPtr);
-	if (addr_ptr == NULL) {
+	struct sockaddr_in6* sockipPtr = (struct sockaddr_in6*)bpf_map_lookup_elem(&trackedSessionSockIPv6Map, sessionKeyPtr);
+	if (sockipPtr == NULL) {
 		DEBUG_PRINT("No IPv6 of tracked session. (id: %d)\n", sessionPtr->id);
 		return 1;
 	}
 
-	BPF_CORE_READ_INTO(&sessionPtr->meta.sourceIPData, addr_ptr, sin6_addr);
+	BPF_CORE_READ_INTO(&sessionPtr->meta.sourceIPData, sockipPtr, sin6_addr);
 	bpf_map_delete_elem(&trackedSessionSockIPv6Map, sessionKeyPtr);
 	return 0;
 }
 
-__attribute__((always_inline)) inline static int session_init_fill_saddr(
-		struct DiscoveryTrackedSessionKey* session_key_ptr, struct DiscoverySession* sessionPtr) {
+__attribute__((always_inline)) inline static int sessionFillIP(
+		struct DiscoveryTrackedSessionKey* sessionKeyPtr, struct DiscoverySession* sessionPtr) {
 	if (discoverySessionFlagsIsIPv4(sessionPtr->meta.flags)) {
-		return session_init_fill_saddr_ipv4(session_key_ptr, sessionPtr);
+		return sessionFillIPv4(sessionKeyPtr, sessionPtr);
 	} else if (discoverySessionFlagsIsIPv6(sessionPtr->meta.flags)) {
-		return session_init_fill_saddr_ipv6(session_key_ptr, sessionPtr);
+		return sessionFillIPv6(sessionKeyPtr, sessionPtr);
 	}
 
 	return -1;
-}
-
-__attribute__((always_inline)) inline static bool probe_buf_and_check_is_http_beginning(const char* buf, size_t length) {
-	// We collect only GET and POST requests. We expect request URI's to start with a slash as absolute urls are mainly used in
-	// requests to proxy servers.
-	return length >= MIN_HTTP_REQUEST_LENGTH && (dataReadingStreq(buf, "GET /", 5) || dataReadingStreq(buf, "POST /", 6));
 }
 
 __attribute__((always_inline)) inline static void discoveryHandleRead(
@@ -144,7 +138,7 @@ __attribute__((always_inline)) inline static void discoveryHandleRead(
 	}
 
 	if (sessionPtr->bufferCount == 0) {
-		if (!probe_buf_and_check_is_http_beginning(readArgsPtr->buf, bytesCount)) {
+		if (!dataProbeIsBeginningOfHttpRequest(readArgsPtr->buf, bytesCount)) {
 			deleteTrackedSession((struct DiscoveryTrackedSessionKey*)&event.dataKey, sessionPtr);
 			DEBUG_PRINT(
 					"Received data from session. Ignoring the session, as it doesn't look like an HTTP request. pid: `%d`, fd: `%d`, "
@@ -157,7 +151,7 @@ __attribute__((always_inline)) inline static void discoveryHandleRead(
 
 		sessionPtr->id = allSessionStatePtr->sessionCounter;
 		allSessionStatePtr->sessionCounter++;
-		session_init_fill_saddr((struct DiscoveryTrackedSessionKey*)&event.dataKey, sessionPtr);
+		sessionFillIP((struct DiscoveryTrackedSessionKey*)&event.dataKey, sessionPtr);
 	} else {
 		event.dataKey.bufferSeq = sessionPtr->bufferCount;
 	}

@@ -12,6 +12,23 @@
 struct {
 	__uint(type, BPF_MAP_TYPE_ARRAY);
 	__type(key, __u32);
+	__type(value, struct DiscoveryGlobalState);
+	__uint(max_entries, 1);
+} globalStateMap SEC(".maps");
+
+__attribute__((always_inline)) inline static struct DiscoveryGlobalState* getGlobalState() {
+	__u32 zero = 0;
+	return (struct DiscoveryGlobalState*)bpf_map_lookup_elem(&globalStateMap, &zero);
+}
+
+__attribute__((always_inline)) inline static void disableDiscoveryCollecting(struct DiscoveryGlobalState* discoveryGlobalStatePtr) {
+	DEBUG_PRINT("Discovery disabled.\n");
+	discoveryGlobalStatePtr->isCollectingDisabled = true;
+}
+
+struct {
+	__uint(type, BPF_MAP_TYPE_ARRAY);
+	__type(key, __u32);
 	__type(value, struct DiscoveryAllSessionState);
 	__uint(max_entries, 1);
 } allSessionStateMap SEC(".maps");
@@ -19,11 +36,6 @@ struct {
 __attribute__((always_inline)) inline static struct DiscoveryAllSessionState* getAllSessionState() {
 	__u32 zero = 0;
 	return (struct DiscoveryAllSessionState*)bpf_map_lookup_elem(&allSessionStateMap, &zero);
-}
-
-__attribute__((always_inline)) inline static void disableDiscoveryCollecting(struct DiscoveryGlobalState* discoveryGlobalStatePtr) {
-	DEBUG_PRINT("Discovery disabled.\n");
-	discoveryGlobalStatePtr->isCollectingDisabled = true;
 }
 
 struct {
@@ -39,22 +51,10 @@ __attribute__((always_inline)) inline static struct DiscoverySavedBuffer* newSav
 }
 
 struct {
-	__uint(type, BPF_MAP_TYPE_ARRAY);
-	__type(key, __u32);
-	__type(value, struct DiscoveryGlobalState);
-	__uint(max_entries, 1);
-} globalStateMap SEC(".maps");
-
-__attribute__((always_inline)) inline static struct DiscoveryGlobalState* getGlobalState() {
-	__u32 zero = 0;
-	return (struct DiscoveryGlobalState*)bpf_map_lookup_elem(&globalStateMap, &zero);
-}
-
-struct {
 	__uint(type, BPF_MAP_TYPE_HASH);
 	__type(key, struct DiscoverySavedBufferKey);
 	__type(value, struct DiscoverySavedBuffer);
-	__uint(max_entries, MAX_SESSIONS);
+	__uint(max_entries, DISCOVERY_MAX_SESSIONS);
 } savedBuffersMap SEC(".maps");
 
 __attribute__((always_inline)) inline static void deleteSavedSession(struct DiscoverySavedSessionKey* savedSessionKeyPtr) {
@@ -64,7 +64,7 @@ __attribute__((always_inline)) inline static void deleteSavedSession(struct Disc
 struct {
 	__uint(type, BPF_MAP_TYPE_QUEUE);
 	__type(value, struct DiscoveryEvent);
-	__uint(max_entries, EVENT_QUEUE_SIZE);
+	__uint(max_entries, DISCOVERY_EVENT_QUEUE_SIZE);
 } eventsToUserspaceQueueMap SEC(".maps");
 
 __attribute__((always_inline)) inline static int pushEventToUserspace(

@@ -65,7 +65,7 @@ HttpRequestParser::HttpRequestParser() : state{State::METHOD}, _length{0} {
 size_t HttpRequestParser::parse(std::string_view data) {
 	size_t i{0};
 	while (i < data.size()) {
-		if (_length > MAX_HTTP_REQUEST_LENGTH) {
+		if (_length > DISCOVERY_MAX_HTTP_REQUEST_LENGTH) {
 			set_invalid_state();
 			return i;
 		}
