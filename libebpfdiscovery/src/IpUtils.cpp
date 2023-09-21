@@ -20,6 +20,8 @@ static constexpr uint32_t ipB = 0x000010ac; // 172.16-31.*.*
 static constexpr uint32_t maskB = 0x0000f0ff;
 static constexpr uint32_t ipA = 0x0000000a; // 10.*.*.*
 static constexpr uint32_t maskA = 0x000000ff;
+static constexpr uint32_t ipLinkLocal = 0x0000fea9; // 169.254.*.*
+static constexpr uint32_t maskLinkLocal = 0x0000ffff;
 
 static void logError(std::string_view prefix) {
 	std::cout << prefix << ": " << strerror(errno) << "\n";
@@ -244,6 +246,10 @@ void IpUtils::printAll() {
 bool IpUtils::isAddresExternalLocal(IPv4 addr) {
 
 	if ((addr & maskA) != ipA && (addr & maskB) != ipB && (addr & maskC) != ipC) {
+		return false;
+	}
+
+	if ((addr & maskLinkLocal) == ipLinkLocal) {
 		return false;
 	}
 

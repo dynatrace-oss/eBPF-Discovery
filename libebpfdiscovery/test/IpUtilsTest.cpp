@@ -15,6 +15,7 @@ public:
 	}
 };
 
+
 TEST(IpUtils, LocalBridgeIp) {
 	IpUtilsTest u;
 	u.addIfceConfig({{{inet_addr("10.2.4.5")}, {}, 0x0000ffff, 0, true}, {{inet_addr("10.7.4.5")}, {}, 0x0000ffff, 0, false}});
@@ -24,7 +25,7 @@ TEST(IpUtils, LocalBridgeIp) {
 
 TEST(IpUtils, NOTLocalBridgeIp) {
 	IpUtilsTest u;
-	u.addIfceConfig({{{inet_addr("10.2..6.5")}, {}, 0x0000ffff, 0, true}});
+	u.addIfceConfig({{{inet_addr("10.2.6.5")}, {}, 0x0000ffff, 0, true}});
 	EXPECT_TRUE(u.isAddresExternalLocal(inet_addr("10.3.34.2")));
 }
 
@@ -41,4 +42,15 @@ TEST(IpUtils, SimpleClassBTest) {
 TEST(IpUtils, SimpleClassCtest) {
 	IpUtilsTest u;
 	EXPECT_TRUE(u.isAddresExternalLocal(inet_addr("10.2.4.5")));
+}
+
+TEST(IpUtils, SimpleLinkLocal) {
+	IpUtilsTest u;
+	EXPECT_FALSE(u.isAddresExternalLocal(inet_addr("169.254.76.6")));
+}
+
+
+TEST(IpUtils, SimplePublicIp) {
+	IpUtilsTest u;
+	EXPECT_FALSE(u.isAddresExternalLocal(inet_addr("170.254.76.6")));
 }
