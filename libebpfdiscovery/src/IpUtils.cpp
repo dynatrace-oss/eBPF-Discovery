@@ -117,10 +117,6 @@ static ebpfdiscovery::IpIfce parseIfce(void* data, size_t len) {
 		if (rta->rta_type == IFA_ADDRESS) {
 			ifce.ip.push_back(addr->s_addr);
 		}
-		/*
-		if (rta->rta_type == IFA_LOCAL) {
-			printf("local address:\t%s\n", inet_ntop(family, addr, ips, INET_ADDRSTRLEN));
-		}*/
 
 		if (rta->rta_type == IFA_BROADCAST) {
 			ifce.broadcast.push_back(addr->s_addr);
@@ -245,14 +241,14 @@ void IpUtils::printAll() {
 	}
 }
 
-bool IpUtils::isAddresExternalLocal(IPv4 ip) {
+bool IpUtils::isAddresExternalLocal(IPv4 addr) {
 
-	if ((ip & maskA) != ipA && (ip & maskB) != ipB && (ip & maskC) != ipC) {
+	if ((addr & maskA) != ipA && (addr & maskB) != ipB && (addr & maskC) != ipC) {
 		return false;
 	}
 
-	const bool bridgeRelated = std::any_of(localNetsIpv4.begin(), bridgeEnd, [ip](const auto& it) {
-		return std::any_of(it.ip.begin(), it.ip.end(), [ip, mask = it.mask](const auto& ip2) { return (ip & mask) == (ip2 & mask); });
+	const bool bridgeRelated = std::any_of(localNetsIpv4.begin(), bridgeEnd, [addr](const auto& it) {
+		return std::any_of(it.ip.begin(), it.ip.end(), [addr, mask = it.mask](const auto& ip) { return (addr & mask) == (ip & mask); });
 	});
 
 	if (bridgeRelated) {

@@ -15,22 +15,6 @@ public:
 	}
 };
 
-
-TEST(IpUtils, RawTest) {
-	IpUtils u;
-	u.readNetworks();
-	u.printAll();
-	const char* ip = "10.2.4.5";
-	std::cout << "E " << ip << " " << u.isAddresExternalLocal(inet_addr(ip)) << "\n";
-	ip = "172.17.4.5";
-	std::cout << "E " << ip << " " << u.isAddresExternalLocal(inet_addr(ip)) << "\n";
-	ip = "172.16.4.5";
-	std::cout << "E " << ip << " " << u.isAddresExternalLocal(inet_addr(ip)) << "\n";
-	ip = "192.168.4.5";
-	std::cout << "E " << ip << " " << u.isAddresExternalLocal(inet_addr(ip)) << "\n";
-	EXPECT_TRUE(true);
-}
-
 TEST(IpUtils, LocalBridgeIp) {
 	IpUtilsTest u;
 	u.addIfceConfig({{{inet_addr("10.2.4.5")}, {}, 0x0000ffff, 0, true}, {{inet_addr("10.7.4.5")}, {}, 0x0000ffff, 0, false}});

@@ -24,7 +24,7 @@ protected:
 
 public:
 	IpUtils() = default;
-	bool isAddresExternalLocal(IPv4 add);
+	bool isAddresExternalLocal(IPv4 addr);
 	void addIpIfce(IpIfce&& ifce);
 	void markBridge(int idx);
 	void printAll();
