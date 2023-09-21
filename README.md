@@ -16,12 +16,21 @@ clang
 ## Setup
 
 Build release:
+
 ```
 conan install . --build=missing -s build_type=Release
 cmake --preset conan-release -DBUILD_TESTS=OFF
 cmake --build --preset conan-release
 ```
+
+Install release:
+
+```
+DESTDIR=/usr/local cmake --install ./build/Release
+```
+
 Build debug:
+
 ```
 conan install . --build=missing -s build_type=Debug
 cmake --preset conan-debug -DTHIRDPARTY_MAKE_JOBS_COUNT=$((`nproc` / 2))

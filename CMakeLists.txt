@@ -102,4 +102,6 @@ add_subdirectory(libebpfdiscoveryshared)
 add_subdirectory(libebpfdiscoveryskel)
 add_subdirectory(libhttpparser)
 
+include(GNUInstallDirs)
 add_subdirectory(ebpfdiscoverysrv)
+install(TARGETS ebpfdiscoverysrv ebpfdiscoverysrv DESTINATION ${CMAKE_INSTALL_BINDIR})
