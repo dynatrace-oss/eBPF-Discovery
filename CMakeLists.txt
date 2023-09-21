@@ -54,11 +54,11 @@ project(
 
 set(BPF_C_FLAGS ${BPF_C_FLAGS} -DTARGET_BPF)
 
-# Set DEBUG macro in debug build
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DDEBUG")
-set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -DDEBUG")
+# Set DEBUG macro in debug build and add additional warnings
+set(EXTRA_DEBUG_FLAGS -DDEBUG -Wall -Wextra -Wno-unused-parameter -Wno-unused-value -Wno-missing-field-initializers)
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-	set(BPF_C_FLAGS ${BPF_C_FLAGS} -DDEBUG)
+	add_compile_options(${EXTRA_DEBUG_FLAGS})
+	set(BPF_C_FLAGS ${BPF_C_FLAGS} ${EXTRA_DEBUG_FLAGS})
 endif()
 
 set(Boost_USE_STATIC_LIBS ON)
