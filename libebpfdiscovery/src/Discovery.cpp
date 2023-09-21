@@ -134,9 +134,9 @@ void Discovery::handleCloseEvent(DiscoveryEvent& event) {
 
 int Discovery::bpfDiscoveryResumeCollecting() {
 	static uint32_t zero{0};
-	DiscoveryGlobalState shared_global_state;
+	DiscoveryGlobalState discoveryGlobalState{};
 	return bpf_map__update_elem(
-			bpf_obj->maps.globalStateMap, &zero, sizeof(zero), &shared_global_state, sizeof(shared_global_state), BPF_EXIST);
+			bpf_obj->maps.globalStateMap, &zero, sizeof(zero), &discoveryGlobalState, sizeof(discoveryGlobalState), BPF_EXIST);
 }
 
 int Discovery::bpfDiscoveryResetConfig() {

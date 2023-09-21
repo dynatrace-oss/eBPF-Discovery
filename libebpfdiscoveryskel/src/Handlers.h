@@ -170,7 +170,7 @@ __attribute__((always_inline)) inline static void discoveryHandleRead(
 		return;
 	}
 
-	if (bytesCount <= sizeof(savedBufferPtr->data)) {
+	if ((size_t)bytesCount <= sizeof(savedBufferPtr->data)) {
 		savedBufferPtr->length = bytesCount;
 	} else {
 		savedBufferPtr->length = sizeof(savedBufferPtr->data);

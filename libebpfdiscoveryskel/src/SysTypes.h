@@ -32,7 +32,7 @@ struct AcceptArgs {
 	socklen_t* addrlen;
 
 	// Size of sockaddr struct allocated by calling program
-	int addrSize;
+	size_t addrSize;
 };
 
 struct ReadArgs {
