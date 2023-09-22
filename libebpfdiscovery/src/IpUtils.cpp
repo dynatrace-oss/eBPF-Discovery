@@ -242,7 +242,7 @@ void IpAddressChecker::printAll() {
 	}
 }
 
-bool IpAddressChecker::isAddresExternalLocal(IPv4 addr) {
+bool IpAddressChecker::isAddressExternalLocal(IPv4 addr) {
 	const bool isPublic = ((addr & maskA) != ipA) && ((addr & maskB) != ipB) && ((addr & maskC) != ipC);
 
 	if (isPublic) {

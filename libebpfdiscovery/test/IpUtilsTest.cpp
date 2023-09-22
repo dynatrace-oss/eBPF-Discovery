@@ -21,37 +21,37 @@ TEST(IpUtils, LocalBridgeIp) {
 	IpAddressCheckerTest u;
 	u.addIfceConfig({{{inet_addr("10.2.4.5")}, {}, 0x0000ffff, 0, true}, {{inet_addr("10.7.4.5")}, {}, 0x0000ffff, 0, false}});
 	u.printAll();
-	EXPECT_FALSE(u.isAddresExternalLocal(inet_addr("10.2.6.5")));
+	EXPECT_FALSE(u.isAddressExternalLocal(inet_addr("10.2.6.5")));
 }
 
 TEST(IpUtils, NOTLocalBridgeIp) {
 	IpAddressCheckerTest u;
 	u.addIfceConfig({{{inet_addr("10.2.6.5")}, {}, 0x0000ffff, 0, true}});
-	EXPECT_TRUE(u.isAddresExternalLocal(inet_addr("10.3.34.2")));
+	EXPECT_TRUE(u.isAddressExternalLocal(inet_addr("10.3.34.2")));
 }
 
 TEST(IpUtils, SimpleClassATest) {
 	IpAddressCheckerTest u;
-	EXPECT_TRUE(u.isAddresExternalLocal(inet_addr("192.168.1.2")));
+	EXPECT_TRUE(u.isAddressExternalLocal(inet_addr("192.168.1.2")));
 }
 
 TEST(IpUtils, SimpleClassBTest) {
 	IpAddressCheckerTest u;
-	EXPECT_TRUE(u.isAddresExternalLocal(inet_addr("172.20.21.2")));
+	EXPECT_TRUE(u.isAddressExternalLocal(inet_addr("172.20.21.2")));
 }
 
 TEST(IpUtils, SimpleClassCtest) {
 	IpAddressCheckerTest u;
-	EXPECT_TRUE(u.isAddresExternalLocal(inet_addr("10.2.4.5")));
+	EXPECT_TRUE(u.isAddressExternalLocal(inet_addr("10.2.4.5")));
 }
 
 TEST(IpUtils, SimpleLinkLocal) {
 	IpAddressCheckerTest u;
-	EXPECT_FALSE(u.isAddresExternalLocal(inet_addr("169.254.76.6")));
+	EXPECT_FALSE(u.isAddressExternalLocal(inet_addr("169.254.76.6")));
 }
 
 
 TEST(IpUtils, SimplePublicIp) {
 	IpAddressCheckerTest u;
-	EXPECT_FALSE(u.isAddresExternalLocal(inet_addr("170.254.76.6")));
+	EXPECT_FALSE(u.isAddressExternalLocal(inet_addr("170.254.76.6")));
 }

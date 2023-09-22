@@ -25,7 +25,7 @@ protected:
 
 public:
 	IpAddressChecker() = default;
-	bool isAddresExternalLocal(IPv4 addr);
+	bool isAddressExternalLocal(IPv4 addr);
 	void addIpIfce(IpIfce&& ifce);
 	void markBridge(int idx);
 	void printAll();
