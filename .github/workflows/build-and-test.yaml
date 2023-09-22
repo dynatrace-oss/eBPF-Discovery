@@ -10,7 +10,6 @@ on:
 
 jobs:
   build-x86-64:
-    runs-on: ubuntu-latest
     steps:
       - name: Checkout source code of the repository
         uses: actions/checkout@v3

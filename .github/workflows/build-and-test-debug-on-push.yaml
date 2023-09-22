@@ -2,7 +2,7 @@ name: Build and test Debug binaries on push
 
 on:
   push:
-    branches-ignore:
+    branches:
       - main
 
 jobs:
