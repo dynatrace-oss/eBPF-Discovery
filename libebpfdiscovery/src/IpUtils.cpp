@@ -102,16 +102,11 @@ static int receive(int fd, sockaddr_nl* sa, void* buf, size_t len) {
 	return recvmsg(fd, &msg, 0);
 }
 
-static ebpfdiscovery::IpIfce parseIfce(void* data, size_t len) {
+static ebpfdiscovery::IpIfce parseIfceIPv4(void* data, size_t len) {
 	ebpfdiscovery::IpIfce ifce{};
 	ifaddrmsg* ifa = reinterpret_cast<ifaddrmsg*>(data);
-	if (ifa->ifa_family != AF_INET) {
-		return {};
-	}
-
 	ifce.index = ifa->ifa_index;
 	ifce.mask = htonl(-1 << (32 - ifa->ifa_prefixlen));
-	// int family = ifa->ifa_family;
 	rtattr* rta = reinterpret_cast<rtattr*>(IFA_RTA(data));
 
 	for (; RTA_OK(rta, len); rta = RTA_NEXT(rta, len)) {
@@ -127,6 +122,14 @@ static ebpfdiscovery::IpIfce parseIfce(void* data, size_t len) {
 	}
 
 	return ifce;
+}
+
+static ebpfdiscovery::IpIfce parseIfce(void* data, size_t len) {
+	if (reinterpret_cast<ifaddrmsg*>(data)->ifa_family != AF_INET) {
+		return {};
+	}
+
+	return parseIfceIPv4(data, len);
 }
 
 static int getIfIndex(void* data, size_t len) {
