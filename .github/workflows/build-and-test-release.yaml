@@ -1,0 +1,23 @@
+name: Build and test Release binaries on main branch
+
+on:
+  push:
+
+jobs:
+  build-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source code of the repository
+        uses: actions/checkout@v3
+
+      - name: Build and test
+        uses: ./.github/actions/build-and-test
+        with:
+          build-type: Release
+
+      - name: Zip built binaries
+        run: |
+          versionPrefix="version="
+          versionLine="$(cat ${{ github.workspace }}/version.properties)"
+          version="${versionLine#"$versionPrefix"}"
+          zip -r "${version}"-"$(date +%s)".zip ${{ github.workspace }}/build/Release

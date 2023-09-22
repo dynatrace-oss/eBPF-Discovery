@@ -1,10 +1,12 @@
-name: Build and test Release binaries on merge
+name: Build and test Debug binaries on other branches
 
 on:
   push:
+    branches:
+      - main
 
 jobs:
-  build-release:
+  build-debug:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout source code of the repository
@@ -13,4 +15,4 @@ jobs:
       - name: Build and test
         uses: ./.github/actions/build-and-test
         with:
-          build-type: Release
+          build-type: Debug
