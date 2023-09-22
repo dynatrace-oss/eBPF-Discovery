@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0
 #pragma once
 
-#include "DataFuncs.h"
+#include "DataFunctions.h"
 #include "GlobalData.h"
 #include "Log.h"
 #include "Pid.h"
