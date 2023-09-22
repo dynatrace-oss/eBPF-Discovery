@@ -1,0 +1,12 @@
+name: Build and test Release binaries on merge
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-release:
+    uses: ./.github/workflows/build-and-test.yaml
+    with:
+      build-type: Release
