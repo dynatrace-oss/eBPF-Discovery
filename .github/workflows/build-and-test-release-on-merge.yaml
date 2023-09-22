@@ -11,6 +11,6 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Build and test
-        uses: ./.github/actions/build-and-test.yaml
+        uses: ./.github/actions/action.yaml
         with:
           build-type: Release
