@@ -73,9 +73,9 @@ endif(NOT TARGET fmt)
 
 find_package(Protobuf REQUIRED)
 
-find_package(gsl REQUIRED)
-if(gsl_FOUND)
-	include_directories(${gsl_INCLUDE_DIRS})
+find_package(Microsoft.GSL REQUIRED)
+if(Microsoft.GSL_FOUND)
+	include_directories(${Microsoft.GSL_INCLUDE_DIRS})
 endif()
 
 if(BUILD_TESTS)
