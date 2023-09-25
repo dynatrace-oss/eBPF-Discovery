@@ -6,7 +6,7 @@
 #include <array>
 #include <cstring>
 #include <errno.h>
-#include <gsl/gsl_util>
+#include <gsl/util>
 #include <iostream>
 #include <linux/rtnetlink.h>
 #include <net/if.h>
@@ -64,7 +64,7 @@ static int sendBridgesRequest(int fd, sockaddr_nl* sa, int domain) {
 	struct {
 		struct nlmsghdr n;
 		struct ifinfomsg i;
-		char _[1024]; // required
+		char _[1024]; // space for rtattr array
 	} r{};
 
 	const char* dev_type = "bridge";
