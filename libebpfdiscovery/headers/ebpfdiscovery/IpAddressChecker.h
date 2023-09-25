@@ -30,5 +30,5 @@ public:
 	void markBridge(int idx);
 	bool readNetworks();
 };
-}
+} // namespace ebpfdiscovery
 

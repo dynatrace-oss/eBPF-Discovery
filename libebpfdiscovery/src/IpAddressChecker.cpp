@@ -255,4 +255,4 @@ bool IpAddressChecker::isAddressExternalLocal(IPv4 addr) {
 
 	return true;
 }
-}
+} // namespace ebpfdiscovery
