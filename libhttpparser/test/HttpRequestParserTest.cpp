@@ -23,35 +23,33 @@ std::vector<std::string> chunkString(const std::string_view str, int chunkSize) 
 }
 
 struct HttpRequestTestData {
-	std::vector<std::string> request_chunks;
+	std::vector<std::string> requestChunks;
 	std::string method;
 	std::string url;
 	std::string protocol;
 	std::string host;
-	std::string x_forwarded_for;
-	bool expect_finished;
-	size_t expect_total_bytes_parsed;
+	std::string xForwardedFor;
+	bool expectFinished;
+	size_t expectTotalBytesParsed;
 
 	HttpRequestTestData(
-			std::vector<std::string> request_chunks_ = {},
+			std::vector<std::string> requestChunks_ = {},
 			std::string method = "",
 			std::string url = "",
 			std::string protocol = "",
 			std::string host = "",
-			std::string x_forwarded_for = "",
-			bool expect_finished = true,
-			std::optional<size_t> expect_total_bytes_parsed_ = std::nullopt)
-			: request_chunks(std::move(request_chunks_)),
+			std::string xForwardedFor = "",
+			bool expectFinished = true,
+			std::optional<size_t> expectTotalBytesParsed_ = std::nullopt)
+			: requestChunks(std::move(requestChunks_)),
 			  method(std::move(method)),
 			  url(std::move(url)),
 			  protocol(std::move(protocol)),
 			  host(std::move(host)),
-			  x_forwarded_for(std::move(x_forwarded_for)),
-			  expect_finished(expect_finished),
-			  expect_total_bytes_parsed(expect_total_bytes_parsed_.value_or(
-					  std::accumulate(request_chunks.begin(), request_chunks.end(), 0, [](int sum, const std::string& str) {
-						  return sum + str.length();
-					  }))) {
+			  xForwardedFor(std::move(xForwardedFor)),
+			  expectFinished(expectFinished),
+			  expectTotalBytesParsed(expectTotalBytesParsed_.value_or(std::accumulate(
+					  requestChunks.begin(), requestChunks.end(), 0, [](int sum, const std::string& str) { return sum + str.length(); }))) {
 	}
 };
 
@@ -61,23 +59,23 @@ TEST_P(HttpRequestParserTest, TestValidRequest) {
 	const auto& testData{GetParam()};
 	HttpRequestParser parser;
 	size_t totalBytesParsed{0};
-	for (const auto& chunk : testData.request_chunks) {
+	for (const auto& chunk : testData.requestChunks) {
 		totalBytesParsed += parser.parse(chunk);
 	}
 
-	EXPECT_EQ(parser.is_finished(), testData.expect_finished);
-	EXPECT_FALSE(parser.is_invalid_state());
-	EXPECT_EQ(totalBytesParsed, testData.expect_total_bytes_parsed);
+	EXPECT_EQ(parser.isFinished(), testData.expectFinished);
+	EXPECT_FALSE(parser.isInvalidState());
+	EXPECT_EQ(totalBytesParsed, testData.expectTotalBytesParsed);
 	EXPECT_EQ(parser.result.method, testData.method);
 	EXPECT_EQ(parser.result.url, testData.url);
 	EXPECT_EQ(parser.result.protocol, testData.protocol);
 	EXPECT_EQ(parser.result.host, testData.host);
-	EXPECT_EQ(parser.result.x_forwarded_for, testData.x_forwarded_for);
+	EXPECT_EQ(parser.result.xForwardedFor, testData.xForwardedFor);
 }
 
 struct HttpRequestTestInvalidData {
-	std::vector<std::string> request_chunks;
-	size_t expect_total_bytes_parsed;
+	std::vector<std::string> requestChunks;
+	size_t expectTotalBytesParsed;
 };
 
 class HttpRequestParserTestInvalid : public ::testing::TestWithParam<HttpRequestTestInvalidData> {};
@@ -86,13 +84,13 @@ TEST_P(HttpRequestParserTestInvalid, testInvalidRequest) {
 	const auto& testData{GetParam()};
 	HttpRequestParser parser;
 	size_t totalBytesParsed{0};
-	for (const auto& chunk : testData.request_chunks) {
+	for (const auto& chunk : testData.requestChunks) {
 		totalBytesParsed += parser.parse(chunk);
 	}
 
-	EXPECT_TRUE(parser.is_finished());
-	EXPECT_TRUE(parser.is_invalid_state());
-	EXPECT_EQ(totalBytesParsed, testData.expect_total_bytes_parsed);
+	EXPECT_TRUE(parser.isFinished());
+	EXPECT_TRUE(parser.isInvalidState());
+	EXPECT_EQ(totalBytesParsed, testData.expectTotalBytesParsed);
 }
 
 INSTANTIATE_TEST_CASE_P(

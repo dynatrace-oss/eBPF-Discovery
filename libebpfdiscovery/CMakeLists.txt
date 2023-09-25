@@ -3,7 +3,6 @@ list(
 	SOURCES
 	src/Config.cpp
 	src/Discovery.cpp
-	src/Log.cpp
 	src/Session.cpp
 	src/StringFunctions.cpp
 )

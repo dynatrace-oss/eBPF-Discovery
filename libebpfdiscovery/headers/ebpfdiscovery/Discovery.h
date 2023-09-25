@@ -25,6 +25,7 @@ public:
 	Discovery(const DiscoveryConfig config);
 	~Discovery();
 
+	bool isLoaded() noexcept;
 	void load();
 	void unload() noexcept;
 
@@ -43,21 +44,22 @@ private:
 	void handleNewEvent(DiscoveryEvent event);
 
 	void handleNewDataEvent(DiscoveryEvent& event);
-	void handleBufferLookupSuccess(DiscoverySavedBuffer& saved_buffer, DiscoveryEvent& event);
-	void handleExistingSession(SavedSessionsCacheType::iterator it, std::string_view& buffer_view, DiscoveryEvent& event);
-	void handleNewSession(std::string_view& buffer_view, DiscoveryEvent& event);
+	void handleBufferLookupSuccess(DiscoverySavedBuffer& savedBuffer, DiscoveryEvent& event);
+	void handleExistingSession(SavedSessionsCacheType::iterator it, std::string_view& bufferView, DiscoveryEvent& event);
+	void handleNewSession(std::string_view& bufferView, DiscoveryEvent& event);
 	void handleCloseEvent(DiscoveryEvent& event);
-	void handleSuccessfulParse(const Session& session, const DiscoverySessionMeta& session_meta);
+	void handleSuccessfulParse(const Session& session, const DiscoverySessionMeta& sessionMeta);
 
 	int bpfDiscoveryResetConfig();
 	int bpfDiscoveryResumeCollecting();
-	int bpfDiscoveryDeleteSession(const DiscoveryTrackedSessionKey& tracked_session_key);
+	int bpfDiscoveryDeleteSession(const DiscoveryTrackedSessionKey& trackedSessionKey);
 
 	DiscoveryConfig config;
 
 	std::atomic<bool> running;
-	bpf_object_open_opts bpf_open_opts;
-	discovery_bpf* bpf_obj;
+	std::atomic<bool> loaded;
+	discovery_bpf* discoverySkel;
+	bpf_object_open_opts discoverySkelOpenOpts;
 	SavedSessionsCacheType savedSessions;
 };
 
