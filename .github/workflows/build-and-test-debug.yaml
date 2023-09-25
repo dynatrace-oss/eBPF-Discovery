@@ -1,4 +1,4 @@
-name: Build and test Debug binaries
+name: Build and test Debug
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
       - main
 
 jobs:
-  build-debug:
+  debug:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout source code of the repository
@@ -23,7 +23,7 @@ jobs:
       - name: Install requirements
         uses: ./.github/actions/install-requirements
 
-      - name: Configure Debug
+      - name: Configure
         shell: bash
         run: cmake --preset conan-${{ env.LOWERCASE_BUILD_TYPE }}
 

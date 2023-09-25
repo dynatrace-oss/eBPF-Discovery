@@ -1,10 +1,10 @@
-name: Build and test Release binaries
+name: Build, test and publish Release
 
 on:
   push:
 
 jobs:
-  build-release:
+  release:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout source code of the repository
@@ -21,7 +21,7 @@ jobs:
       - name: Install requirements
         uses: ./.github/actions/install-requirements
 
-      - name: Configure Release
+      - name: Configure
         shell: bash
         run: cmake --preset conan-${{ env.LOWERCASE_BUILD_TYPE }} -DBUILD_TESTS=OFF
 
