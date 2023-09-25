@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 #pragma once
 
-#include "DataReading.h"
 #include "GlobalData.h"
 #include "Handlers.h"
 #include "SysPrefixMacro.h"
@@ -23,14 +22,14 @@ struct {
 	__uint(type, BPF_MAP_TYPE_HASH);
 	__type(key, __u64); // pid_tgid
 	__type(value, struct AcceptArgs);
-	__uint(max_entries, MAX_SESSIONS);
+	__uint(max_entries, DISCOVERY_MAX_SESSIONS);
 } runningAcceptArgsMap SEC(".maps");
 
 struct {
 	__uint(type, BPF_MAP_TYPE_HASH);
 	__type(key, __u64); // pid_tgid
 	__type(value, struct ReadArgs);
-	__uint(max_entries, MAX_SESSIONS);
+	__uint(max_entries, DISCOVERY_MAX_SESSIONS);
 } runningReadArgsMap SEC(".maps");
 
 /*
@@ -94,7 +93,7 @@ __attribute__((always_inline)) inline static int handleSysAcceptExit(int fd) {
 		return 0;
 	}
 
-	discoveryHandleAccept(acceptArgsPtr, fd);
+	handleAccept(acceptArgsPtr, fd);
 
 	bpf_map_delete_elem(&runningAcceptArgsMap, &pidTgid);
 	return 0;
@@ -154,7 +153,7 @@ __attribute__((always_inline)) inline static int handleSysReadExit(ssize_t bytes
 		return 0;
 	}
 
-	discoveryHandleRead(globalStatePtr, allSessionStatePtr, readArgsPtr, bytesCount);
+	handleRead(globalStatePtr, allSessionStatePtr, readArgsPtr, bytesCount);
 	bpf_map_delete_elem(&runningReadArgsMap, &pidTgid);
 
 	return 0;
@@ -171,7 +170,7 @@ __attribute__((always_inline)) inline static int handleSysCloseEntry(int fd) {
 		return 0;
 	};
 
-	discoveryHandleClose(globalStatePtr, allSessionStatePtr, fd);
+	handleClose(globalStatePtr, allSessionStatePtr, fd);
 	return 0;
 }
 

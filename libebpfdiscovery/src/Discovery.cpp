@@ -2,7 +2,7 @@
 
 #include "ebpfdiscovery/Discovery.h"
 
-#include "ebpfdiscovery/Log.h"
+#include "StringFunctions.h"
 #include "ebpfdiscovery/Session.h"
 
 extern "C" {
@@ -24,10 +24,27 @@ extern "C" {
 
 namespace ebpfdiscovery {
 
+static void printSession(const Session& session, const DiscoverySessionMeta& meta) {
+	const auto& request{session.parser.result};
+	std::cout << request.method << " " << request.host << request.url;
+
+	if (const auto& xForwardedFor{request.xForwardedFor}; !xForwardedFor.empty()) {
+		std::cout << " X-Forwarded-For: " << '"' << xForwardedFor << '"';
+	} else if (discoverySessionFlagsIsIPv4(meta.flags)) {
+		if (auto srcIpv4{ipv4ToString(meta.sourceIPData)}; !srcIpv4.empty())
+			std::cout << " srcIpv4: " << '"' << srcIpv4 << '"';
+	} else if (discoverySessionFlagsIsIPv6(meta.flags)) {
+		if (auto srcIpv6{ipv6ToString(meta.sourceIPData)}; !srcIpv6.empty())
+			std::cout << " srcIpv6: " << '"' << srcIpv6 << '"';
+	}
+
+	std::cout << '\n';
+}
+
 Discovery::Discovery() : Discovery(DiscoveryConfig{}) {
 }
 
-Discovery::Discovery(const DiscoveryConfig config) : bpf_open_opts{.sz = sizeof(bpf_open_opts)}, savedSessions(MAX_SESSIONS) {
+Discovery::Discovery(const DiscoveryConfig config) : savedSessions(DISCOVERY_MAX_SESSIONS) {
 }
 
 Discovery::~Discovery() {
@@ -35,7 +52,7 @@ Discovery::~Discovery() {
 }
 
 int Discovery::run() {
-	if (bpf_obj == nullptr) {
+	if (!isLoaded()) {
 		return -1;
 	}
 
@@ -51,7 +68,7 @@ int Discovery::run() {
 
 void Discovery::fetchEvents() {
 	DiscoveryEvent event;
-	while (bpf_map__lookup_and_delete_elem(bpf_obj->maps.eventsToUserspaceQueueMap, NULL, 0, &event, sizeof(event), BPF_ANY) == 0) {
+	while (bpf_map__lookup_and_delete_elem(discoverySkel->maps.eventsToUserspaceQueueMap, NULL, 0, &event, sizeof(event), BPF_ANY) == 0) {
 		handleNewEvent(std::move(event));
 	}
 }
@@ -68,7 +85,12 @@ void Discovery::handleNewEvent(DiscoveryEvent event) {
 void Discovery::handleNewDataEvent(DiscoveryEvent& event) {
 	DiscoverySavedBuffer savedBuffer;
 	auto lookup_result{bpf_map__lookup_elem(
-			bpf_obj->maps.savedBuffersMap, &event.dataKey, sizeof(DiscoverySavedBufferKey), &savedBuffer, sizeof(savedBuffer), BPF_ANY)};
+			discoverySkel->maps.savedBuffersMap,
+			&event.dataKey,
+			sizeof(DiscoverySavedBufferKey),
+			&savedBuffer,
+			sizeof(savedBuffer),
+			BPF_ANY)};
 	if (lookup_result != 0) {
 		return;
 	}
@@ -76,28 +98,28 @@ void Discovery::handleNewDataEvent(DiscoveryEvent& event) {
 	handleBufferLookupSuccess(savedBuffer, event);
 }
 
-void Discovery::handleBufferLookupSuccess(DiscoverySavedBuffer& saved_buffer, DiscoveryEvent& event) {
-	std::string_view buffer_view(saved_buffer.data, saved_buffer.length);
-	bpf_map__delete_elem(bpf_obj->maps.savedBuffersMap, &event.dataKey, sizeof(DiscoverySavedBufferKey), BPF_ANY);
+void Discovery::handleBufferLookupSuccess(DiscoverySavedBuffer& savedBuffer, DiscoveryEvent& event) {
+	std::string_view bufferView(savedBuffer.data, savedBuffer.length);
+	bpf_map__delete_elem(discoverySkel->maps.savedBuffersMap, &event.dataKey, sizeof(DiscoverySavedBufferKey), BPF_ANY);
 
 	auto it{savedSessions.find(event.dataKey)};
 	if (it != savedSessions.end()) {
-		handleExistingSession(it, buffer_view, event);
+		handleExistingSession(it, bufferView, event);
 		return;
 	}
 
-	handleNewSession(buffer_view, event);
+	handleNewSession(bufferView, event);
 }
 
-void Discovery::handleExistingSession(SavedSessionsCacheType::iterator it, std::string_view& buffer_view, DiscoveryEvent& event) {
-	savedSessions.update(it, [buffer_view = std::move(buffer_view)](auto& session) { session.parser.parse(std::move(buffer_view)); });
-	if (it->second.parser.is_invalid_state()) {
+void Discovery::handleExistingSession(SavedSessionsCacheType::iterator it, std::string_view& bufferView, DiscoveryEvent& event) {
+	savedSessions.update(it, [bufferView = std::move(bufferView)](auto& session) { session.parser.parse(std::move(bufferView)); });
+	if (it->second.parser.isInvalidState()) {
 		bpfDiscoveryDeleteSession(event.dataKey);
 		savedSessions.erase(it);
 		return;
 	}
 
-	if (!it->second.parser.is_finished()) {
+	if (!it->second.parser.isFinished()) {
 		// We expect more data buffers to come
 		return;
 	}
@@ -106,20 +128,20 @@ void Discovery::handleExistingSession(SavedSessionsCacheType::iterator it, std::
 	savedSessions.update(it, [](auto& session) { session.reset(); });
 }
 
-void Discovery::handleNewSession(std::string_view& buffer_view, DiscoveryEvent& event) {
+void Discovery::handleNewSession(std::string_view& bufferView, DiscoveryEvent& event) {
 	Session session;
-	session.parser.parse(std::move(buffer_view));
-	if (session.parser.is_invalid_state()) {
+	session.parser.parse(std::move(bufferView));
+	if (session.parser.isInvalidState()) {
 		bpfDiscoveryDeleteSession(event.dataKey);
 		return;
 	}
 
-	if (!session.parser.is_finished() && !discoveryEventFlagsIsNoMoreData(event.flags)) {
+	if (!session.parser.isFinished() && !discoveryEventFlagsIsNoMoreData(event.flags)) {
 		saveSession(event.dataKey, std::move(session));
 		return;
 	}
 
-	if (!session.parser.is_finished()) {
+	if (!session.parser.isFinished()) {
 		return;
 	}
 
@@ -134,43 +156,54 @@ void Discovery::handleCloseEvent(DiscoveryEvent& event) {
 
 int Discovery::bpfDiscoveryResumeCollecting() {
 	static uint32_t zero{0};
-	DiscoveryGlobalState shared_global_state;
+	DiscoveryGlobalState discoveryGlobalState{};
 	return bpf_map__update_elem(
-			bpf_obj->maps.globalStateMap, &zero, sizeof(zero), &shared_global_state, sizeof(shared_global_state), BPF_EXIST);
+			discoverySkel->maps.globalStateMap, &zero, sizeof(zero), &discoveryGlobalState, sizeof(discoveryGlobalState), BPF_EXIST);
 }
 
 int Discovery::bpfDiscoveryResetConfig() {
 	return bpfDiscoveryResumeCollecting();
 }
 
+bool Discovery::isLoaded() noexcept {
+	return discoverySkel != nullptr && loaded;
+}
+
 void Discovery::load() {
-	if (int res{ensure_core_btf(&bpf_open_opts)}) {
+	LIBBPF_OPTS(bpf_object_open_opts, openOpts);
+	discoverySkelOpenOpts = openOpts;
+
+	if (int res{ensure_core_btf(&openOpts)}) {
 		throw std::runtime_error("Failed to fetch necessary BTF for CO-RE: " + std::string(strerror(-res)));
 	}
 
-	bpf_obj = discovery_bpf__open_opts(&bpf_open_opts);
-	if (bpf_obj == nullptr) {
+	discoverySkel = discovery_bpf__open_opts(&openOpts);
+	if (discoverySkel == nullptr) {
 		throw std::runtime_error("Failed to open BPF object.");
 	}
 
-	if (int res{discovery_bpf__load(bpf_obj)}) {
+	if (int res{discovery_bpf__load(discoverySkel)}) {
 		throw std::runtime_error("Failed to load BPF object: " + std::to_string(res));
 	}
 
-	if (int res{discovery_bpf__attach(bpf_obj)}) {
+	if (int res{discovery_bpf__attach(discoverySkel)}) {
 		throw std::runtime_error("Failed to attach BPF object: " + std::to_string(res));
 	}
 
 	if (int res{bpfDiscoveryResumeCollecting()}) {
 		throw std::runtime_error("Failed to set config of BPF program: " + std::to_string(res));
 	}
+
+	loaded = true;
 }
 
 void Discovery::unload() noexcept {
-	if (bpf_obj != nullptr) {
-		discovery_bpf__destroy(bpf_obj);
+	stopRun();
+	loaded = false;
+	if (discoverySkel != nullptr) {
+		discovery_bpf__destroy(discoverySkel);
 	}
-	cleanup_core_btf(&bpf_open_opts);
+	cleanup_core_btf(&discoverySkelOpenOpts);
 }
 
 void Discovery::stopRun() {
@@ -181,12 +214,12 @@ void Discovery::handleSuccessfulParse(const Session& session, const DiscoverySes
 	printSession(session, meta);
 }
 
-void Discovery::saveSession(const DiscoverySavedSessionKey& session_key, const Session& session) {
-	savedSessions.insert(session_key, session);
+void Discovery::saveSession(const DiscoverySavedSessionKey& sessionKey, const Session& session) {
+	savedSessions.insert(sessionKey, session);
 }
 
-int Discovery::bpfDiscoveryDeleteSession(const DiscoveryTrackedSessionKey& tracked_session_key) {
-	return bpf_map__delete_elem(bpf_obj->maps.trackedSessionsMap, &tracked_session_key, sizeof(tracked_session_key), BPF_ANY);
+int Discovery::bpfDiscoveryDeleteSession(const DiscoveryTrackedSessionKey& trackedSessionKey) {
+	return bpf_map__delete_elem(discoverySkel->maps.trackedSessionsMap, &trackedSessionKey, sizeof(trackedSessionKey), BPF_ANY);
 }
 
 } // namespace ebpfdiscovery

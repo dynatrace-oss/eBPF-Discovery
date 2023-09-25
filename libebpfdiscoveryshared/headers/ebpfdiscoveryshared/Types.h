@@ -42,7 +42,7 @@ struct DiscoverySockIPv6 {
 
 struct DiscoverySavedBuffer {
 	__u32 length;
-	char data[BUFFER_MAX_DATA_SIZE];
+	char data[DISCOVERY_BUFFER_MAX_DATA_SIZE];
 };
 
 /*
