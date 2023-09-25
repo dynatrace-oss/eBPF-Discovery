@@ -19,7 +19,6 @@ public:
 TEST(IpUtils, LocalBridgeIp) {
 	IpAddressCheckerTest u;
 	u.addIfceConfig({{{inet_addr("10.2.4.5")}, {}, 0x0000ffff, 0, true}, {{inet_addr("10.7.4.5")}, {}, 0x0000ffff, 0, false}});
-	u.printAll();
 	EXPECT_FALSE(u.isAddressExternalLocal(inet_addr("10.2.6.5")));
 }
 
