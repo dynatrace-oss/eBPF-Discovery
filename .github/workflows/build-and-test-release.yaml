@@ -20,7 +20,7 @@ jobs:
           versionPropertiesPath="${{ github.workspace }}/version.properties"
           versionString="$(cat "${versionPropertiesPath}")"
           versionTag="version="
-          version="$(printf "%s" "${versionString}" | sed -e "s/^"$versionTag"//")"
+          version="$(printf "%s" "${versionString}" | sed -e "s/^"${versionTag}"//")"
           artifactName="${version}"-"$(date +%s)".zip
           
           buildPath=${{ github.workspace }}/build/Release 
