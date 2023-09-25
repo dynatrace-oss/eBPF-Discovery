@@ -11,13 +11,13 @@
 
 static ebpfdiscovery::Discovery discoveryInstance;
 
-std::atomic<bool> is_shutting_down;
+std::atomic<bool> isShuttingDown;
 
 static void handleUnixExitSignal(int signo) {
-	if (is_shutting_down) {
+	if (isShuttingDown) {
 		return;
 	}
-	is_shutting_down = true;
+	isShuttingDown = true;
 
 	discoveryInstance.stopRun();
 }
