@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-#include "ebpfdiscovery/IpUtils.h"
+#include "ebpfdiscovery/IpAddressChecker.h"
 #include <arpa/inet.h>
 #include <gtest/gtest.h>
 #include <initializer_list>
@@ -15,7 +15,6 @@ public:
 		bridgeEnd = moveBridges();
 	}
 };
-
 
 TEST(IpUtils, LocalBridgeIp) {
 	IpAddressCheckerTest u;

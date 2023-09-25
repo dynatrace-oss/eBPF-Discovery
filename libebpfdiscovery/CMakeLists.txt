@@ -3,7 +3,7 @@ list(
 	SOURCES
 	src/Config.cpp
 	src/Discovery.cpp
-	src/IpUtils.cpp
+	src/IpAddressChecker.cpp
 	src/Log.cpp
 	src/Session.cpp
 	src/StringFunctions.cpp
@@ -22,7 +22,7 @@ target_link_libraries(${TARGET} httpparser)
 target_link_libraries(${TARGET} ebpfdiscoveryproto)
 
 if(BUILD_TESTS)
-	list(APPEND TEST_SOURCES test/StringFunctionsTest.cpp test/LRUCacheTest.cpp test/IpUtilsTest.cpp)
+	list(APPEND TEST_SOURCES test/StringFunctionsTest.cpp test/LRUCacheTest.cpp test/IpAddressCheckerTest.cpp)
 	set(TEST_TARGET test${TARGET})
 
 	add_executable(${TEST_TARGET} ${TEST_SOURCES})
