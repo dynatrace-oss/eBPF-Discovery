@@ -28,7 +28,6 @@ public:
 	bool isAddressExternalLocal(IPv4 addr);
 	void addIpIfce(IpIfce&& ifce);
 	void markBridge(int idx);
-	void printAll();
 	bool readNetworks();
 };
 }

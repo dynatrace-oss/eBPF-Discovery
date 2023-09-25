@@ -234,17 +234,6 @@ void IpAddressChecker::markBridge(int idx) {
 	ifc->isLocalBridge = true;
 }
 
-void IpAddressChecker::printAll() {
-	for (const auto& el : localNetsIpv4) {
-		std::cout << el.index << " " << std::hex << "0x" << el.mask << " " << el.isLocalBridge << " ";
-		for (const auto addr : el.ip) {
-			char ips[INET6_ADDRSTRLEN];
-			std::cout << inet_ntop(AF_INET, &addr, ips, INET6_ADDRSTRLEN) << " " << std::hex << addr;
-		}
-		std::cout << "\n";
-	}
-}
-
 bool IpAddressChecker::isAddressExternalLocal(IPv4 addr) {
 	const bool isPublic = ((addr & maskA) != ipA) && ((addr & maskB) != ipB) && ((addr & maskC) != ipC);
 
