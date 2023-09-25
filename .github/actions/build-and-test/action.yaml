@@ -22,8 +22,8 @@ runs:
       shell: bash
       run: |
         buildType=${{ inputs.build-type }}
-        echo "CAPITALISED_BUILD_TYPE="${buildType}"" >> $GITHUB_ENV
-        echo "LOWERCASE_BUILD_TYPE="${buildType,,}"" >> $GITHUB_ENV
+        printf "%s" "CAPITALISED_BUILD_TYPE="${buildType}"" >> $GITHUB_ENV
+        printf "%s" "LOWERCASE_BUILD_TYPE="${buildType,,}"" >> $GITHUB_ENV
 
     - name: Install requirements
       shell: bash

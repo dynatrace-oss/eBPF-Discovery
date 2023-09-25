@@ -17,7 +17,13 @@ jobs:
 
       - name: Zip built binaries
         run: |
-          versionPrefix="version="
-          versionLine="$(cat ${{ github.workspace }}/version.properties)"
-          version="${versionLine#"$versionPrefix"}"
-          zip -r "${version}"-"$(date +%s)".zip ${{ github.workspace }}/build/Release
+          versionPropertiesPath="${{ github.workspace }}/version.properties"
+          versionString="$(cat "${versionPropertiesPath}")"
+          versionTag="version="
+          version="$(printf "%s" "${versionString}" | sed -e "s/^"$versionTag"//")"
+          artifactName="${version}"-"$(date +%s)".zip
+          
+          buildPath=${{ github.workspace }}/build/Release 
+          licensePath=${{ github.workspace }}/LICENSE
+          
+          zip -r "${artifactName}" "${buildPath}" "${licensePath}"
