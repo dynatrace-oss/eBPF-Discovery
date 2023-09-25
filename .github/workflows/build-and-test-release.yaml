@@ -1,4 +1,4 @@
-name: Build and test Release binaries on main branch
+name: Build and test Release binaries
 
 on:
   push:
@@ -10,10 +10,26 @@ jobs:
       - name: Checkout source code of the repository
         uses: actions/checkout@v3
 
-      - name: Build and test
-        uses: ./.github/actions/build-and-test
+      - name: Update packages
+        uses: ./.github/actions/update-packages
+
+      - name: Set environment variables
+        uses: ./.github/actions/set-environment-variables
         with:
           build-type: Release
+
+      - name: Install requirements
+        uses: ./.github/actions/install-requirements
+
+      - name: Configure Release
+        shell: bash
+        run: cmake --preset conan-${{ env.LOWERCASE_BUILD_TYPE }} -DBUILD_TESTS=OFF
+
+      - name: Build
+        uses: ./.github/actions/build
+
+      - name: Test
+        uses: ./.github/actions/build
 
       - name: Zip built binaries
         run: |

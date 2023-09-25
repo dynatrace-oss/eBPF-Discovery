@@ -1,0 +1,8 @@
+name: Test
+
+runs:
+  using: composite
+  steps:
+    - name: Test
+      shell: bash
+      run: ctest --preset conan-${{ env.LOWERCASE_BUILD_TYPE }}
