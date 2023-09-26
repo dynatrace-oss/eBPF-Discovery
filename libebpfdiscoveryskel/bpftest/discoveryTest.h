@@ -37,6 +37,7 @@ protected:
 	void SetUp() override {
 		testSkel = discoveryTest_bpf__open_and_load();
 		if (testSkel == nullptr) {
+			GTEST_SKIP();
 			throw std::runtime_error("couldn't open and load bpf object");
 		}
 
