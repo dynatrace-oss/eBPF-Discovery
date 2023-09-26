@@ -26,7 +26,7 @@ cmake --build --preset conan-release
 Install release:
 
 ```
-DESTDIR=/usr/local cmake --install ./build/Release
+DESTDIR=/ cmake --install <build dir> --prefix /usr/local
 ```
 
 Build debug:
