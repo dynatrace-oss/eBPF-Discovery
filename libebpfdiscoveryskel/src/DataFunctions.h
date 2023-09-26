@@ -7,12 +7,12 @@
 
 #include <bpf/bpf_helpers.h>
 
-__attribute__((always_inline)) inline static int dataProbeIsEqualToString(const char* src, const char* str, size_t len) {
+__attribute__((always_inline)) inline static size_t dataProbeEqualToString(const char* src, const char* str, size_t len) {
 	char ch;
 	for (size_t i = 0; i < len; ++i) {
-		int result = bpf_probe_read(&ch, sizeof(char), (char*)src + i);
-		if (result < 0) {
-			return result;
+		int res = bpf_probe_read(&ch, sizeof(char), (char*)src + i);
+		if (res < 0) {
+			return res;
 		}
 
 		if (ch != str[i] || ch == '\0') {
@@ -26,5 +26,5 @@ __attribute__((always_inline)) inline static bool dataProbeIsBeginningOfHttpRequ
 	// We expect only GET and POST requests. We expect request URI's to start with a slash as absolute urls are mainly used in
 	// requests to proxy servers.
 	return len >= DISCOVERY_MIN_HTTP_REQUEST_LENGTH &&
-		   (dataProbeIsEqualToString(ptr, "GET /", 5) || dataProbeIsEqualToString(ptr, "POST /", 6));
+		   (dataProbeEqualToString(ptr, "GET /", 5) == 5 || dataProbeEqualToString(ptr, "POST /", 6) == 6);
 }
