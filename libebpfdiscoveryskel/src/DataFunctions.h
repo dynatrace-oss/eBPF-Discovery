@@ -7,7 +7,7 @@
 
 #include <bpf/bpf_helpers.h>
 
-__attribute__((always_inline)) inline static size_t dataProbeEqualToString(const char* src, const char* str, size_t len) {
+__attribute__((always_inline)) inline static int dataProbeEqualToString(const char* src, const char* str, size_t len) {
 	char ch;
 	for (size_t i = 0; i < len; ++i) {
 		int res = bpf_probe_read(&ch, sizeof(char), (char*)src + i);

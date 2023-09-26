@@ -13,7 +13,7 @@ struct HttpRequest {
 	std::string url;
 	std::string protocol;
 	std::string host;
-	std::string x_forwarded_for;
+	std::string xForwardedFor;
 
 	HttpRequest();
 	void clear();
@@ -26,8 +26,8 @@ public:
 	// Parse passed data while advancing the state machine
 	size_t parse(std::string_view data);
 
-	bool is_invalid_state() const;
-	bool is_finished() const;
+	bool isInvalidState() const;
+	bool isFinished() const;
 
 	void reset();
 
@@ -51,26 +51,26 @@ public:
 private:
 	State state;
 
-	void set_invalid_state();
-	void set_finished_state();
+	void setInvalidState();
+	void setFinishedState();
 
-	void handle_char(const char ch);
-	void handle_char_method(const char ch);
-	void handle_char_space_before_url(const char ch);
-	void handle_char_url(const char ch);
-	void handle_char_space_before_protocol(const char ch);
-	void handle_char_protocol(const char ch);
-	void handle_char_header_newline(const char ch);
-	void handle_char_header_key(const char ch);
-	void handle_char_space_before_header_value(const char ch);
-	void handle_char_header_value(const char ch);
-	void handle_char_headers_end(const char ch);
+	void handleChar(const char ch);
+	void handleCharMethod(const char ch);
+	void handleCharSpaceBeforeUrl(const char ch);
+	void handleCharUrl(const char ch);
+	void handleCharSpaceBeforeProtocol(const char ch);
+	void handleCharProtocol(const char ch);
+	void handleCharHeaderNewline(const char ch);
+	void handleCharHeaderKey(const char ch);
+	void handleCharSpaceBeforeHeaderValue(const char ch);
+	void handleCharHeaderValue(const char ch);
+	void handleCharHeadersEnd(const char ch);
 
-	bool is_current_header_key_host();
-	bool is_current_header_key_x_forwarded_for();
+	bool isCurrentHeaderKeyHost();
+	bool isCurrentHeaderKeyXForwardedFor();
 
 	std::string currentHeaderKey;
-	size_t _length;
+	size_t length;
 };
 
 } // namespace httpparser

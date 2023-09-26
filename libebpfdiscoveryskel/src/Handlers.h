@@ -16,8 +16,8 @@
 #include <bpf/bpf_helpers.h>
 #include <bpf/bpf_tracing.h>
 
-__attribute__((always_inline)) inline static void discoveryHandleAcceptIPv4Session(
-		const struct DiscoveryTrackedSessionKey tracked_session_key, const struct AcceptArgs* acceptArgsPtr, int addrlen) {
+__attribute__((always_inline)) inline static void handleAcceptIPv4Session(
+		const struct DiscoveryTrackedSessionKey trackedSessionKey, const struct AcceptArgs* acceptArgsPtr, int addrlen) {
 	if (acceptArgsPtr->addrSize < sizeof(struct sockaddr_in) || addrlen != sizeof(struct sockaddr_in)) {
 		return;
 	}
@@ -29,12 +29,12 @@ __attribute__((always_inline)) inline static void discoveryHandleAcceptIPv4Sessi
 	struct DiscoverySockIPv4 sockIPv4 = {};
 	bpf_probe_read(&sockIPv4.addr, sizeof(struct sockaddr_in), acceptArgsPtr->addr);
 
-	bpf_map_update_elem(&trackedSessionSockIPv4Map, &tracked_session_key, &sockIPv4, BPF_ANY);
-	bpf_map_update_elem(&trackedSessionsMap, &tracked_session_key, &session, BPF_ANY);
+	bpf_map_update_elem(&trackedSessionSockIPv4Map, &trackedSessionKey, &sockIPv4, BPF_ANY);
+	bpf_map_update_elem(&trackedSessionsMap, &trackedSessionKey, &session, BPF_ANY);
 }
 
-__attribute__((always_inline)) inline static void discoveryHandleAcceptIPv6Session(
-		const struct DiscoveryTrackedSessionKey tracked_session_key, const struct AcceptArgs* acceptArgsPtr, int addrlen) {
+__attribute__((always_inline)) inline static void handleAcceptIPv6Session(
+		const struct DiscoveryTrackedSessionKey trackedSessionKey, const struct AcceptArgs* acceptArgsPtr, int addrlen) {
 	if (acceptArgsPtr->addrSize < sizeof(struct sockaddr_in6) || addrlen != sizeof(struct sockaddr_in6)) {
 		return;
 	}
@@ -46,11 +46,11 @@ __attribute__((always_inline)) inline static void discoveryHandleAcceptIPv6Sessi
 	struct DiscoverySockIPv6 sockIPv6 = {};
 	bpf_probe_read(&sockIPv6.addr, sizeof(struct sockaddr_in6), acceptArgsPtr->addr);
 
-	bpf_map_update_elem(&trackedSessionSockIPv6Map, &tracked_session_key, &sockIPv6, BPF_ANY);
-	bpf_map_update_elem(&trackedSessionsMap, &tracked_session_key, &session, BPF_ANY);
+	bpf_map_update_elem(&trackedSessionSockIPv6Map, &trackedSessionKey, &sockIPv6, BPF_ANY);
+	bpf_map_update_elem(&trackedSessionsMap, &trackedSessionKey, &session, BPF_ANY);
 }
 
-__attribute__((always_inline)) inline static void discoveryHandleAccept(struct AcceptArgs* acceptArgsPtr, int fd) {
+__attribute__((always_inline)) inline static void handleAccept(struct AcceptArgs* acceptArgsPtr, int fd) {
 	// Size of returned sockaddr struct
 	int addrlen = 0;
 	bpf_probe_read(&addrlen, sizeof(addrlen), (acceptArgsPtr->addrlen));
@@ -71,10 +71,10 @@ __attribute__((always_inline)) inline static void discoveryHandleAccept(struct A
 
 	switch (saFamily) {
 	case AF_INET:
-		discoveryHandleAcceptIPv4Session(trackedSessionKey, acceptArgsPtr, addrlen);
+		handleAcceptIPv4Session(trackedSessionKey, acceptArgsPtr, addrlen);
 		break;
 	case AF_INET6:
-		discoveryHandleAcceptIPv6Session(trackedSessionKey, acceptArgsPtr, addrlen);
+		handleAcceptIPv6Session(trackedSessionKey, acceptArgsPtr, addrlen);
 		break;
 	}
 }
@@ -116,7 +116,7 @@ __attribute__((always_inline)) inline static int sessionFillIP(
 	return -1;
 }
 
-__attribute__((always_inline)) inline static void discoveryHandleRead(
+__attribute__((always_inline)) inline static void handleRead(
 		struct DiscoveryGlobalState* globalStatePtr,
 		struct DiscoveryAllSessionState* allSessionStatePtr,
 		struct ReadArgs* readArgsPtr,
@@ -185,7 +185,7 @@ __attribute__((always_inline)) inline static void discoveryHandleRead(
 	sessionPtr->bufferCount++;
 }
 
-__attribute__((always_inline)) inline static void discoveryHandleClose(
+__attribute__((always_inline)) inline static void handleClose(
 		struct DiscoveryGlobalState* globalStatePtr, struct DiscoveryAllSessionState* allSessionStatePtr, int fd) {
 	struct DiscoveryTrackedSessionKey trackedSessionKey = {};
 	trackedSessionKey.pid = pidTgidToPid(bpf_get_current_pid_tgid());
