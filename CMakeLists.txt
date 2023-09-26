@@ -73,10 +73,13 @@ endif(NOT TARGET fmt)
 
 find_package(Protobuf REQUIRED)
 
+
 find_package(Microsoft.GSL REQUIRED)
 if(Microsoft.GSL_FOUND)
 	include_directories(${Microsoft.GSL_INCLUDE_DIRS})
 endif()
+
+set(INSTALL_GTEST OFF CACHE BOOL "Disable installation of googletest" FORCE)
 
 if(BUILD_TESTS)
 	include(FetchContent)
@@ -86,6 +89,7 @@ if(BUILD_TESTS)
 	include(CTest)
 	include(GoogleTest)
 	enable_testing()
+
 	add_custom_target(run-tests COMMAND ${CMAKE_CTEST_COMMAND} -T Test --no-compress-output --output-on-failure USES_TERMINAL)
 endif()
 
@@ -107,4 +111,6 @@ add_subdirectory(libebpfdiscoveryshared)
 add_subdirectory(libebpfdiscoveryskel)
 add_subdirectory(libhttpparser)
 
+include(GNUInstallDirs)
 add_subdirectory(ebpfdiscoverysrv)
+install(TARGETS ebpfdiscoverysrv ebpfdiscoverysrv DESTINATION ${CMAKE_INSTALL_BINDIR})
