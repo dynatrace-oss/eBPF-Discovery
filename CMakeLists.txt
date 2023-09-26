@@ -73,6 +73,7 @@ endif(NOT TARGET fmt)
 
 find_package(Protobuf REQUIRED)
 
+set(INSTALL_GTEST OFF CACHE BOOL "Disable installation of googletest" FORCE)
 if(BUILD_TESTS)
 	include(FetchContent)
 	FetchContent_Declare(googletest URL https://github.com/google/googletest/archive/03597a01ee50ed33e9dfd640b249b4be3799d395.zip)
@@ -81,6 +82,7 @@ if(BUILD_TESTS)
 	include(CTest)
 	include(GoogleTest)
 	enable_testing()
+
 	add_custom_target(run-tests COMMAND ${CMAKE_CTEST_COMMAND} -T Test --no-compress-output --output-on-failure USES_TERMINAL)
 endif()
 
@@ -102,4 +104,6 @@ add_subdirectory(libebpfdiscoveryshared)
 add_subdirectory(libebpfdiscoveryskel)
 add_subdirectory(libhttpparser)
 
+include(GNUInstallDirs)
 add_subdirectory(ebpfdiscoverysrv)
+install(TARGETS ebpfdiscoverysrv ebpfdiscoverysrv DESTINATION ${CMAKE_INSTALL_BINDIR})
