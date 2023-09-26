@@ -7,9 +7,10 @@ bpf_object(${TARGET} src/discovery.bpf.c)
 
 if(BUILD_BPF_TESTS)
 	set(TEST_SKEL_TARGET ebpfdiscoverytestskel)
-	bpf_object(${TEST_SKEL_TARGET} bpftest/discoveryTest.bpf.c)
+	set(BPF_C_FLAGS ${BPF_C_FLAGS} -I${CMAKE_CURRENT_SOURCE_DIR}/test)
+	bpf_object(${TEST_SKEL_TARGET} testbpf/discoveryTest.bpf.c)
 
-	list(APPEND TEST_SOURCES bpftest/DataFunctionsTest.cpp)
+	list(APPEND TEST_SOURCES test/DataFunctionsTest.cpp)
 	set(TEST_TARGET test${TARGET})
 
 	add_executable(${TEST_TARGET} ${TEST_SOURCES})

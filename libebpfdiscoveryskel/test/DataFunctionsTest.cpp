@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0
-#include "discoveryTest.h"
+#include "DiscoveryTest.h"
 
 #include "discoveryTest.skel.h"
 

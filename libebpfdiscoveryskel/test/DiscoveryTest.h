@@ -1,16 +1,14 @@
 // SPDX-License-Identifier: GPL-2.0
 #pragma once
 
-#define DISCOVERY_TEST_MAX_INPUT_LEN 1024
+#include "DiscoveryTestConstants.h"
 
-#ifdef __cplusplus
+#include "discoveryTest.skel.h"
 
-#	include "discoveryTest.skel.h"
+#include <bpf/bpf.h>
+#include <bpf/libbpf.h>
 
-#	include <bpf/bpf.h>
-#	include <bpf/libbpf.h>
-
-#	include <gtest/gtest.h>
+#include <gtest/gtest.h>
 
 namespace ebpfdiscovery::bpftest {
 
@@ -67,5 +65,3 @@ void triggerTracepoint() {
 }
 
 } // namespace ebpfdiscovery::bpftest
-
-#endif // __cplusplus
