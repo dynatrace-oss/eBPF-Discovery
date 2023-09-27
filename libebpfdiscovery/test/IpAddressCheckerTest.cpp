@@ -2,7 +2,6 @@
 #include "ebpfdiscovery/IpAddressChecker.h"
 #include <arpa/inet.h>
 #include <gtest/gtest.h>
-#include <initializer_list>
 
 using namespace ebpfdiscovery;
 
@@ -10,21 +9,18 @@ class IpAddressCheckerTest : public IpAddressChecker {
 protected:
 public:
 	using IpAddressChecker::IpAddressChecker;
-	void addIfceConfig(std::initializer_list<IpIfce> config) {
-		localNetsIpv4.insert(localNetsIpv4.end(), config.begin(), config.end());
-		bridgeEnd = moveBridges();
+	IpAddressCheckerTest(std::initializer_list<IpIfce> config): IpAddressChecker(config) {
+		moveBridges();
 	}
 };
 
 TEST(IpUtils, LocalBridgeIp) {
-	IpAddressCheckerTest u;
-	u.addIfceConfig({{{inet_addr("10.2.4.5")}, {}, 0x0000ffff, 0, true}, {{inet_addr("10.7.4.5")}, {}, 0x0000ffff, 0, false}});
+	IpAddressCheckerTest u({{{inet_addr("10.2.4.5")}, {}, 0x0000ffff, 0, true}, {{inet_addr("10.7.4.5")}, {}, 0x0000ffff, 0, false}});
 	EXPECT_FALSE(u.isAddressExternalLocal(inet_addr("10.2.6.5")));
 }
 
 TEST(IpUtils, NOTLocalBridgeIp) {
-	IpAddressCheckerTest u;
-	u.addIfceConfig({{{inet_addr("10.2.6.5")}, {}, 0x0000ffff, 0, true}});
+	IpAddressCheckerTest u({{{inet_addr("10.2.6.5")}, {}, 0x0000ffff, 0, true}});
 	EXPECT_TRUE(u.isAddressExternalLocal(inet_addr("10.3.34.2")));
 }
 

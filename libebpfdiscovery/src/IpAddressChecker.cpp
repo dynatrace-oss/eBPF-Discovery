@@ -14,22 +14,24 @@
 #include <string_view>
 #include <unistd.h>
 
-static constexpr uint32_t BUFLEN = 4096;
-static constexpr uint32_t ipC = 0x0000a8c0; // 192.168.*.*
-static constexpr uint32_t maskC = 0x0000ffff;
-static constexpr uint32_t ipB = 0x000010ac; // 172.16-31.*.*
-static constexpr uint32_t maskB = 0x0000f0ff;
-static constexpr uint32_t ipA = 0x0000000a; // 10.*.*.*
-static constexpr uint32_t maskA = 0x000000ff;
-static constexpr uint32_t ipLinkLocal = 0x0000fea9; // 169.254.*.*
-static constexpr uint32_t maskLinkLocal = 0x0000ffff;
+static constexpr uint32_t BUFFLEN{4096};
+static constexpr uint32_t IP_CLASS_C{0x0000a8c0}; // 192.168.*.*
+static constexpr uint32_t MASK_CLASS_C{0x0000ffff};
+static constexpr uint32_t IP_CLASS_B{0x000010ac}; // 172.16-31.*.*
+static constexpr uint32_t MASK_CLASS_B{0x0000f0ff};
+static constexpr uint32_t IP_CLASS_A{0x0000000a}; // 10.*.*.*
+static constexpr uint32_t MASK_CLASS_A{0x000000ff};
+static constexpr uint32_t IP_LINK_LOCAL{0x0000fea9}; // 169.254.*.*
+static constexpr uint32_t MASK_LINK_LOCAL{0x0000ffff};
+static constexpr uint32_t IP_LOOPBACK{0x000000ff}; // 127.0..*.*
+static constexpr uint32_t MASK_LOOPBACK{0x00ffffff};
 
 static void logErrorFromErrno(std::string_view prefix) {
 	std::cout << prefix << ": " << strerror(errno) << "\n";
 }
 
 static int sendIpAddrRequest(int fd, sockaddr_nl* sa, int domain) {
-	std::array<char, BUFLEN> buf{};
+	std::array<char, BUFFLEN> buf{};
 
 	nlmsghdr* nl;
 	nl = reinterpret_cast<nlmsghdr*>(buf.data());
@@ -47,9 +49,9 @@ static int sendIpAddrRequest(int fd, sockaddr_nl* sa, int domain) {
 	return sendmsg(fd, &msg, 0);
 }
 
-static void addNetlinkMsg(nlmsghdr* nh, int type, const void* data, int raw_data_length) {
+static void addNetlinkMsg(nlmsghdr* nh, int type, const void* data, int dataLen) {
 	struct rtattr* rta;
-	int rta_length = RTA_LENGTH(raw_data_length);
+	int rta_length = RTA_LENGTH(dataLen);
 
 	rta = reinterpret_cast<rtattr*>((char*)nh + NLMSG_ALIGN(nh->nlmsg_len));
 
@@ -57,7 +59,7 @@ static void addNetlinkMsg(nlmsghdr* nh, int type, const void* data, int raw_data
 	rta->rta_len = rta_length;
 	nh->nlmsg_len = NLMSG_ALIGN(nh->nlmsg_len) + RTA_ALIGN(rta_length);
 
-	memcpy(RTA_DATA(rta), data, raw_data_length);
+	memcpy(RTA_DATA(rta), data, dataLen);
 }
 
 static int sendBridgesRequest(int fd, sockaddr_nl* sa, int domain) {
@@ -132,29 +134,34 @@ static ebpfdiscovery::IpIfce parseIfce(void* data, size_t len) {
 	return parseIfceIPv4(data, len);
 }
 
-static int getIfIndex(void* data, size_t len) {
+static int getIfIndex(void* data) {
 	ifinfomsg* ifa = reinterpret_cast<ifinfomsg*>(data);
 	return ifa->ifi_index;
 }
 
 namespace ebpfdiscovery {
+
+IpAddressChecker::IpAddressChecker(std::initializer_list<IpIfce> config) {
+	interfaces.insert(interfaces.end(), config.begin(), config.end());
+}
+
 bool IpAddressChecker::readNetworks() {
 	const bool ret = readAllIpAddrs();
 	if (markLocalBridges()) {
-		bridgeEnd = moveBridges();
+		moveBridges();
 	} else {
-		bridgeEnd = localNetsIpv4.end();
+		bridgeEnd = interfaces.end();
 	}
 
 	return ret;
 }
 
-std::vector<IpIfce>::iterator IpAddressChecker::moveBridges() {
-	return std::partition(localNetsIpv4.begin(), localNetsIpv4.end(), [](const auto& it) { return it.isLocalBridge; });
+void IpAddressChecker::moveBridges() {
+	bridgeEnd = std::partition(interfaces.begin(), interfaces.end(), [](const auto& it) { return it.isLocalBridge; });
 }
 
-template <typename F>
-static uint32_t parseNlMsg(void* buf, size_t len, F parse) {
+template <typename P>
+static uint32_t parseNlMsg(void* buf, size_t len, P parse) {
 	const nlmsghdr* nl = reinterpret_cast<nlmsghdr*>(buf);
 
 	for (; NLMSG_OK(nl, len) && nl->nlmsg_type != NLMSG_DONE; nl = NLMSG_NEXT(nl, len)) {
@@ -167,11 +174,12 @@ static uint32_t parseNlMsg(void* buf, size_t len, F parse) {
 			continue;
 		}
 	}
+
 	return nl->nlmsg_type;
 }
 
-template <typename S, typename F>
-static bool handleNetlink(S send, F f, int domain) {
+template <typename S, typename P>
+static bool handleNetlink(S send, P parse, int domain) {
 	int fd = socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
 	if (fd < 0) {
 		logErrorFromErrno("socket");
@@ -188,18 +196,18 @@ static bool handleNetlink(S send, F f, int domain) {
 		return false;
 	}
 
-	uint32_t nl_msg_type;
+	uint32_t nlMsgType;
 	do {
-		std::array<char, BUFLEN> buf{};
-		len = receive(fd, &sa, buf.data(), BUFLEN);
+		std::array<char, BUFFLEN> buf{};
+		len = receive(fd, &sa, buf.data(), BUFFLEN);
 		if (len <= 0) {
 			logErrorFromErrno("receive");
 			break;
 		}
 
-		nl_msg_type = parseNlMsg(buf.data(), len, f);
+		nlMsgType = parseNlMsg(buf.data(), len, parse);
 
-	} while (nl_msg_type != NLMSG_DONE && nl_msg_type != NLMSG_ERROR);
+	} while (nlMsgType != NLMSG_DONE && nlMsgType != NLMSG_ERROR);
 
 	return true;
 }
@@ -213,39 +221,43 @@ bool IpAddressChecker::readAllIpAddrs() {
 bool IpAddressChecker::markLocalBridges() {
 	return handleNetlink(
 			[](int fd, sockaddr_nl* sa, int domain) { return sendBridgesRequest(fd, sa, AF_INET); },
-			[this](void* buf, size_t len) { markBridge(getIfIndex(buf, len)); }, AF_INET);
+			[this](void* buf, size_t len) { markBridge(getIfIndex(buf)); }, AF_INET);
 }
 
 void IpAddressChecker::addIpIfce(IpIfce&& ifce) {
-	char ifname[IF_NAMESIZE];
-	if_indextoname(ifce.index, ifname);
-	if (strcmp(ifname, "lo") == 0) {
-		return;
+	if(!isLoopback(ifce)){
+		interfaces.push_back(ifce);
 	}
-	localNetsIpv4.push_back(ifce);
 }
 
 void IpAddressChecker::markBridge(int idx) {
-	auto ifc = std::find_if(localNetsIpv4.begin(), localNetsIpv4.end(), [idx](const auto& it) { return it.index == idx; });
-	if (ifc == localNetsIpv4.end()) {
+	auto ifc = std::find_if(interfaces.begin(), interfaces.end(), [idx](const auto& it) { return it.index == idx; });
+	if (ifc == interfaces.end()) {
 		return;
 	}
 
 	ifc->isLocalBridge = true;
 }
 
+bool IpAddressChecker::isLoopback(const IpIfce& ifce) {
+
+	return std::all_of(ifce.ip.begin(), ifce.ip.end(), [](const auto& ipv4) {
+		return ((ipv4 & MASK_LOOPBACK) == IP_LOOPBACK);
+	});
+}
+
 bool IpAddressChecker::isAddressExternalLocal(IPv4 addr) {
-	const bool isPublic = ((addr & maskA) != ipA) && ((addr & maskB) != ipB) && ((addr & maskC) != ipC);
+	const bool isPublic = ((addr & MASK_CLASS_A) != IP_CLASS_A) && ((addr & MASK_CLASS_B) != IP_CLASS_B) && ((addr & MASK_CLASS_C) != IP_CLASS_C);
 
 	if (isPublic) {
 		return false;
 	}
 
-	if ((addr & maskLinkLocal) == ipLinkLocal) {
+	if ((addr & MASK_LINK_LOCAL) == IP_LINK_LOCAL) {
 		return false;
 	}
 
-	const bool bridgeRelated = std::any_of(localNetsIpv4.begin(), bridgeEnd, [addr](const auto& it) {
+	const bool bridgeRelated = std::any_of(interfaces.begin(), bridgeEnd, [addr](const auto& it) {
 		return std::any_of(it.ip.begin(), it.ip.end(), [addr, mask = it.mask](const auto& ip) { return (addr & mask) == (ip & mask); });
 	});
 

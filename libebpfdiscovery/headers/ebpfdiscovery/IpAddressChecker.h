@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 #pragma once
 #include <cstdint>
+#include <initializer_list>
 #include <vector>
 
 namespace ebpfdiscovery {
@@ -16,18 +17,20 @@ struct IpIfce {
 };
 
 class IpAddressChecker {
-protected:
-	std::vector<IpIfce> localNetsIpv4;
-	std::vector<IpIfce>::iterator bridgeEnd = localNetsIpv4.end();
+	std::vector<IpIfce> interfaces;
+	std::vector<IpIfce>::iterator bridgeEnd = interfaces.end();
+
 	bool readAllIpAddrs();
 	bool markLocalBridges();
-	std::vector<IpIfce>::iterator moveBridges();
-
-public:
-	IpAddressChecker() = default;
-	bool isAddressExternalLocal(IPv4 addr);
+	bool isLoopback(const IpIfce&);
 	void addIpIfce(IpIfce&& ifce);
 	void markBridge(int idx);
+protected:
+	void moveBridges();
+public:
+	IpAddressChecker() = default;
+	IpAddressChecker(std::initializer_list<IpIfce> config);
+	bool isAddressExternalLocal(IPv4 addr);
 	bool readNetworks();
 };
 } // namespace ebpfdiscovery
