@@ -33,7 +33,7 @@ Build debug:
 
 ```
 conan install . --build=missing -s build_type=Debug
-cmake --preset conan-debug -DTHIRDPARTY_MAKE_JOBS_COUNT=$((`nproc` / 2))
+cmake --preset conan-debug -DTHIRDPARTY_MAKE_JOBS_COUNT=$((`nproc` / 2)) -DBUILD_BPF_TESTS=On
 cmake --build --preset conan-debug
 ```
 
