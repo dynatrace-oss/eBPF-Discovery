@@ -41,17 +41,11 @@ jobs:
         run: |
           cd ${{ github.workspace }}/build/Release 
           zip -r ${{ github.workspace }}/${{ env.ARTIFACT_VERSION }} .
+          cd ${{ github.workspace }}
+          ls
 
       - name: Publish Release artifact
         uses: ncipollo/release-action@v1.10.0
         with:
           tag: ${{ env.ARTIFACT_VERSION }}
-          artifacts: ${{ github.workspace }}/build/Release/${{ env.ARTIFACT_VERSION }}.zip
-
-      - name: Archive artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: ${{ env.ARTIFACT_OCI_REGISTRY_NAME }}
-          path: |
-            ${{ github.workspace }}/build/Release/
-            ${{ github.workspace }}/LICENSE
+          artifacts: ${{ github.workspace }}/${{ env.ARTIFACT_VERSION }}.zip
