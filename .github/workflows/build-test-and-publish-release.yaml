@@ -36,13 +36,15 @@ jobs:
           cd ${{ github.workspace }}/build/Release
           zip -r ${{ github.workspace }}/${{ env.ARTIFACT_OCI_REGISTRY_NAME }}.zip .
           zip -u ${{ github.workspace }}/${{ env.ARTIFACT_OCI_REGISTRY_NAME }}.zip ${{ github.workspace }}/LICENSE
+
+      - name: Publish OCI Registry artifact
+        run: |
+          oras login -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }} ghcr.io
           
       - name: Create Release artifact
         run: |
           cd ${{ github.workspace }}/build/Release 
           zip -r ${{ github.workspace }}/${{ env.ARTIFACT_VERSION }}.zip .
-          cd ${{ github.workspace }}
-          ls
 
       - name: Publish Release artifact
         uses: ncipollo/release-action@v1.10.0
