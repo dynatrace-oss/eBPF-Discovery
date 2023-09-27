@@ -34,13 +34,13 @@ jobs:
       - name: Create OCI Registry artifact
         run: |
           cd ${{ github.workspace }}/build/Release
-          zip -r ${{ github.workspace }}/${{ env.ARTIFACT_OCI_REGISTRY_NAME }} .
+          zip -r ${{ github.workspace }}/${{ env.ARTIFACT_OCI_REGISTRY_NAME }}.zip .
           zip -u ${{ github.workspace }}/${{ env.ARTIFACT_OCI_REGISTRY_NAME }}.zip ${{ github.workspace }}/LICENSE
           
       - name: Create Release artifact
         run: |
           cd ${{ github.workspace }}/build/Release 
-          zip -r ${{ github.workspace }}/${{ env.ARTIFACT_VERSION }} .
+          zip -r ${{ github.workspace }}/${{ env.ARTIFACT_VERSION }}.zip .
           cd ${{ github.workspace }}
           ls
 
