@@ -17,17 +17,24 @@ public:
 	DiscoveryTest() : testSkel{nullptr}, testBss{nullptr} {
 	}
 
+	bool isLoaded() {
+		return testSkel != nullptr && testBss != nullptr;
+	}
+
 	void setInPtr(const std::string& str) {
+		checkLoaded();
 		inPtrSrc.clear();
 		std::copy(str.begin(), str.end(), std::back_inserter(inPtrSrc));
 		testBss->inPtr = inPtrSrc.data();
 	}
 
 	void setInLen(size_t len) {
+		checkLoaded();
 		testBss->inLen = len;
 	}
 
 	int getOutRet() {
+		checkLoaded();
 		return testBss->outRet;
 	}
 
@@ -35,8 +42,7 @@ protected:
 	void SetUp() override {
 		testSkel = discoveryTest_bpf__open_and_load();
 		if (testSkel == nullptr) {
-			GTEST_SKIP();
-			throw std::runtime_error("couldn't open and load bpf object");
+			GTEST_SKIP() << "Couldn't open and load BPF object for test execution.";
 		}
 
 		testBss = testSkel->bss;
@@ -44,13 +50,21 @@ protected:
 	}
 
 	void TearDown() override {
-		discoveryTest_bpf__destroy(testSkel);
+		if (testSkel != nullptr) {
+			discoveryTest_bpf__destroy(testSkel);
+		}
 	}
 
 	discoveryTest_bpf* testSkel;
 	discoveryTest_bpf::discoveryTest_bpf__bss* testBss;
 
-	std::vector<char> inPtrSrc;
+	std::vector<char> inPtrData;
+
+	void checkLoaded() {
+		if (!isLoaded()) {
+			throw std::runtime_error("DiscoveryTest is uninitialized");
+		}
+	}
 };
 
 void attachBpfProgram(bpf_program* prog) {
