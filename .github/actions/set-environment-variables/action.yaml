@@ -20,5 +20,5 @@ runs:
         versionString="$(cat "${versionPropertiesPath}")"
         versionTag="version="
         version="$(printf "%s" "${versionString}" | sed -e "s/^"${versionTag}"//")"
-        artifactName="${version}"-"$(date +%s)".zip
+        artifactName="${version}"-"$(date +%Y%m%d_%H%M%S)"
         printf "ARTIFACT_OCI_REGISTRY_NAME=%s\n" "${artifactName}" >> $GITHUB_ENV
