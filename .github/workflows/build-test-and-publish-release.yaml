@@ -31,6 +31,23 @@ jobs:
       - name: Test
         uses: ./.github/actions/test
 
+      - name: Create OCI Registry artifact
+        run: |
+          cd ${{ github.workspace }}/build/Release
+          zip -r ${{ github.workspace }}/${{ env.ARTIFACT_OCI_REGISTRY_NAME }} .
+          zip -u ${{ github.workspace }}/${{ env.ARTIFACT_OCI_REGISTRY_NAME }}.zip ${{ github.workspace }}/LICENSE
+          
+      - name: Create Release artifact
+        run: |
+          cd ${{ github.workspace }}/build/Release 
+          zip -r ${{ github.workspace }}/${{ env.ARTIFACT_VERSION }} .
+
+      - name: Publish Release artifact
+        uses: ncipollo/release-action@v1.10.0
+        with:
+          tag: ${{ env.ARTIFACT_VERSION }}
+          artifacts: ${{ github.workspace }}/${{ env.ARTIFACT_VERSION }}.zip
+
       - name: Archive artifacts
         uses: actions/upload-artifact@v3
         with:
