@@ -29,7 +29,7 @@ jobs:
         uses: ./.github/actions/build
 
       - name: Test
-        uses: ./.github/actions/build
+        uses: ./.github/actions/test
 
       - name: Archive artifacts
         uses: actions/upload-artifact@v3
