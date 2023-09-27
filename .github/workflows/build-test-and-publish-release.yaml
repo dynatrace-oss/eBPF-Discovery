@@ -36,5 +36,5 @@ jobs:
         with:
           name: ${{ env.ARTIFACT_OCI_REGISTRY_NAME }}
           path: |
-            ${{ github.workspace }}/build/Release 
+            ${{ github.workspace }}/build/Release/
             ${{ github.workspace }}/LICENSE
