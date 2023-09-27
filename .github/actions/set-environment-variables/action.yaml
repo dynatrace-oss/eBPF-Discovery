@@ -15,3 +15,10 @@ runs:
         buildType=${{ inputs.build-type }}
         printf "CAPITALISED_BUILD_TYPE=%s\n" "${buildType}" >> $GITHUB_ENV
         printf "LOWERCASE_BUILD_TYPE=%s\n" "${buildType,,}" >> $GITHUB_ENV
+        
+        versionPropertiesPath="${{ github.workspace }}/version.properties"
+        versionString="$(cat "${versionPropertiesPath}")"
+        versionTag="version="
+        version="$(printf "%s" "${versionString}" | sed -e "s/^"${versionTag}"//")"
+        artifactName="${version}"-"$(date +%s)".zip
+        printf "ARTIFACT_OCI_REGISTRY_NAME=%s\n" "${artifactName}" >> $GITHUB_ENV

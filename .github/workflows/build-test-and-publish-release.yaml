@@ -31,22 +31,10 @@ jobs:
       - name: Test
         uses: ./.github/actions/build
 
-      - name: Zip built binaries
-        run: |
-          versionPropertiesPath="${{ github.workspace }}/version.properties"
-          versionString="$(cat "${versionPropertiesPath}")"
-          versionTag="version="
-          version="$(printf "%s" "${versionString}" | sed -e "s/^"${versionTag}"//")"
-          artifactName="${version}"-"$(date +%s)".zip
-          printf "ARTIFACT_OCI_REGISTRY_NAME=%s\n" "${artifactName}" >> $GITHUB_ENV
-          
-          buildPath=${{ github.workspace }}/build/Release 
-          licensePath=${{ github.workspace }}/LICENSE
-          
-          zip -r "${artifactName}" "${buildPath}" "${licensePath}"
-
-      - name: Archive artifact
+      - name: Archive artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: env.ARTIFACT_OCI_REGISTRY_NAME
-          path: ${{ env.ARTIFACT_OCI_REGISTRY_NAME }}
+          name: ${{ env.ARTIFACT_OCI_REGISTRY_NAME }}
+          path: |
+            ${{ github.workspace }}/build/Release 
+            ${{ github.workspace }}/LICENSE
