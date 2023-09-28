@@ -40,7 +40,7 @@ jobs:
           oras login -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }} ghcr.io
           
           cd ${{ env.RELEASE_PATH }}
-          oras push ${{ env.GITHUB_OCI_REGISTRY_ADDRESS }}/${{ ${{ github.event.repository.name }} }}:${{ env.ARTIFACT_VERSION }} .
+          oras push ${{ env.GITHUB_OCI_REGISTRY_ADDRESS }}/${{ github.event.repository.name }}:${{ env.ARTIFACT_VERSION }} .
           
           oras repo ls ${{ env.GITHUB_OCI_REGISTRY_ADDRESS }}
 
