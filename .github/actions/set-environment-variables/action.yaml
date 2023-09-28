@@ -24,4 +24,4 @@ runs:
         
         printf "RELEASE_PATH=%s\n" "${{ github.workspace }}/build/Release" >> $GITHUB_ENV
         
-        printf "GITHUB_OCI_REGISTRY_ADDRESS=%s\n" "ghcr.io/${{ env.GITHUB_REPOSITORY }}" >> $GITHUB_ENV
+        printf "GITHUB_OCI_REGISTRY_ADDRESS=%s\n" "ghcr.io/${{ github.repository }}" >> $GITHUB_ENV

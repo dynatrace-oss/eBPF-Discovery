@@ -33,14 +33,14 @@ jobs:
 
       - name: Move license to release directory
         run: |
-          mv ${{ env.GITHUB_WORKSPACE }}/LICENSE ${{ env.RELEASE_PATH }}/LICENSE
+          mv ${{ github.workspace }}/LICENSE ${{ env.RELEASE_PATH }}/LICENSE
 
       - name: Publish GitHub OCI registry artifact
         run: |
-          oras login -u ${{ env.GITHUB_ACTOR }} -p ${{ secrets.GITHUB_TOKEN }} ghcr.io
+          oras login -u ${{ ${{ github.actor }} }} -p ${{ secrets.GITHUB_TOKEN }} ghcr.io
           
           cd ${{ env.RELEASE_PATH }}
-          oras push ${{ env.GITHUB_OCI_REGISTRY_ADDRESS }}/${{ env.GITHUB_REPOSITORY_NAME }}:${{ env.ARTIFACT_VERSION }} .
+          oras push ${{ env.GITHUB_OCI_REGISTRY_ADDRESS }}/${{ ${{ github.event.repository.name }} }}:${{ env.ARTIFACT_VERSION }} .
           
           oras repo ls ${{ env.GITHUB_OCI_REGISTRY_ADDRESS }}
 
