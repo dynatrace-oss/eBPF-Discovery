@@ -26,23 +26,23 @@ static constexpr std::string_view X_FORWARDED_FOR{"X-Forwarded-For"};
 static constexpr std::string_view X_FORWARDED_FOR_LOWER{"x-forwarded-for"};
 } // namespace constants
 
-inline static bool is_valid_url_char(const char ch) {
+inline static bool isValidUrlChar(const char ch) {
 	return std::isalnum(ch) || constants::VALID_URL_SPECIAL_CHARS.find(ch) != std::string_view::npos;
 }
 
-inline static bool is_valid_header_key_char(const char ch) {
+inline static bool isValidHeaderKeyChar(const char ch) {
 	return std::isalnum(ch) || constants::VALID_HEADER_KEY_SPECIAL_CHARS.find(ch) != std::string_view::npos;
 }
 
-inline static bool is_valid_header_value_char(const char ch) {
+inline static bool isValidHeaderValueChar(const char ch) {
 	return std::isalnum(ch) || constants::VALID_HEADER_VALUE_SPECIAL_CHARS.find(ch) != std::string_view::npos;
 }
 
-inline static bool is_valid_host_header_value_char(const char ch) {
+inline static bool isValidHostHeaderValueChar(const char ch) {
 	return std::isalnum(ch) || constants::VALID_HOST_HEADER_VALUE_SPECIAL_CHARS.find(ch) != std::string_view::npos;
 }
 
-inline static bool is_valid_x_forwarded_for_header_value_char(const char ch) {
+inline static bool isValidXForwardedForHeaderValueChar(const char ch) {
 	return std::isalnum(ch) || constants::VALID_X_FORWARDED_FOR_HEADER_VALUE_SPECIAL_CHARS.find(ch) != std::string_view::npos;
 }
 
@@ -56,24 +56,24 @@ void HttpRequest::clear() {
 	url.clear();
 	protocol.clear();
 	host.clear();
-	x_forwarded_for.clear();
+	xForwardedFor.clear();
 }
 
-HttpRequestParser::HttpRequestParser() : state{State::METHOD}, _length{0} {
+HttpRequestParser::HttpRequestParser() : state{State::METHOD}, length{0} {
 }
 
 size_t HttpRequestParser::parse(std::string_view data) {
 	size_t i{0};
 	while (i < data.size()) {
-		if (_length > MAX_HTTP_REQUEST_LENGTH) {
-			set_invalid_state();
+		if (length > DISCOVERY_MAX_HTTP_REQUEST_LENGTH) {
+			setInvalidState();
 			return i;
 		}
 
-		handle_char(data[i]);
+		handleChar(data[i]);
 
 		i++;
-		_length++;
+		length++;
 
 		if (state == State::FINISHED || state == State::INVALID) {
 			return i;
@@ -84,53 +84,53 @@ size_t HttpRequestParser::parse(std::string_view data) {
 	return i;
 }
 
-bool HttpRequestParser::is_invalid_state() const {
+bool HttpRequestParser::isInvalidState() const {
 	return state == State::INVALID;
 }
 
-bool HttpRequestParser::is_finished() const {
+bool HttpRequestParser::isFinished() const {
 	return state == State::FINISHED || state == State::INVALID;
 }
 
-void HttpRequestParser::set_invalid_state() {
+void HttpRequestParser::setInvalidState() {
 	state = State::INVALID;
 }
 
-void HttpRequestParser::set_finished_state() {
+void HttpRequestParser::setFinishedState() {
 	state = State::FINISHED;
 }
 
-void HttpRequestParser::handle_char(const char ch) {
+void HttpRequestParser::handleChar(const char ch) {
 	switch (state) {
 	case State::METHOD:
-		handle_char_method(ch);
+		handleCharMethod(ch);
 		break;
 	case State::SPACE_BEFORE_URL:
-		handle_char_space_before_url(ch);
+		handleCharSpaceBeforeUrl(ch);
 		break;
 	case State::URL:
-		handle_char_url(ch);
+		handleCharUrl(ch);
 		break;
 	case State::SPACE_BEFORE_PROTOCOL:
-		handle_char_space_before_protocol(ch);
+		handleCharSpaceBeforeProtocol(ch);
 		break;
 	case State::PROTOCOL:
-		handle_char_protocol(ch);
+		handleCharProtocol(ch);
 		break;
 	case State::HEADER_NEWLINE:
-		handle_char_header_newline(ch);
+		handleCharHeaderNewline(ch);
 		break;
 	case State::HEADER_KEY:
-		handle_char_header_key(ch);
+		handleCharHeaderKey(ch);
 		break;
 	case State::SPACE_BEFORE_HEADER_VALUE:
-		handle_char_space_before_header_value(ch);
+		handleCharSpaceBeforeHeaderValue(ch);
 		break;
 	case State::HEADER_VALUE:
-		handle_char_header_value(ch);
+		handleCharHeaderValue(ch);
 		break;
 	case State::HEADERS_END:
-		handle_char_headers_end(ch);
+		handleCharHeadersEnd(ch);
 		break;
 	case State::FINISHED:
 	case State::INVALID:
@@ -138,7 +138,7 @@ void HttpRequestParser::handle_char(const char ch) {
 	}
 }
 
-void HttpRequestParser::handle_char_method(const char ch) {
+void HttpRequestParser::handleCharMethod(const char ch) {
 	if (std::isupper(ch)) {
 		result.method.push_back(ch);
 
@@ -147,29 +147,29 @@ void HttpRequestParser::handle_char_method(const char ch) {
 		bool isMaybePost{constants::POST.substr(0, result.method.length()) == result.method};
 
 		if (!isMaybeGet && !isMaybePost) {
-			set_invalid_state();
+			setInvalidState();
 			return;
 		}
 		return;
 	}
 
 	if (ch != ' ') {
-		set_invalid_state();
+		setInvalidState();
 		return;
 	}
 
 	if (result.method != constants::GET && result.method != constants::POST) {
-		set_invalid_state();
+		setInvalidState();
 		return;
 	}
 
 	state = State::SPACE_BEFORE_URL;
 }
 
-void HttpRequestParser::handle_char_space_before_url(const char ch) {
+void HttpRequestParser::handleCharSpaceBeforeUrl(const char ch) {
 	if (ch != '/') {
 		// We expect every HTTP request URI to start with /
-		set_invalid_state();
+		setInvalidState();
 		return;
 	}
 
@@ -177,10 +177,10 @@ void HttpRequestParser::handle_char_space_before_url(const char ch) {
 	state = State::URL;
 }
 
-void HttpRequestParser::handle_char_url(const char ch) {
+void HttpRequestParser::handleCharUrl(const char ch) {
 	if (ch != ' ') {
-		if (!is_valid_url_char(ch)) {
-			set_invalid_state();
+		if (!isValidUrlChar(ch)) {
+			setInvalidState();
 			return;
 		}
 
@@ -191,10 +191,10 @@ void HttpRequestParser::handle_char_url(const char ch) {
 	state = State::SPACE_BEFORE_PROTOCOL;
 }
 
-void HttpRequestParser::handle_char_space_before_protocol(const char ch) {
+void HttpRequestParser::handleCharSpaceBeforeProtocol(const char ch) {
 	if (ch != 'H') {
 		// First letter of HTTP/x.x
-		set_invalid_state();
+		setInvalidState();
 		return;
 	}
 
@@ -202,7 +202,7 @@ void HttpRequestParser::handle_char_space_before_protocol(const char ch) {
 	state = State::PROTOCOL;
 }
 
-void HttpRequestParser::handle_char_protocol(const char ch) {
+void HttpRequestParser::handleCharProtocol(const char ch) {
 	if (ch != '\r') {
 		result.protocol.push_back(ch);
 
@@ -210,23 +210,23 @@ void HttpRequestParser::handle_char_protocol(const char ch) {
 		bool isMaybe1_1{constants::HTTP_1_1.substr(0, result.protocol.length()) == result.protocol};
 
 		if (!isMaybe1_0 && !isMaybe1_1) {
-			set_invalid_state();
+			setInvalidState();
 			return;
 		}
 		return;
 	}
 
 	if (result.protocol != constants::HTTP_1_0 && result.protocol != constants::HTTP_1_1) {
-		set_invalid_state();
+		setInvalidState();
 		return;
 	}
 
 	state = State::HEADER_NEWLINE;
 }
 
-void HttpRequestParser::handle_char_header_newline(const char ch) {
+void HttpRequestParser::handleCharHeaderNewline(const char ch) {
 	if (ch != '\n') {
-		set_invalid_state();
+		setInvalidState();
 		return;
 	}
 
@@ -234,7 +234,7 @@ void HttpRequestParser::handle_char_header_newline(const char ch) {
 	state = State::HEADER_KEY;
 }
 
-void HttpRequestParser::handle_char_header_key(const char ch) {
+void HttpRequestParser::handleCharHeaderKey(const char ch) {
 	if (ch == '\r') {
 		state = State::HEADERS_END;
 		return;
@@ -245,8 +245,8 @@ void HttpRequestParser::handle_char_header_key(const char ch) {
 	}
 
 	if (ch != ':') {
-		if (!is_valid_header_key_char(ch)) {
-			set_invalid_state();
+		if (!isValidHeaderKeyChar(ch)) {
+			setInvalidState();
 			return;
 		}
 
@@ -257,41 +257,41 @@ void HttpRequestParser::handle_char_header_key(const char ch) {
 		return;
 	}
 
-	if (is_current_header_key_host() && !result.host.empty()) {
+	if (isCurrentHeaderKeyHost() && !result.host.empty()) {
 		state = State::INVALID;
 		return;
 	}
 
-	if (is_current_header_key_x_forwarded_for() && !result.x_forwarded_for.empty()) {
-		result.x_forwarded_for.push_back(',');
+	if (isCurrentHeaderKeyXForwardedFor() && !result.xForwardedFor.empty()) {
+		result.xForwardedFor.push_back(',');
 	}
 
 	state = State::SPACE_BEFORE_HEADER_VALUE;
 }
 
-void HttpRequestParser::handle_char_space_before_header_value(const char ch) {
+void HttpRequestParser::handleCharSpaceBeforeHeaderValue(const char ch) {
 	if (ch == ' ') {
 		return;
 	}
 
-	if (!is_valid_header_value_char(ch)) {
-		set_invalid_state();
+	if (!isValidHeaderValueChar(ch)) {
+		setInvalidState();
 		return;
 	}
 
-	if (is_current_header_key_host()) {
+	if (isCurrentHeaderKeyHost()) {
 		result.host.push_back(ch);
-	} else if (is_current_header_key_x_forwarded_for()) {
-		result.x_forwarded_for.push_back(ch);
+	} else if (isCurrentHeaderKeyXForwardedFor()) {
+		result.xForwardedFor.push_back(ch);
 	}
 
 	state = State::HEADER_VALUE;
 }
 
-void HttpRequestParser::handle_char_header_value(const char ch) {
-	if (ch != '\r' && is_current_header_key_host()) {
-		if (!is_valid_host_header_value_char(ch)) {
-			set_invalid_state();
+void HttpRequestParser::handleCharHeaderValue(const char ch) {
+	if (ch != '\r' && isCurrentHeaderKeyHost()) {
+		if (!isValidHostHeaderValueChar(ch)) {
+			setInvalidState();
 			return;
 		}
 
@@ -299,18 +299,18 @@ void HttpRequestParser::handle_char_header_value(const char ch) {
 		return;
 	}
 
-	if (ch != '\r' && is_current_header_key_x_forwarded_for()) {
-		if (!is_valid_x_forwarded_for_header_value_char(ch)) {
-			set_invalid_state();
+	if (ch != '\r' && isCurrentHeaderKeyXForwardedFor()) {
+		if (!isValidXForwardedForHeaderValueChar(ch)) {
+			setInvalidState();
 			return;
 		}
 
-		result.x_forwarded_for.push_back(ch);
+		result.xForwardedFor.push_back(ch);
 		return;
 	}
 
-	if (ch != '\r' && !is_valid_header_value_char(ch)) {
-		set_invalid_state();
+	if (ch != '\r' && !isValidHeaderValueChar(ch)) {
+		setInvalidState();
 		return;
 	}
 
@@ -321,30 +321,30 @@ void HttpRequestParser::handle_char_header_value(const char ch) {
 	state = State::HEADER_NEWLINE;
 }
 
-void HttpRequestParser::handle_char_headers_end(const char ch) {
+void HttpRequestParser::handleCharHeadersEnd(const char ch) {
 	if (ch != '\n') {
-		set_invalid_state();
+		setInvalidState();
 		return;
 	}
 
 	// At this stage there may be additional POST data. It's fine to ignore it.
 	// We also don't handle pipelined HTTP requests as they are uncommon.
-	set_finished_state();
+	setFinishedState();
 	return;
 }
 
-inline bool HttpRequestParser::is_current_header_key_host() {
+inline bool HttpRequestParser::isCurrentHeaderKeyHost() {
 	return currentHeaderKey == constants::HOST_LOWER;
 }
 
-inline bool HttpRequestParser::is_current_header_key_x_forwarded_for() {
+inline bool HttpRequestParser::isCurrentHeaderKeyXForwardedFor() {
 	return currentHeaderKey == constants::X_FORWARDED_FOR_LOWER;
 }
 
 void HttpRequestParser::reset() {
 	state = State::METHOD;
 	currentHeaderKey.clear();
-	_length = 0;
+	length = 0;
 	result.clear();
 }
 

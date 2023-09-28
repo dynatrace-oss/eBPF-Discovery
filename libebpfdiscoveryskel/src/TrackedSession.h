@@ -16,21 +16,21 @@ struct {
 	__uint(type, BPF_MAP_TYPE_LRU_HASH);
 	__type(key, struct DiscoveryTrackedSessionKey);
 	__type(value, struct DiscoverySession);
-	__uint(max_entries, MAX_SESSIONS);
+	__uint(max_entries, DISCOVERY_MAX_SESSIONS);
 } trackedSessionsMap SEC(".maps");
 
 struct {
 	__uint(type, BPF_MAP_TYPE_LRU_HASH);
 	__type(key, struct DiscoveryTrackedSessionKey);
 	__type(value, struct DiscoverySockIPv4);
-	__uint(max_entries, MAX_SESSIONS);
+	__uint(max_entries, DISCOVERY_MAX_SESSIONS);
 } trackedSessionSockIPv4Map SEC(".maps");
 
 struct {
 	__uint(type, BPF_MAP_TYPE_LRU_HASH);
 	__type(key, struct DiscoveryTrackedSessionKey);
 	__type(value, struct DiscoverySockIPv6);
-	__uint(max_entries, MAX_SESSIONS);
+	__uint(max_entries, DISCOVERY_MAX_SESSIONS);
 } trackedSessionSockIPv6Map SEC(".maps");
 
 __attribute__((always_inline)) inline static void deleteTrackedSession(

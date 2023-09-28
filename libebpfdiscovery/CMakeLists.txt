@@ -4,7 +4,6 @@ list(
 	src/Config.cpp
 	src/Discovery.cpp
 	src/IpAddressChecker.cpp
-	src/Log.cpp
 	src/Session.cpp
 	src/StringFunctions.cpp
 )
