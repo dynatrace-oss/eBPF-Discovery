@@ -40,9 +40,7 @@ jobs:
           echo ${{ secrets.GITHUB_TOKEN }} | oras login ghcr.io -u ${{ github.actor }} --password-stdin 
           
           cd ${{ env.RELEASE_PATH }}
-          oras push ghcr.io/${{ github.repository_owner }}/${{ env.LOWERCASE_REPOSITORY_NAME }}/${{ env.LOWERCASE_REPOSITORY_NAME }}:${{ env.ARTIFACT_VERSION }} .
-          
-          oras repo ls ${{ env.GITHUB_OCI_REGISTRY_ADDRESS }}
+          oras push ${{ env.GITHUB_OCI_REGISTRY_ADDRESS }}/${{ env.LOWERCASE_REPOSITORY_NAME }}:${{ env.GITHUB_OCI_REGISTRY_ARTIFACT_VERSION }} .
 
       - name: Publish GitHub release
         uses: ncipollo/release-action@v1.10.0
