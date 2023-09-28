@@ -25,3 +25,6 @@ runs:
         printf "RELEASE_PATH=%s\n" "${{ github.workspace }}/build/Release" >> $GITHUB_ENV
         
         printf "GITHUB_OCI_REGISTRY_ADDRESS=%s\n" "ghcr.io/${{ github.repository }}" >> $GITHUB_ENV
+        
+        repositoryName="$(printf "%s" "${{ github.repository }}" | sed -e "s/^${{ github.repository_owner }}\///")"
+        printf "REPOSITORY_NAME=%s\n" "${repositoryName,,}" >> $GITHUB_ENV
