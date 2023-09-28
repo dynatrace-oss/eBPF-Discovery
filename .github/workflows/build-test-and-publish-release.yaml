@@ -37,7 +37,7 @@ jobs:
 
       - name: Publish GitHub OCI registry artifact
         run: |
-          oras login -u ${{ ${{ github.actor }} }} -p ${{ secrets.GITHUB_TOKEN }} ghcr.io
+          oras login -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }} ghcr.io
           
           cd ${{ env.RELEASE_PATH }}
           oras push ${{ env.GITHUB_OCI_REGISTRY_ADDRESS }}/${{ ${{ github.event.repository.name }} }}:${{ env.ARTIFACT_VERSION }} .
