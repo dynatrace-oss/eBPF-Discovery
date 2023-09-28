@@ -6,7 +6,7 @@ on:
       - main
 
 jobs:
-  debug:
+  build-and-test-debug:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout source code of the repository

@@ -4,7 +4,7 @@ on:
   push:
 
 jobs:
-  release:
+  build-test-and-publish-release:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout source code of the repository
@@ -31,23 +31,20 @@ jobs:
       - name: Test
         uses: ./.github/actions/test
 
-      - name: Create OCI Registry artifact
+      - name: Move license to release directory
         run: |
-          cd ${{ github.workspace }}/build/Release
-          zip -r ${{ github.workspace }}/${{ env.ARTIFACT_OCI_REGISTRY_NAME }}.zip .
-          zip -u ${{ github.workspace }}/${{ env.ARTIFACT_OCI_REGISTRY_NAME }}.zip ${{ github.workspace }}/LICENSE
+          mv ${{ env.GITHUB_WORKSPACE }}/LICENSE ${{ env.RELEASE_PATH }}/LICENSE
 
-      - name: Publish OCI Registry artifact
+      - name: Publish GitHub OCI registry artifact
         run: |
-          oras login -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }} ghcr.io
+          oras login -u ${{ env.GITHUB_ACTOR }} -p ${{ secrets.GITHUB_TOKEN }} ghcr.io
           
-      - name: Create Release artifact
-        run: |
-          cd ${{ github.workspace }}/build/Release 
-          zip -r ${{ github.workspace }}/${{ env.ARTIFACT_VERSION }}.zip .
+          cd ${{ env.RELEASE_PATH }}
+          oras push ${{ env.GITHUB_OCI_REGISTRY_ADDRESS }}/${{ env.GITHUB_REPOSITORY_NAME }}:${{ env.ARTIFACT_VERSION }} .
+          
+          oras repo ls ${{ env.GITHUB_OCI_REGISTRY_ADDRESS }}
 
-      - name: Publish Release artifact
+      - name: Publish GitHub release
         uses: ncipollo/release-action@v1.10.0
         with:
           tag: ${{ env.ARTIFACT_VERSION }}
-          artifacts: ${{ github.workspace }}/${{ env.ARTIFACT_VERSION }}.zip

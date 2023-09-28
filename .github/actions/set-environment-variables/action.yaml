@@ -13,18 +13,15 @@ runs:
       shell: bash
       run: |
         buildType=${{ inputs.build-type }}
-        
         printf "CAPITALISED_BUILD_TYPE=%s\n" "${buildType}" >> $GITHUB_ENV
-        
         printf "LOWERCASE_BUILD_TYPE=%s\n" "${buildType,,}" >> $GITHUB_ENV
         
         versionPropertiesPath="${{ github.workspace }}/version.properties"
         versionString="$(cat "${versionPropertiesPath}")"
         versionTag="version="
         version="$(printf "%s" "${versionString}" | sed -e "s/^"${versionTag}"//")"
-        
         printf "ARTIFACT_VERSION=%s\n" "${version}" >> $GITHUB_ENV
         
-        artifactOCIRegistryName="${version}"-"$(date +%Y%m%d_%H%M%S)"
+        printf "RELEASE_PATH=%s\n" "${{ github.workspace }}/build/Release" >> $GITHUB_ENV
         
-        printf "ARTIFACT_OCI_REGISTRY_NAME=%s\n" "${artifactOCIRegistryName}" >> $GITHUB_ENV
+        printf "GITHUB_OCI_REGISTRY_ADDRESS=%s\n" "ghcr.io/${{ env.GITHUB_REPOSITORY }}" >> $GITHUB_ENV
