@@ -30,7 +30,7 @@ static void logErrorFromErrno(std::string_view prefix) {
 	std::cout << prefix << ": " << strerror(errno) << "\n";
 }
 
-static int sendIpAddrRequest(int fd, sockaddr_nl* sa, int domain) {
+static int sendIpAddrRequest(int fd, sockaddr_nl* dst, int domain) {
 	std::array<char, BUFFLEN> buf{};
 
 	nlmsghdr* nl;
@@ -44,7 +44,7 @@ static int sendIpAddrRequest(int fd, sockaddr_nl* sa, int domain) {
 	ifa->ifa_family = domain; // ipv4 or ipv6
 
 	iovec iov = {nl, nl->nlmsg_len};
-	msghdr msg = {sa, sizeof(*sa), &iov, 1, NULL, 0, 0};
+	msghdr msg = {dst, sizeof(*dst), &iov, 1, NULL, 0, 0};
 
 	return sendmsg(fd, &msg, 0);
 }
@@ -62,7 +62,7 @@ static void addNetlinkMsg(nlmsghdr* nh, int type, const void* data, int dataLen)
 	memcpy(RTA_DATA(rta), data, dataLen);
 }
 
-static int sendBridgesRequest(int fd, sockaddr_nl* sa, int domain) {
+static int sendBridgesRequest(int fd, sockaddr_nl* dst, int domain) {
 	struct {
 		struct nlmsghdr n;
 		struct ifinfomsg i;
@@ -84,20 +84,20 @@ static int sendBridgesRequest(int fd, sockaddr_nl* sa, int domain) {
 	linkinfo->rta_len = (int)((char*)&r.n + NLMSG_ALIGN(r.n.nlmsg_len) - (char*)linkinfo);
 
 	iovec iov = {&r.n, r.n.nlmsg_len};
-	msghdr msg = {sa, sizeof(*sa), &iov, 1, NULL, 0, 0};
+	msghdr msg = {dst, sizeof(*dst), &iov, 1, NULL, 0, 0};
 
 	return sendmsg(fd, &msg, 0);
 }
 
 
-static int receive(int fd, sockaddr_nl* sa, void* buf, size_t len) {
+static int receive(int fd, sockaddr_nl* dst, void* buf, size_t len) {
 	iovec iov;
 	msghdr msg {};
 	iov.iov_base = buf;
 	iov.iov_len = len;
 
-	msg.msg_name = sa;
-	msg.msg_namelen = sizeof(*sa);
+	msg.msg_name = dst;
+	msg.msg_namelen = sizeof(*dst);
 	msg.msg_iov = &iov;
 	msg.msg_iovlen = 1;
 
@@ -206,7 +206,6 @@ static bool handleNetlink(S send, P parse, int domain) {
 		}
 
 		nlMsgType = parseNlMsg(buf.data(), len, parse);
-
 	} while (nlMsgType != NLMSG_DONE && nlMsgType != NLMSG_ERROR);
 
 	return true;
