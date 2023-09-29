@@ -1,4 +1,4 @@
-name: Build and test Release binaries on merge
+name: Build, test and publish Release
 
 on:
   push:
@@ -6,11 +6,13 @@ on:
       - main
 
 jobs:
-  build-x86-64:
+  build-test-and-publish-release:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout source code of the repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Update packages
         uses: ./.github/actions/update-packages
@@ -18,7 +20,7 @@ jobs:
       - name: Set environment variables
         uses: ./.github/actions/set-environment-variables
         with:
-          build-type: Debug
+          build-type: Release
 
       - name: Install requirements
         uses: ./.github/actions/install-requirements
@@ -32,3 +34,13 @@ jobs:
 
       - name: Test
         uses: ./.github/actions/test
+
+      - name: Move license to release directory
+        run: mv ${{ github.workspace }}/LICENSE ${{ env.RELEASE_PATH }}/LICENSE
+
+      - name: Publish GitHub OCI registry artifact
+        run: |
+          echo ${{ secrets.GITHUB_TOKEN }} | oras login ghcr.io -u ${{ github.actor }} --password-stdin 
+          
+          cd ${{ env.RELEASE_PATH }}
+          oras push ${{ env.GITHUB_OCI_REGISTRY_ADDRESS }}:${{ env.GITHUB_OCI_REGISTRY_ARTIFACT_VERSION }} .
