@@ -16,14 +16,10 @@ runs:
         printf "CAPITALISED_BUILD_TYPE=%s\n" "${buildType}" >> $GITHUB_ENV
         printf "LOWERCASE_BUILD_TYPE=%s\n" "${buildType,,}" >> $GITHUB_ENV
         
-        versionPropertiesPath="${{ github.workspace }}/version.properties"
-        versionString="$(cat "${versionPropertiesPath}")"
-        versionTag="version="
-        version="$(printf "%s" "${versionString}" | sed -e "s/^"${versionTag}"//")"
-        printf "ARTIFACT_VERSION=%s\n" "${version}" >> $GITHUB_ENV
-        
-        githubOCIRegistryArtifactVersion="${version}"-"$(date +%Y%m%d_%H%M%S)"
-        printf "GITHUB_OCI_REGISTRY_ARTIFACT_VERSION=%s\n" "${githubOCIRegistryArtifactVersion}" >> $GITHUB_ENV
+        newestTag="$(git describe --tags | head -n 1)"
+        artifactVersion="$(printf "%s" "${newestTag}" | sed 's/-.*//')"
+        artifactVersionWithTimestamp="${artifactVersion}"-"$(date +%Y%m%d_%H%M%S)"
+        printf "GITHUB_OCI_REGISTRY_ARTIFACT_VERSION=%s\n" "${artifactVersionWithTimestamp}" >> $GITHUB_ENV
         
         printf "RELEASE_PATH=%s\n" "${{ github.workspace }}/build/Release" >> $GITHUB_ENV
         

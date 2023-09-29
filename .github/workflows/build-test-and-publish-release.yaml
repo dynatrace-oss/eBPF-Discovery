@@ -32,8 +32,7 @@ jobs:
         uses: ./.github/actions/test
 
       - name: Move license to release directory
-        run: |
-          mv ${{ github.workspace }}/LICENSE ${{ env.RELEASE_PATH }}/LICENSE
+        run: mv ${{ github.workspace }}/LICENSE ${{ env.RELEASE_PATH }}/LICENSE
 
       - name: Publish GitHub OCI registry artifact
         run: |
@@ -41,8 +40,3 @@ jobs:
           
           cd ${{ env.RELEASE_PATH }}
           oras push ${{ env.GITHUB_OCI_REGISTRY_ADDRESS }}/${{ env.LOWERCASE_REPOSITORY_NAME }}:${{ env.GITHUB_OCI_REGISTRY_ARTIFACT_VERSION }} .
-
-      - name: Publish GitHub release
-        uses: ncipollo/release-action@v1.10.0
-        with:
-          tag: ${{ env.ARTIFACT_VERSION }}
