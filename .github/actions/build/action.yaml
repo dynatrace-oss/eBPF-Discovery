@@ -1,0 +1,8 @@
+name: Build
+
+runs:
+  using: composite
+  steps:
+    - name: Build
+      shell: bash
+      run: cmake --build --preset conan-${{ env.LOWERCASE_BUILD_TYPE }}

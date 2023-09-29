@@ -1,0 +1,17 @@
+name: Set environment variables
+
+inputs:
+  build-type:
+    description: Release or Debug
+    required: true
+    type: string
+
+runs:
+  using: composite
+  steps:
+    - name: Set environment variables
+      shell: bash
+      run: |
+        buildType=${{ inputs.build-type }}
+        echo "CAPITALISED_BUILD_TYPE="${buildType}"" >> $GITHUB_ENV
+        echo "LOWERCASE_BUILD_TYPE="${buildType,,}"" >> $GITHUB_ENV
