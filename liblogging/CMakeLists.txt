@@ -1,0 +1,5 @@
+list(APPEND SOURCES src/Logger.cpp src/Global.cpp)
+set(TARGET logging)
+
+add_library(${TARGET} SHARED ${SOURCES})
+target_include_directories(${TARGET} PRIVATE src PUBLIC headers)

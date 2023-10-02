@@ -198,3 +198,33 @@ struct DiscoveryAllSessionState {
 struct DiscoveryGlobalState {
 	bool isCollectingDisabled;
 };
+
+/*
+ * eBPF logs and program config
+ */
+
+enum DiscoveryLogLevel {
+	DISCOVERY_LOG_LEVEL_TRACE,
+	DISCOVERY_LOG_LEVEL_DEBUG,
+	DISCOVERY_LOG_LEVEL_INFO,
+	DISCOVERY_LOG_LEVEL_WARN,
+	DISCOVERY_LOG_LEVEL_ERROR,
+	DISCOVERY_LOG_LEVEL_CRITICAL,
+	DISCOVERY_LOG_LEVEL_OFF,
+};
+
+struct DiscoveryConfig {
+	enum DiscoveryLogLevel logLevel;
+};
+
+struct DiscoveryLogEventMessage {
+	char str[DISCOVERY_LOG_MAX_MESSAGE_LENGTH];
+};
+
+struct DiscoveryLogEvent {
+	__u64 timestamp;
+	__u64 cpuId;
+	__u64 pidTgid;
+	enum DiscoveryLogLevel severity;
+	struct DiscoveryLogEventMessage message;
+};

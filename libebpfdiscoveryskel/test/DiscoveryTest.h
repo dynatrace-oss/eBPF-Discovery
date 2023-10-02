@@ -23,9 +23,9 @@ public:
 
 	void setInPtr(const std::string& str) {
 		checkLoaded();
-		inPtrSrc.clear();
-		std::copy(str.begin(), str.end(), std::back_inserter(inPtrSrc));
-		testBss->inPtr = inPtrSrc.data();
+		inPtrData.clear();
+		std::copy(str.begin(), str.end(), std::back_inserter(inPtrData));
+		testBss->inPtr = inPtrData.data();
 	}
 
 	void setInLen(size_t len) {

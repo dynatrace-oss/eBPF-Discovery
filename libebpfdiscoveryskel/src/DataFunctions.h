@@ -28,3 +28,53 @@ __attribute__((always_inline)) inline static bool dataProbeIsBeginningOfHttpRequ
 	return len >= DISCOVERY_MIN_HTTP_REQUEST_LENGTH &&
 		   (dataProbeEqualToString(ptr, "GET /", 5) == 5 || dataProbeEqualToString(ptr, "POST /", 6) == 6);
 }
+
+__attribute__((always_inline)) inline static int dataCopyString(const char* src, char* dest, size_t len) {
+	for (size_t i = 0; i < len; ++i) {
+		if (src[i] == '\0') {
+			return i + 1;
+		}
+		dest[i] = src[i];
+	}
+	return len;
+}
+
+__attribute__((always_inline)) inline static bool dataStringPutChar(char* str, size_t len, size_t index, char ch) {
+	if (index >= len) {
+		return false;
+	}
+
+	str[index] = ch;
+	return true;
+}
+
+__attribute__((always_inline)) inline static int dataStringFormat(
+		char* dest, size_t len, const char* fmt, size_t dataLength, const char* data) {
+	size_t dataIndex = 0;
+	size_t fmtIndex = 0;
+	for (size_t i = 0; i < len; ++i) {
+		if (fmt[fmtIndex] == '\0') {
+			dataStringPutChar(dest, len, ++i, '\0');
+			return i;
+		}
+
+		if (fmt[fmtIndex] == '%' && fmt[++fmtIndex] != '\0') {
+			switch (fmt[i]) {
+			case 'c':
+				if (dataIndex >= dataLength) {
+					dataStringPutChar(dest, len, ++i, '\0');
+					return i;
+				}
+				dest[i] = data[dataIndex++];
+				break;
+			default:
+				dest[i] = '%';
+				dest[++i] = fmt[fmtIndex];
+			}
+		} else {
+			dest[i] = fmt[fmtIndex++];
+		}
+	}
+
+	return len;
+}
