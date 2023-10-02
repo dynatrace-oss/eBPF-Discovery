@@ -38,9 +38,15 @@ jobs:
       - name: Move license to release directory
         run: mv ${{ github.workspace }}/LICENSE ${{ env.RELEASE_PATH }}/LICENSE
 
-      - name: Publish GitHub OCI registry artifact
+      - name: Zip release directory contents
         run: |
-          echo ${{ secrets.GITHUB_TOKEN }} | oras login ghcr.io -u ${{ github.actor }} --password-stdin 
-          
           cd ${{ env.RELEASE_PATH }}
-          oras push ${{ env.GITHUB_OCI_REGISTRY_ADDRESS }}:${{ env.GITHUB_OCI_REGISTRY_ARTIFACT_VERSION }} .
+          zip -r ${{ env.GITHUB_OCI_REGISTRY_ARTIFACT_VERSION }}.zip .
+
+      - name: Login to GitHub OCI registry
+        run: printf "%s" ${{ secrets.GITHUB_TOKEN }} | oras login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Publish zip to GitHub OCI registry
+        run: |
+          cd ${{ env.RELEASE_PATH }}
+          oras push ${{ env.GITHUB_OCI_REGISTRY_ADDRESS }}:${{ env.GITHUB_OCI_REGISTRY_ARTIFACT_VERSION }} ${{ env.GITHUB_OCI_REGISTRY_ARTIFACT_VERSION }}.zip
