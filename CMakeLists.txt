@@ -68,7 +68,7 @@ if(Boost_FOUND)
 endif()
 
 if(NOT TARGET fmt)
-	find_package(fmt 8.0.1 REQUIRED)
+	find_package(fmt REQUIRED)
 endif(NOT TARGET fmt)
 
 find_package(Protobuf REQUIRED)
