@@ -7,8 +7,6 @@ runs:
       shell: bash
       run: |
         sudo apt-get install -y libelf-dev
-        sudo apt-get install -y libboost-all-dev
-        sudo apt-get install -y libfmt-dev
         sudo apt-get install -y clang
         pip install cmake==3.23.3
         pip install conan==2.0
