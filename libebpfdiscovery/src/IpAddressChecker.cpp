@@ -23,31 +23,13 @@ static constexpr uint32_t IP_CLASS_A{0x0000000a}; // 10.*.*.*
 static constexpr uint32_t MASK_CLASS_A{0x000000ff};
 static constexpr uint32_t IP_LINK_LOCAL{0x0000fea9}; // 169.254.*.*
 static constexpr uint32_t MASK_LINK_LOCAL{0x0000ffff};
-static constexpr uint32_t IP_LOOPBACK{0x000000ff}; // 127.0..*.*
+static constexpr uint32_t IP_LOOPBACK{0x0000007f}; // 127.0.*.*
 static constexpr uint32_t MASK_LOOPBACK{0x00ffffff};
 
 static void logErrorFromErrno(std::string_view prefix) {
 	std::cout << prefix << ": " << strerror(errno) << "\n";
 }
 
-static int sendIpAddrRequest(int fd, sockaddr_nl* dst, int domain) {
-	std::array<char, BUFFLEN> buf{};
-
-	nlmsghdr* nl;
-	nl = reinterpret_cast<nlmsghdr*>(buf.data());
-	nl->nlmsg_len = NLMSG_LENGTH(sizeof(struct ifaddrmsg));
-	nl->nlmsg_type = RTM_GETADDR;
-	nl->nlmsg_flags = NLM_F_REQUEST | NLM_F_ROOT;
-
-	ifaddrmsg* ifa;
-	ifa = reinterpret_cast<ifaddrmsg*>(NLMSG_DATA(nl));
-	ifa->ifa_family = domain; // ipv4 or ipv6
-
-	iovec iov = {nl, nl->nlmsg_len};
-	msghdr msg = {dst, sizeof(*dst), &iov, 1, NULL, 0, 0};
-
-	return sendmsg(fd, &msg, 0);
-}
 
 static void addNetlinkMsg(nlmsghdr* nh, int type, const void* data, int dataLen) {
 	struct rtattr* rta;
@@ -62,47 +44,6 @@ static void addNetlinkMsg(nlmsghdr* nh, int type, const void* data, int dataLen)
 	memcpy(RTA_DATA(rta), data, dataLen);
 }
 
-static int sendBridgesRequest(int fd, sockaddr_nl* dst, int domain) {
-	struct {
-		struct nlmsghdr n;
-		struct ifinfomsg i;
-		char _[1024]; // space for rtattr array
-	} r{};
-
-	const char* dev_type = "bridge";
-
-	r.n.nlmsg_len = NLMSG_LENGTH(sizeof(ifinfomsg));
-	r.n.nlmsg_type = RTM_GETLINK;
-	r.n.nlmsg_flags = NLM_F_REQUEST | NLM_F_DUMP;
-	r.i.ifi_family = AF_PACKET;
-	r.n.nlmsg_pid = 0;
-	r.n.nlmsg_seq = 0;
-
-	rtattr* linkinfo = reinterpret_cast<rtattr*>((char*)&r.n + NLMSG_ALIGN(r.n.nlmsg_len));
-	addNetlinkMsg(&r.n, IFLA_LINKINFO, NULL, 0);
-	addNetlinkMsg(&r.n, IFLA_INFO_KIND, dev_type, strlen(dev_type) + 1);
-	linkinfo->rta_len = (int)((char*)&r.n + NLMSG_ALIGN(r.n.nlmsg_len) - (char*)linkinfo);
-
-	iovec iov = {&r.n, r.n.nlmsg_len};
-	msghdr msg = {dst, sizeof(*dst), &iov, 1, NULL, 0, 0};
-
-	return sendmsg(fd, &msg, 0);
-}
-
-
-static int receive(int fd, sockaddr_nl* dst, void* buf, size_t len) {
-	iovec iov;
-	msghdr msg {};
-	iov.iov_base = buf;
-	iov.iov_len = len;
-
-	msg.msg_name = dst;
-	msg.msg_namelen = sizeof(*dst);
-	msg.msg_iov = &iov;
-	msg.msg_iovlen = 1;
-
-	return recvmsg(fd, &msg, 0);
-}
 
 static ebpfdiscovery::IpIfce parseIfceIPv4(void* data, size_t len) {
 	ebpfdiscovery::IpIfce ifce{};
@@ -141,8 +82,71 @@ static int getIfIndex(void* data) {
 
 namespace ebpfdiscovery {
 
-IpAddressChecker::IpAddressChecker(std::initializer_list<IpIfce> config) {
+int NetlinkCalls::sendIpAddrRequest(int fd, sockaddr_nl* dst, int domain) const{
+	std::array<char, BUFFLEN> buf{};
+
+	nlmsghdr* nl;
+	nl = reinterpret_cast<nlmsghdr*>(buf.data());
+	nl->nlmsg_len = NLMSG_LENGTH(sizeof(struct ifaddrmsg));
+	nl->nlmsg_type = RTM_GETADDR;
+	nl->nlmsg_flags = NLM_F_REQUEST | NLM_F_ROOT;
+
+	ifaddrmsg* ifa;
+	ifa = reinterpret_cast<ifaddrmsg*>(NLMSG_DATA(nl));
+	ifa->ifa_family = domain; // ipv4 or ipv6
+
+	iovec iov = {nl, nl->nlmsg_len};
+	msghdr msg = {dst, sizeof(*dst), &iov, 1, NULL, 0, 0};
+
+	return sendmsg(fd, &msg, 0);
+}
+
+int NetlinkCalls::sendBridgesRequest(int fd, sockaddr_nl* dst, int domain) const{
+	struct {
+		struct nlmsghdr n;
+		struct ifinfomsg i;
+		char _[1024]; // space for rtattr array
+	} r{};
+
+	const char* dev_type = "bridge";
+
+	r.n.nlmsg_len = NLMSG_LENGTH(sizeof(ifinfomsg));
+	r.n.nlmsg_type = RTM_GETLINK;
+	r.n.nlmsg_flags = NLM_F_REQUEST | NLM_F_DUMP;
+	r.i.ifi_family = AF_PACKET;
+	r.n.nlmsg_pid = 0;
+	r.n.nlmsg_seq = 0;
+
+	rtattr* linkinfo = reinterpret_cast<rtattr*>((char*)&r.n + NLMSG_ALIGN(r.n.nlmsg_len));
+	addNetlinkMsg(&r.n, IFLA_LINKINFO, NULL, 0);
+	addNetlinkMsg(&r.n, IFLA_INFO_KIND, dev_type, strlen(dev_type) + 1);
+	linkinfo->rta_len = (int)((char*)&r.n + NLMSG_ALIGN(r.n.nlmsg_len) - (char*)linkinfo);
+
+	iovec iov = {&r.n, r.n.nlmsg_len};
+	msghdr msg = {dst, sizeof(*dst), &iov, 1, NULL, 0, 0};
+
+	return sendmsg(fd, &msg, 0);
+}
+
+int NetlinkCalls::receive(int fd, sockaddr_nl* dst, void* buf, size_t len) const {
+	iovec iov;
+	msghdr msg {};
+	iov.iov_base = buf;
+	iov.iov_len = len;
+
+	msg.msg_name = dst;
+	msg.msg_namelen = sizeof(*dst);
+	msg.msg_iov = &iov;
+	msg.msg_iovlen = 1;
+
+	return recvmsg(fd, &msg, 0);
+}
+
+IpAddressChecker::IpAddressChecker(std::initializer_list<IpIfce> config, const NetlinkCalls &calls) :netlink(calls) {
 	interfaces.insert(interfaces.end(), config.begin(), config.end());
+}
+
+IpAddressChecker::IpAddressChecker(const NetlinkCalls &calls) :netlink(calls) {
 }
 
 bool IpAddressChecker::readNetworks() {
@@ -178,8 +182,8 @@ static uint32_t parseNlMsg(void* buf, size_t len, P parse) {
 	return nl->nlmsg_type;
 }
 
-template <typename S, typename P>
-static bool handleNetlink(S send, P parse, int domain) {
+template <typename S, typename P, typename R>
+static bool handleNetlink(S send, R receive, P parse, int domain) {
 	int fd = socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
 	if (fd < 0) {
 		logErrorFromErrno("socket");
@@ -213,13 +217,15 @@ static bool handleNetlink(S send, P parse, int domain) {
 
 bool IpAddressChecker::readAllIpAddrs() {
 	return handleNetlink(
-			[](int fd, sockaddr_nl* sa, int domain) { return sendIpAddrRequest(fd, sa, AF_INET); },
+			[this](int fd, sockaddr_nl* sa, int domain) { return netlink.sendIpAddrRequest(fd, sa, AF_INET); },
+			[this](int fd, sockaddr_nl* dst, void* buf, size_t len) { return netlink.receive(fd, dst, buf, len); },
 			[this](void* buf, size_t len) { addIpIfce(parseIfce(buf, len)); }, AF_INET);
 }
 
 bool IpAddressChecker::markLocalBridges() {
 	return handleNetlink(
-			[](int fd, sockaddr_nl* sa, int domain) { return sendBridgesRequest(fd, sa, AF_INET); },
+			[this](int fd, sockaddr_nl* sa, int domain) { return netlink.sendBridgesRequest(fd, sa, AF_INET); },
+			[this](int fd, sockaddr_nl* dst, void* buf, size_t len) { return netlink.receive(fd, dst, buf, len); },
 			[this](void* buf, size_t len) { markBridge(getIfIndex(buf)); }, AF_INET);
 }
 
