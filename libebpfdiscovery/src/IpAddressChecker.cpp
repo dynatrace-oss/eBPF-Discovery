@@ -120,7 +120,7 @@ int NetlinkCalls::sendBridgesRequest(int fd, sockaddr_nl* dst, int domain) const
 	rtattr* linkinfo = reinterpret_cast<rtattr*>((char*)&r.n + NLMSG_ALIGN(r.n.nlmsg_len));
 	addNetlinkMsg(&r.n, IFLA_LINKINFO, NULL, 0);
 	addNetlinkMsg(&r.n, IFLA_INFO_KIND, dev_type, strlen(dev_type) + 1);
-	linkinfo->rta_len = (int)((char*)&r.n + NLMSG_ALIGN(r.n.nlmsg_len) - (char*)linkinfo);
+	linkinfo->rta_len = (int)(reinterpret_cast<char*>(&r.n) + NLMSG_ALIGN(r.n.nlmsg_len) - reinterpret_cast<char*>(linkinfo));
 
 	iovec iov = {&r.n, r.n.nlmsg_len};
 	msghdr msg = {dst, sizeof(*dst), &iov, 1, NULL, 0, 0};
