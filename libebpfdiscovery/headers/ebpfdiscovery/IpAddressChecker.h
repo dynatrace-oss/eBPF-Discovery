@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 #pragma once
 #include <cstdint>
+#include <stddef.h>
 #include <initializer_list>
 #include <vector>
 
