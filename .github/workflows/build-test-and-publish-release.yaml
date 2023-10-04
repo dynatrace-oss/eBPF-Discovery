@@ -35,12 +35,24 @@ jobs:
       - name: Test
         uses: ./.github/actions/test
 
-      - name: Move license to release directory
-        run: mv ${{ github.workspace }}/LICENSE ${{ env.RELEASE_PATH }}/LICENSE
+      - name: Create artifact directory
+        run: mkdir ${{ env.ARTIFACT_PATH }}
 
-      - name: Zip release directory contents
+      - name: Move license to artifact directory
+        run: mv ${{ github.workspace }}/LICENSE ${{ env.ARTIFACT_PATH }}/LICENSE
+
+      - name: Move protobuf model to artifact directory
+        run: mv ${{ env.RELEASE_PATH }}/libebpfdiscoveryproto/proto/ebpfdiscoveryproto ${{ env.ARTIFACT_PATH }}/ebpfdiscoveryproto
+
+      - name: Move binaries to artifact directory
+        run: mv ${{ env.RELEASE_PATH }}/bin ${{ env.ARTIFACT_PATH }}/bin
+
+      - name: Remove test binaries from artifact directory
+        run: find ${{ env.ARTIFACT_PATH }}/* -name 'test*' -exec rm {} \;
+
+      - name: Zip artifact directory contents
         run: |
-          cd ${{ env.RELEASE_PATH }}
+          cd ${{ env.ARTIFACT_PATH }}
           zip -r ${{ env.GITHUB_OCI_REGISTRY_ARTIFACT_VERSION }}.zip .
 
       - name: Login to GitHub OCI registry
@@ -48,5 +60,5 @@ jobs:
 
       - name: Publish zip to GitHub OCI registry
         run: |
-          cd ${{ env.RELEASE_PATH }}
+          cd ${{ env.ARTIFACT_PATH }}
           oras push ${{ env.GITHUB_OCI_REGISTRY_ADDRESS }}:${{ env.GITHUB_OCI_REGISTRY_ARTIFACT_VERSION }} ${{ env.GITHUB_OCI_REGISTRY_ARTIFACT_VERSION }}.zip
