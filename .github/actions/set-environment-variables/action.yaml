@@ -22,6 +22,8 @@ runs:
         
         printf "RELEASE_PATH=%s\n" "${{ github.workspace }}/build/Release" >> $GITHUB_ENV
         
+        printf "ARTIFACT_PATH=%s\n" "${{ github.workspace }}/artifact" >> $GITHUB_ENV
+        
         repositoryName="$(printf "%s" "${{ github.repository }}" | sed -e "s/^${{ github.repository_owner }}\///")"
         lowercaseRepositoryName="${repositoryName,,}"
         printf "LOWERCASE_REPOSITORY_NAME=%s\n" "${lowercaseRepositoryName}" >> $GITHUB_ENV
