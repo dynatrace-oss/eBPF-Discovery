@@ -5,11 +5,9 @@ eBPF Discovery is a tool for discovering HTTP endpoints on a given host based on
 ## Build requirements
 
 ```
-conan 2.0
-cmake 3.23
+conan >= 2.0
+cmake >= 3.23
 libelf-dev
-libboost-all-dev
-libfmt-dev
 clang
 ```
 
