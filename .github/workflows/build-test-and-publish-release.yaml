@@ -1,0 +1,52 @@
+name: Build, test and publish Release
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-test-and-publish-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source code of the repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Update packages
+        uses: ./.github/actions/update-packages
+
+      - name: Set environment variables
+        uses: ./.github/actions/set-environment-variables
+        with:
+          build-type: Release
+
+      - name: Install requirements
+        uses: ./.github/actions/install-requirements
+
+      - name: Configure
+        shell: bash
+        run: cmake --preset conan-${{ env.LOWERCASE_BUILD_TYPE }} -DBUILD_TESTS=ON
+
+      - name: Build
+        uses: ./.github/actions/build
+
+      - name: Test
+        uses: ./.github/actions/test
+
+      - name: Move license to release directory
+        run: mv ${{ github.workspace }}/LICENSE ${{ env.RELEASE_PATH }}/LICENSE
+
+      - name: Zip release directory contents
+        run: |
+          cd ${{ env.RELEASE_PATH }}
+          zip -r ${{ env.GITHUB_OCI_REGISTRY_ARTIFACT_VERSION }}.zip .
+
+      - name: Login to GitHub OCI registry
+        run: printf "%s" ${{ secrets.GITHUB_TOKEN }} | oras login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Publish zip to GitHub OCI registry
+        run: |
+          cd ${{ env.RELEASE_PATH }}
+          oras push ${{ env.GITHUB_OCI_REGISTRY_ADDRESS }}:${{ env.GITHUB_OCI_REGISTRY_ARTIFACT_VERSION }} ${{ env.GITHUB_OCI_REGISTRY_ARTIFACT_VERSION }}.zip
