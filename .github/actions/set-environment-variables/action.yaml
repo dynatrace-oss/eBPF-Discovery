@@ -1,0 +1,30 @@
+name: Set environment variables
+
+inputs:
+  build-type:
+    description: Release or Debug
+    required: true
+    type: string
+
+runs:
+  using: composite
+  steps:
+    - name: Set environment variables
+      shell: bash
+      run: |
+        buildType=${{ inputs.build-type }}
+        printf "CAPITALISED_BUILD_TYPE=%s\n" "${buildType}" >> $GITHUB_ENV
+        printf "LOWERCASE_BUILD_TYPE=%s\n" "${buildType,,}" >> $GITHUB_ENV
+        
+        newestTag="$(git describe --tags --abbrev=0)"
+        artifactVersionWithTimestamp="${newestTag}"-"$(date +%Y%m%d_%H%M%S)"
+        printf "GITHUB_OCI_REGISTRY_ARTIFACT_VERSION=%s\n" "${artifactVersionWithTimestamp}" >> $GITHUB_ENV
+        
+        printf "RELEASE_PATH=%s\n" "${{ github.workspace }}/build/Release" >> $GITHUB_ENV
+        
+        repositoryName="$(printf "%s" "${{ github.repository }}" | sed -e "s/^${{ github.repository_owner }}\///")"
+        lowercaseRepositoryName="${repositoryName,,}"
+        printf "LOWERCASE_REPOSITORY_NAME=%s\n" "${lowercaseRepositoryName}" >> $GITHUB_ENV
+        
+        githubOCIRegistryAddress=ghcr.io/${{ github.repository_owner }}/"${lowercaseRepositoryName}"
+        printf "GITHUB_OCI_REGISTRY_ADDRESS=%s\n" "${githubOCIRegistryAddress}" >> $GITHUB_ENV
