@@ -35,8 +35,12 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release")
 	set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
 endif()
 
-file(READ "version.properties" ver)
-string(REGEX MATCH "version=([0-9]+)\.([0-9]+)\.([0-9]+)" _ ${ver})
+find_package(Git REQUIRED)
+execute_process(
+		COMMAND ${GIT_EXECUTABLE} describe --tags --abbrev=0 OUTPUT_VARIABLE ver
+)
+
+string(REGEX MATCH "([0-9]+)\.([0-9]+)\.([0-9]+)" _ ${ver})
 if(NOT CMAKE_MATCH_COUNT EQUAL 3)
 	message(FATAL_ERROR "Version parsing failed\n    Got: ${ver}")
 endif()
