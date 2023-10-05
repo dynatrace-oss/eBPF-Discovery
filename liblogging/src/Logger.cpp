@@ -78,17 +78,17 @@ void Logger::vlogf(enum LogLevel level, const char* format, va_list args) {
 	const int staticBufSize = 512;
 	static char staticBuf[staticBufSize]{};
 
+	static va_list argsCopy;
+	va_copy(argsCopy, args);
+
 	int resultSize = vsnprintf(staticBuf, staticBufSize, format, args);
 	if (resultSize <= staticBufSize) {
 		logLine(level, staticBuf, resultSize);
 		return;
 	}
 
-	static va_list args2;
-	va_copy(args2, args);
-
 	char buf[resultSize]{};
-	vsnprintf(buf, resultSize, format, args2);
+	vsnprintf(buf, resultSize, format, argsCopy);
 
 	logLine(level, buf, resultSize);
 }
@@ -116,5 +116,4 @@ void Logger::logLine(enum LogLevel level, const char* buf, size_t len) {
 	}
 	log(level, "{}", str);
 }
-
 } // namespace logging
