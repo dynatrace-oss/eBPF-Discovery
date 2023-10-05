@@ -99,7 +99,7 @@ void Logger::setLogger(spdlog::logger logger) {
 }
 
 void Logger::loggerSetDefaults() {
-	spdLogger.set_level(spdlog::level::info);
+	spdLogger.set_level(spdlog::level::off);
 	spdLogger.set_pattern("%Y-%m-%d %H:%M:%S.%e [%t] %^%l%$ [%n] %v");
 }
 
