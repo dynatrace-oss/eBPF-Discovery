@@ -61,7 +61,7 @@ void Logger::setup(std::string name, bool logToStdout, std::filesystem::path log
 		}
 		// TODO: Check for permissions
 
-		fs::path logFile = logDir / (name + ".log");
+		fs::path logFile{logDir / (name + ".log")};
 		sinks.push_back(std::make_shared<spdlog::sinks::rotating_file_sink_mt>(logFile, max_size, max_files));
 	}
 
@@ -73,13 +73,13 @@ void Logger::vlogf(enum LogLevel level, const char* format, va_list args) {
 		return;
 	}
 
-	const int staticBufSize = 512;
+	const int staticBufSize{512};
 	static char staticBuf[staticBufSize]{};
 
 	static va_list argsCopy;
 	va_copy(argsCopy, args);
 
-	int resultSize = vsnprintf(staticBuf, staticBufSize, format, args);
+	int resultSize{vsnprintf(staticBuf, staticBufSize, format, args)};
 	if (resultSize <= staticBufSize) {
 		logLine(level, staticBuf, resultSize);
 		return;
@@ -107,7 +107,7 @@ void Logger::logLine(enum LogLevel level, const char* buf, size_t len) {
 	}
 
 	std::string str;
-	if (buf[len - 1] == '\n') {
+	if (len > 1 && buf[len - 1] == '\n') {
 		str.assign(buf, len - 1);
 	} else {
 		str.assign(buf, len);
