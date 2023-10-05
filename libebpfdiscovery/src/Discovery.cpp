@@ -1,15 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
-
 #include "ebpfdiscovery/Discovery.h"
 
 #include "StringFunctions.h"
 #include "ebpfdiscovery/Session.h"
-
-extern "C" {
-#include "bpfload/btf_helpers.h"
-}
-
-#include "discovery.skel.h"
+#include "logging/Global.h"
 
 #include <algorithm>
 #include <arpa/inet.h>
@@ -24,51 +18,54 @@ extern "C" {
 
 namespace ebpfdiscovery {
 
-static void printSession(const Session& session, const DiscoverySessionMeta& meta) {
-	const auto& request{session.parser.result};
-	std::cout << request.method << " " << request.host << request.url;
+Discovery::Discovery(DiscoveryBpf discoveryBpf) : Discovery(discoveryBpf, DiscoveryConfig{}) {
+}
 
-	if (const auto& xForwardedFor{request.xForwardedFor}; !xForwardedFor.empty()) {
-		std::cout << " X-Forwarded-For: " << '"' << xForwardedFor << '"';
-	} else if (discoverySessionFlagsIsIPv4(meta.flags)) {
-		if (auto srcIpv4{ipv4ToString(meta.sourceIPData)}; !srcIpv4.empty())
-			std::cout << " srcIpv4: " << '"' << srcIpv4 << '"';
-	} else if (discoverySessionFlagsIsIPv6(meta.flags)) {
-		if (auto srcIpv6{ipv6ToString(meta.sourceIPData)}; !srcIpv6.empty())
-			std::cout << " srcIpv6: " << '"' << srcIpv6 << '"';
+Discovery::Discovery(DiscoveryBpf discoveryBpf, const DiscoveryConfig config)
+		: discoveryBpf(discoveryBpf), savedSessions(DISCOVERY_MAX_SESSIONS) {
+}
+
+void Discovery::start() {
+	if (running) {
+		return;
 	}
-
-	std::cout << '\n';
-}
-
-Discovery::Discovery() : Discovery(DiscoveryConfig{}) {
-}
-
-Discovery::Discovery(const DiscoveryConfig config) : savedSessions(DISCOVERY_MAX_SESSIONS) {
-}
-
-Discovery::~Discovery() {
-	unload();
-}
-
-int Discovery::run() {
-	if (!isLoaded()) {
-		return -1;
-	}
-
 	running = true;
-	while (running) {
+
+	if (int ret{bpfDiscoveryResumeCollecting()}; ret != 0) {
+		running = false;
+		throw std::runtime_error("Could not initialize BPF program configuration: " + std::to_string(ret));
+	}
+
+	workerThread = std::thread([&]() { run(); });
+}
+
+void Discovery::run() {
+	LOG_TRACE("Discovery is starting the BPF event handler loop.");
+	std::unique_lock<std::mutex> lock(stopReceivedMutex);
+	while (!stopReceived) {
 		fetchEvents();
 		bpfDiscoveryResumeCollecting();
-		std::this_thread::sleep_for(config.eventQueuePollInterval);
+		stopReceivedCV.wait_for(lock, config.eventQueuePollInterval);
 	}
 
-	return 0;
+	return;
+}
+
+void Discovery::stop() {
+	std::lock_guard<std::mutex> lock(stopReceivedMutex);
+	stopReceived = true;
+	stopReceivedCV.notify_all();
+}
+
+void Discovery::wait() {
+	if (workerThread.joinable()) {
+		workerThread.join();
+	}
 }
 
 void Discovery::fetchEvents() {
 	DiscoveryEvent event;
-	while (bpf_map__lookup_and_delete_elem(discoverySkel->maps.eventsToUserspaceQueueMap, NULL, 0, &event, sizeof(event), BPF_ANY) == 0) {
+	while (bpf_map__lookup_and_delete_elem(discoverySkel()->maps.eventsToUserspaceQueueMap, NULL, 0, &event, sizeof(event), BPF_ANY) == 0) {
 		handleNewEvent(std::move(event));
 	}
 }
@@ -85,7 +82,7 @@ void Discovery::handleNewEvent(DiscoveryEvent event) {
 void Discovery::handleNewDataEvent(DiscoveryEvent& event) {
 	DiscoverySavedBuffer savedBuffer;
 	auto lookup_result{bpf_map__lookup_elem(
-			discoverySkel->maps.savedBuffersMap,
+			discoverySkel()->maps.savedBuffersMap,
 			&event.dataKey,
 			sizeof(DiscoverySavedBufferKey),
 			&savedBuffer,
@@ -100,7 +97,7 @@ void Discovery::handleNewDataEvent(DiscoveryEvent& event) {
 
 void Discovery::handleBufferLookupSuccess(DiscoverySavedBuffer& savedBuffer, DiscoveryEvent& event) {
 	std::string_view bufferView(savedBuffer.data, savedBuffer.length);
-	bpf_map__delete_elem(discoverySkel->maps.savedBuffersMap, &event.dataKey, sizeof(DiscoverySavedBufferKey), BPF_ANY);
+	bpf_map__delete_elem(discoverySkel()->maps.savedBuffersMap, &event.dataKey, sizeof(DiscoverySavedBufferKey), BPF_ANY);
 
 	auto it{savedSessions.find(event.dataKey)};
 	if (it != savedSessions.end()) {
@@ -148,6 +145,34 @@ void Discovery::handleNewSession(std::string_view& bufferView, DiscoveryEvent& e
 	handleSuccessfulParse(session, event.sessionMeta);
 }
 
+void Discovery::handleNewRequest(const Session& session, const DiscoverySessionMeta& meta) {
+	const auto& request{session.parser.result};
+	if (discoverySessionFlagsIsIPv4(meta.flags)) {
+		LOG_DEBUG(
+				"Handling new request. (method:'{}', host:'{}', url:'{}', X-Forwarded-For:'{}', sourceIPv4:'{}')",
+				request.method,
+				request.host,
+				request.url,
+				request.xForwardedFor,
+				ipv4ToString(meta.sourceIPData));
+	} else if (discoverySessionFlagsIsIPv6(meta.flags)) {
+		LOG_DEBUG(
+				"Handling new request. (method:'{}', host:'{}', url:'{}', X-Forwarded-For:'{}', sourceIPv6:'{}')",
+				request.method,
+				request.host,
+				request.url,
+				request.xForwardedFor,
+				ipv6ToString(meta.sourceIPData));
+	} else {
+		LOG_DEBUG(
+				"Handling new request. (method:'{}', host:'{}', url:'{}', X-Forwarded-For:'{}')",
+				request.method,
+				request.host,
+				request.url,
+				request.xForwardedFor);
+	}
+}
+
 void Discovery::handleCloseEvent(DiscoveryEvent& event) {
 	if (auto it{savedSessions.find(event.dataKey)}; it != savedSessions.end()) {
 		savedSessions.erase(it);
@@ -158,60 +183,15 @@ int Discovery::bpfDiscoveryResumeCollecting() {
 	static uint32_t zero{0};
 	DiscoveryGlobalState discoveryGlobalState{};
 	return bpf_map__update_elem(
-			discoverySkel->maps.globalStateMap, &zero, sizeof(zero), &discoveryGlobalState, sizeof(discoveryGlobalState), BPF_EXIST);
+			discoverySkel()->maps.globalStateMap, &zero, sizeof(zero), &discoveryGlobalState, sizeof(discoveryGlobalState), BPF_EXIST);
 }
 
 int Discovery::bpfDiscoveryResetConfig() {
 	return bpfDiscoveryResumeCollecting();
 }
 
-bool Discovery::isLoaded() noexcept {
-	return discoverySkel != nullptr && loaded;
-}
-
-void Discovery::load() {
-	LIBBPF_OPTS(bpf_object_open_opts, openOpts);
-	discoverySkelOpenOpts = openOpts;
-
-	if (int res{ensure_core_btf(&openOpts)}) {
-		throw std::runtime_error("Failed to fetch necessary BTF for CO-RE: " + std::string(strerror(-res)));
-	}
-
-	discoverySkel = discovery_bpf__open_opts(&openOpts);
-	if (discoverySkel == nullptr) {
-		throw std::runtime_error("Failed to open BPF object.");
-	}
-
-	if (int res{discovery_bpf__load(discoverySkel)}) {
-		throw std::runtime_error("Failed to load BPF object: " + std::to_string(res));
-	}
-
-	if (int res{discovery_bpf__attach(discoverySkel)}) {
-		throw std::runtime_error("Failed to attach BPF object: " + std::to_string(res));
-	}
-
-	if (int res{bpfDiscoveryResumeCollecting()}) {
-		throw std::runtime_error("Failed to set config of BPF program: " + std::to_string(res));
-	}
-
-	loaded = true;
-}
-
-void Discovery::unload() noexcept {
-	stopRun();
-	loaded = false;
-	if (discoverySkel != nullptr) {
-		discovery_bpf__destroy(discoverySkel);
-	}
-	cleanup_core_btf(&discoverySkelOpenOpts);
-}
-
-void Discovery::stopRun() {
-	running = false;
-}
-
 void Discovery::handleSuccessfulParse(const Session& session, const DiscoverySessionMeta& meta) {
-	printSession(session, meta);
+	handleNewRequest(session, meta);
 }
 
 void Discovery::saveSession(const DiscoverySavedSessionKey& sessionKey, const Session& session) {
@@ -219,7 +199,7 @@ void Discovery::saveSession(const DiscoverySavedSessionKey& sessionKey, const Se
 }
 
 int Discovery::bpfDiscoveryDeleteSession(const DiscoveryTrackedSessionKey& trackedSessionKey) {
-	return bpf_map__delete_elem(discoverySkel->maps.trackedSessionsMap, &trackedSessionKey, sizeof(trackedSessionKey), BPF_ANY);
+	return bpf_map__delete_elem(discoverySkel()->maps.trackedSessionsMap, &trackedSessionKey, sizeof(trackedSessionKey), BPF_ANY);
 }
 
 } // namespace ebpfdiscovery

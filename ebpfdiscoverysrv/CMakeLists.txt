@@ -5,3 +5,4 @@ add_executable(${TARGET} ${SOURCES})
 
 target_link_libraries(${TARGET} Boost::program_options)
 target_link_libraries(${TARGET} ebpfdiscovery)
+target_link_libraries(${TARGET} logging)
