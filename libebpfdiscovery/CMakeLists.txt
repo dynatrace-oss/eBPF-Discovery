@@ -5,7 +5,6 @@ list(
 	src/Discovery.cpp
 	src/DiscoveryBpf.cpp
 	src/DiscoveryBpfLoader.cpp
-	# src/DiscoveryBpfLogHandler.cpp
 	src/Session.cpp
 	src/StringFunctions.cpp
 )
