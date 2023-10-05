@@ -47,12 +47,8 @@ void Logger::setLevel(enum LogLevel level) {
 	spdLogger.set_level(static_cast<spdlog::level::level_enum>(level));
 }
 
-void Logger::setup(std::string name, bool logToStdout, const std::string_view& logDir) {
+void Logger::setup(std::string name, bool logToStdout, std::filesystem::path logDir) {
 	namespace fs = std::filesystem;
-
-	if (name.empty()) {
-		name = "default";
-	}
 
 	std::vector<spdlog::sink_ptr> sinks;
 	if (logToStdout) {
@@ -64,7 +60,8 @@ void Logger::setup(std::string name, bool logToStdout, const std::string_view& l
 			throw std::runtime_error("Log directory doesn't exist or is not a directory");
 		}
 		// TODO: Check for permissions
-		std::string logFile = fmt::format("{}/{}.log", logDir, name);
+
+		fs::path logFile = logDir / (name + ".log");
 		sinks.push_back(std::make_shared<spdlog::sinks::rotating_file_sink_mt>(logFile, max_size, max_files));
 	}
 
@@ -75,6 +72,7 @@ void Logger::vlogf(enum LogLevel level, const char* format, va_list args) {
 	if (!spdLogger.should_log(static_cast<spdlog::level::level_enum>(level))) {
 		return;
 	}
+
 	const int staticBufSize = 512;
 	static char staticBuf[staticBufSize]{};
 

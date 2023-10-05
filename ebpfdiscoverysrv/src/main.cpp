@@ -5,9 +5,9 @@
 #include "logging/Global.h"
 
 #include <boost/program_options.hpp>
-#include <fmt/format.h>
 
 #include <condition_variable>
+#include <filesystem>
 #include <iostream>
 #include <memory>
 #include <signal.h>
@@ -36,7 +36,7 @@ static boost::program_options::options_description getProgramOptions() {
 	desc.add_options()
       ("log-level", po::value<logging::LogLevel>()->default_value(logging::LogLevel::Err, "error"), "Set log level {trace,debug,info,warning,error,critical,off}")
       ("help,h", "Display available options")
-      ("log-dir", po::value<std::string>()->default_value(""), "Log files directory")
+      ("log-dir", po::value<std::filesystem::path>()->default_value(""), "Log files directory")
       ("log-no-stdout", po::value<bool>()->default_value(false), "Disable logging to stdout")
       ("version", "Display program version")
   ;
@@ -55,10 +55,10 @@ static std::string getProgramVersion() {
  * Logging setup
  */
 
-static void setupLogging(logging::LogLevel logLevel, bool enableStdout, std::string_view logDir) {
+static void setupLogging(logging::LogLevel logLevel, bool enableStdout, const std::filesystem::path& logDir) {
 	logging::Global::getInstance().setup("eBPF-Discovery", enableStdout, logDir);
 	logging::Global::getInstance().setLevel(logLevel);
-	LOG_TRACE("Logging has been set up. (logDir: {})", logDir);
+	LOG_TRACE("Logging has been set up. (logDir: {})", logDir.string());
 }
 
 /*
@@ -139,7 +139,7 @@ int main(int argc, char** argv) {
 
 	logging::LogLevel logLevel{vm["log-level"].as<logging::LogLevel>()};
 	bool isStdoutLogDisabled{vm["log-no-stdout"].as<bool>()};
-	std::string logDir{vm["log-dir"].as<std::string>()};
+	std::filesystem::path logDir{vm["log-dir"].as<std::filesystem::path>()};
 
 	try {
 		setupLogging(logLevel, !isStdoutLogDisabled, logDir);

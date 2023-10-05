@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <filesystem>
 #include <istream>
 #include <optional>
 #include <string>
@@ -37,7 +38,7 @@ public:
 	Logger& operator=(const Logger&) = delete;
 
 	void setLevel(enum LogLevel level);
-	void setup(std::string name = {}, bool logToStdout = true, const std::string_view& logDir = {});
+	void setup(std::string name, bool logToStdout = true, std::filesystem::path logDir = {});
 
 	template <typename... Args>
 	void log(enum LogLevel level, const char* fmt, const Args&... args) {
