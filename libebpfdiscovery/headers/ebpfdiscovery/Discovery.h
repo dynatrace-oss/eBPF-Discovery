@@ -65,7 +65,7 @@ private:
 	DiscoveryBpf discoveryBpf;
 	SavedSessionsCacheType savedSessions;
 
-	std::atomic<bool> running;
+	std::atomic<bool> running{false};
 	bool stopReceived{false};
 	std::condition_variable stopReceivedCV;
 	std::mutex stopReceivedMutex;
