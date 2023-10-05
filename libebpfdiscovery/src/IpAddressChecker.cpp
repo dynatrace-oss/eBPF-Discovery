@@ -13,7 +13,7 @@
 #include <string_view>
 #include <unistd.h>
 
-static constexpr uint32_t BUFFLEN{4096};
+static constexpr uint32_t BUFLEN{4096};
 static constexpr uint32_t IP_CLASS_C{0x0000a8c0}; // 192.168.*.*
 static constexpr uint32_t MASK_CLASS_C{0x0000ffff};
 static constexpr uint32_t IP_CLASS_B{0x000010ac}; // 172.16-31.*.*
@@ -28,7 +28,6 @@ static constexpr uint32_t MASK_LOOPBACK{0x00ffffff};
 static void logErrorFromErrno(std::string_view prefix) {
 	std::cout << prefix << ": " << strerror(errno) << "\n";
 }
-
 
 static ebpfdiscovery::IpIfce parseIfceIPv4(void* data, size_t len) {
 	ebpfdiscovery::IpIfce ifce{};
@@ -66,7 +65,6 @@ static int getIfIndex(void* data) {
 }
 
 namespace ebpfdiscovery {
-
 
 IpAddressChecker::IpAddressChecker(std::initializer_list<IpIfce> config, const NetlinkCalls &calls) :netlink(calls) {
 	interfaces.insert(interfaces.end(), config.begin(), config.end());
@@ -128,8 +126,8 @@ static bool handleNetlink(S send, R receive, P parse, int domain) {
 
 	uint32_t nlMsgType;
 	do {
-		std::array<char, BUFFLEN> buf{};
-		len = receive(fd, &sa, buf.data(), BUFFLEN);
+		std::array<char, BUFLEN> buf{};
+		len = receive(fd, &sa, buf.data(), BUFLEN);
 		if (len <= 0) {
 			logErrorFromErrno("receive");
 			break;
@@ -177,7 +175,7 @@ bool IpAddressChecker::isLoopback(const IpIfce& ifce) {
 	});
 }
 
-bool IpAddressChecker::isAddressExternalLocal(IPv4 addr) {
+bool IpAddressChecker::isAddressExternalLocal(IPv4int addr) {
 	const bool isPublic = ((addr & MASK_CLASS_A) != IP_CLASS_A) && ((addr & MASK_CLASS_B) != IP_CLASS_B) && ((addr & MASK_CLASS_C) != IP_CLASS_C);
 
 	if (isPublic) {

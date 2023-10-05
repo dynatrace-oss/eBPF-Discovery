@@ -7,11 +7,11 @@
 
 namespace ebpfdiscovery {
 
-using IPv4 = uint32_t;
+using IPv4int = uint32_t;
 
 struct IpIfce {
-	std::vector<IPv4> ip;
-	std::vector<IPv4> broadcast;
+	std::vector<IPv4int> ip;
+	std::vector<IPv4int> broadcast;
 	uint32_t mask;
 	int index;
 	bool isLocalBridge;
@@ -32,7 +32,7 @@ protected:
 public:
 	IpAddressChecker(const NetlinkCalls &calls);
 	IpAddressChecker(std::initializer_list<IpIfce> config, const NetlinkCalls &calls);
-	bool isAddressExternalLocal(IPv4 addr);
+	bool isAddressExternalLocal(IPv4int addr);
 	bool readNetworks();
 };
 } // namespace ebpfdiscovery
