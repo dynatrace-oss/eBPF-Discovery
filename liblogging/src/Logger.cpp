@@ -39,7 +39,7 @@ std::istream& operator>>(std::istream& in, LogLevel& level) {
 	return in;
 }
 
-Logger::Logger() : spdLogger("default") {
+Logger::Logger() : spdLogger("") {
 	loggerSetDefaults();
 }
 
