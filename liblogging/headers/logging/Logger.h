@@ -112,7 +112,6 @@ private:
 	void logLine(enum LogLevel level, const char* str, size_t len);
 
 	spdlog::logger spdLogger;
-	int id = rand();
 };
 
 } // namespace logging
