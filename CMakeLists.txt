@@ -35,8 +35,12 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release")
 	set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
 endif()
 
-file(READ "version.properties" ver)
-string(REGEX MATCH "version=([0-9]+)\.([0-9]+)\.([0-9]+)" _ ${ver})
+find_package(Git REQUIRED)
+execute_process(
+		COMMAND ${GIT_EXECUTABLE} describe --tags --abbrev=0 OUTPUT_VARIABLE ver
+)
+
+string(REGEX MATCH "([0-9]+)\.([0-9]+)\.([0-9]+)" _ ${ver})
 if(NOT CMAKE_MATCH_COUNT EQUAL 3)
 	message(FATAL_ERROR "Version parsing failed\n    Got: ${ver}")
 endif()
@@ -68,7 +72,7 @@ if(Boost_FOUND)
 endif()
 
 if(NOT TARGET fmt)
-	find_package(fmt 8.0.1 REQUIRED)
+	find_package(fmt REQUIRED)
 endif(NOT TARGET fmt)
 
 find_package(Protobuf REQUIRED)
@@ -81,7 +85,7 @@ endif()
 
 set(INSTALL_GTEST OFF CACHE BOOL "Disable installation of googletest" FORCE)
 
-if(BUILD_TESTS)
+if(BUILD_TESTS OR BUILD_BPF_TESTS)
 	include(FetchContent)
 	FetchContent_Declare(googletest URL https://github.com/google/googletest/archive/03597a01ee50ed33e9dfd640b249b4be3799d395.zip)
 	FetchContent_MakeAvailable(googletest)

@@ -1,0 +1,14 @@
+name: Install requirements
+
+runs:
+  using: composite
+  steps:
+    - name: Install requirements
+      shell: bash
+      run: |
+        sudo apt-get install -y libelf-dev
+        sudo apt-get install -y clang
+        pip install cmake==3.23.3
+        pip install conan==2.0
+        conan profile detect
+        conan install . --build=missing -s build_type=${{ env.CAPITALISED_BUILD_TYPE }}

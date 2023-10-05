@@ -1,0 +1,64 @@
+name: Build, test and publish Release
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-test-and-publish-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source code of the repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Update packages
+        uses: ./.github/actions/update-packages
+
+      - name: Set environment variables
+        uses: ./.github/actions/set-environment-variables
+        with:
+          build-type: Release
+
+      - name: Install requirements
+        uses: ./.github/actions/install-requirements
+
+      - name: Configure
+        shell: bash
+        run: cmake --preset conan-${{ env.LOWERCASE_BUILD_TYPE }} -DBUILD_TESTS=ON
+
+      - name: Build
+        uses: ./.github/actions/build
+
+      - name: Test
+        uses: ./.github/actions/test
+
+      - name: Create artifact directory
+        run: mkdir ${{ env.ARTIFACT_PATH }}
+
+      - name: Move license to artifact directory
+        run: mv ${{ github.workspace }}/LICENSE ${{ env.ARTIFACT_PATH }}/LICENSE
+
+      - name: Move protobuf model to artifact directory
+        run: mv ${{ env.RELEASE_PATH }}/libebpfdiscoveryproto/proto/ebpfdiscoveryproto ${{ env.ARTIFACT_PATH }}/ebpfdiscoveryproto
+
+      - name: Move binaries to artifact directory
+        run: mv ${{ env.RELEASE_PATH }}/bin ${{ env.ARTIFACT_PATH }}/bin
+
+      - name: Remove test binaries from artifact directory
+        run: find ${{ env.ARTIFACT_PATH }}/* -name 'test*' -exec rm {} \;
+
+      - name: Zip artifact directory contents
+        run: |
+          cd ${{ env.ARTIFACT_PATH }}
+          zip -r ${{ env.GITHUB_OCI_REGISTRY_ARTIFACT_VERSION }}.zip .
+
+      - name: Login to GitHub OCI registry
+        run: printf "%s" ${{ secrets.GITHUB_TOKEN }} | oras login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Publish zip to GitHub OCI registry
+        run: |
+          cd ${{ env.ARTIFACT_PATH }}
+          oras push ${{ env.GITHUB_OCI_REGISTRY_ADDRESS }}:${{ env.GITHUB_OCI_REGISTRY_ARTIFACT_VERSION }} ${{ env.GITHUB_OCI_REGISTRY_ARTIFACT_VERSION }}.zip

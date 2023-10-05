@@ -1,0 +1,41 @@
+name: Build and test Debug
+
+on:
+  push:
+    branches-ignore:
+      - main
+
+jobs:
+  build-and-test-debug:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source code of the repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Update packages
+        uses: ./.github/actions/update-packages
+
+      - name: Set environment variables
+        uses: ./.github/actions/set-environment-variables
+        with:
+          build-type: Debug
+
+      - name: Set environment variables
+        uses: ./.github/actions/set-environment-variables
+        with:
+          build-type: Debug
+
+      - name: Install requirements
+        uses: ./.github/actions/install-requirements
+
+      - name: Configure
+        shell: bash
+        run: cmake --preset conan-${{ env.LOWERCASE_BUILD_TYPE }} -DBUILD_TESTS=ON
+
+      - name: Build
+        uses: ./.github/actions/build
+
+      - name: Test
+        uses: ./.github/actions/test
