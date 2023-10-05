@@ -31,8 +31,7 @@ jobs:
         uses: ./.github/actions/install-requirements
 
       - name: Configure
-        shell: bash
-        run: cmake --preset conan-${{ env.LOWERCASE_BUILD_TYPE }} -DBUILD_TESTS=ON
+        uses: ./.github/actions/configure
 
       - name: Build
         uses: ./.github/actions/build

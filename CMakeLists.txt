@@ -35,25 +35,17 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release")
 	set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
 endif()
 
-find_package(Git REQUIRED)
-execute_process(
-		COMMAND ${GIT_EXECUTABLE} describe --tags --abbrev=0 OUTPUT_VARIABLE ver
-)
-
-string(REGEX MATCH "([0-9]+)\.([0-9]+)\.([0-9]+)" _ ${ver})
-if(NOT CMAKE_MATCH_COUNT EQUAL 3)
-	message(FATAL_ERROR "Version parsing failed\n    Got: ${ver}")
+if("${PROJECT_VERSION}" STREQUAL "")
+	message(FATAL_ERROR "Project version has not been provided\n    Please, provide project version using -DPROJECT_VERSION")
 endif()
 
-set(EBPFDISCOVERY_VERSION_MAJOR ${CMAKE_MATCH_1})
-set(EBPFDISCOVERY_VERSION_MINOR ${CMAKE_MATCH_2})
-set(EBPFDISCOVERY_VERSION_PATCH ${CMAKE_MATCH_3})
-add_definitions(-DEBPFDISCOVERY_VERSION_MAJOR=${EBPFDISCOVERY_VERSION_MAJOR})
-add_definitions(-DEBPFDISCOVERY_VERSION_MINOR=${EBPFDISCOVERY_VERSION_MINOR})
-add_definitions(-DEBPFDISCOVERY_VERSION_PATCH=${EBPFDISCOVERY_VERSION_PATCH})
+string(REGEX MATCH "([0-9]+)\.([0-9]+)\.([0-9]+)" _ "${PROJECT_VERSION}")
+if(NOT CMAKE_MATCH_COUNT EQUAL 3)
+	message(FATAL_ERROR "Project version parsing failed\n    Got: ${PROJECT_VERSION}")
+endif()
 
 project(
-	${_project_name} VERSION "${EBPFDISCOVERY_VERSION_MAJOR}.${EBPFDISCOVERY_VERSION_MINOR}.${EBPFDISCOVERY_VERSION_PATCH}" LANGUAGES C CXX
+	${_project_name} VERSION "${PROJECT_VERSION}" LANGUAGES C CXX
 )
 
 set(BPF_C_FLAGS ${BPF_C_FLAGS} -DTARGET_BPF)

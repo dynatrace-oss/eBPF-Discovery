@@ -17,7 +17,7 @@ Build release:
 
 ```
 conan install . --build=missing -s build_type=Release
-cmake --preset conan-release -DBUILD_TESTS=OFF
+cmake --preset conan-release -DBUILD_TESTS=OFF -DPROJECT_VERSION=<project version>
 cmake --build --preset conan-release
 ```
 
@@ -31,7 +31,7 @@ Build debug:
 
 ```
 conan install . --build=missing -s build_type=Debug
-cmake --preset conan-debug -DTHIRDPARTY_MAKE_JOBS_COUNT=$((`nproc` / 2)) -DBUILD_BPF_TESTS=On
+cmake --preset conan-debug -DTHIRDPARTY_MAKE_JOBS_COUNT=$((`nproc` / 2)) -DBUILD_BPF_TESTS=ON -DPROJECT_VERSION=<project version>
 cmake --build --preset conan-debug
 ```
 
