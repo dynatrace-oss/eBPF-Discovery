@@ -77,7 +77,14 @@ endif(NOT TARGET fmt)
 
 find_package(Protobuf REQUIRED)
 
+
+find_package(Microsoft.GSL REQUIRED)
+if(Microsoft.GSL_FOUND)
+	include_directories(${Microsoft.GSL_INCLUDE_DIRS})
+endif()
+
 set(INSTALL_GTEST OFF CACHE BOOL "Disable installation of googletest" FORCE)
+
 if(BUILD_TESTS OR BUILD_BPF_TESTS)
 	include(FetchContent)
 	FetchContent_Declare(googletest URL https://github.com/google/googletest/archive/03597a01ee50ed33e9dfd640b249b4be3799d395.zip)

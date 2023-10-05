@@ -1,6 +1,7 @@
 [requires]
 protobuf/3.21.9
 protobuf-c/1.4.1
+ms-gsl/4.0.0
 fmt/10.1.1
 spdlog/1.12.0
 gtest/1.14.0
