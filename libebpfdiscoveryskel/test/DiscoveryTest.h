@@ -55,16 +55,16 @@ protected:
 		}
 	}
 
-	discoveryTest_bpf* testSkel;
-	discoveryTest_bpf::discoveryTest_bpf__bss* testBss;
-
-	std::vector<char> inPtrData;
-
 	void checkLoaded() {
 		if (!isLoaded()) {
 			throw std::runtime_error("DiscoveryTest is uninitialized");
 		}
 	}
+
+	discoveryTest_bpf* testSkel;
+	discoveryTest_bpf::discoveryTest_bpf__bss* testBss;
+
+	std::vector<char> inPtrSrc;
 };
 
 void attachBpfProgram(bpf_program* prog) {
