@@ -3,6 +3,7 @@ project(thirdparty)
 set(THIRDPARTY_MAKE_JOBS_COUNT "1" CACHE STRING "Number of jobs to use when compiling thirdparty submodules")
 
 include(ExternalProject)
+find_package(Git REQUIRED)
 
 if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/bpftool/src/Makefile OR NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/bpftool/libbpf/src/Makefile)
 	execute_process(

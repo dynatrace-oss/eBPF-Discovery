@@ -26,8 +26,7 @@ jobs:
         uses: ./.github/actions/install-requirements
 
       - name: Configure
-        shell: bash
-        run: cmake --preset conan-${{ env.LOWERCASE_BUILD_TYPE }} -DBUILD_TESTS=ON
+        uses: ./.github/actions/configure
 
       - name: Build
         uses: ./.github/actions/build
@@ -53,7 +52,7 @@ jobs:
       - name: Zip artifact directory contents
         run: |
           cd ${{ env.ARTIFACT_PATH }}
-          zip -r ${{ env.GITHUB_OCI_REGISTRY_ARTIFACT_VERSION }}.zip .
+          zip -r ${{ env.ARTIFACT_VERSION }}.zip .
 
       - name: Login to GitHub OCI registry
         run: printf "%s" ${{ secrets.GITHUB_TOKEN }} | oras login ghcr.io -u ${{ github.actor }} --password-stdin
@@ -61,4 +60,4 @@ jobs:
       - name: Publish zip to GitHub OCI registry
         run: |
           cd ${{ env.ARTIFACT_PATH }}
-          oras push ${{ env.GITHUB_OCI_REGISTRY_ADDRESS }}:${{ env.GITHUB_OCI_REGISTRY_ARTIFACT_VERSION }} ${{ env.GITHUB_OCI_REGISTRY_ARTIFACT_VERSION }}.zip
+          oras push ${{ env.GITHUB_OCI_REGISTRY_ADDRESS }}:${{ env.ARTIFACT_VERSION }} ${{ env.ARTIFACT_VERSION }}.zip
