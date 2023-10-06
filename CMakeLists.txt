@@ -41,7 +41,7 @@ endif()
 
 string(REGEX MATCH "([0-9]+)\.([0-9]+)\.([0-9]+)" _ "${PROJECT_VERSION}")
 if(NOT CMAKE_MATCH_COUNT EQUAL 3)
-	message(FATAL_ERROR "Project version parsing failed\n    Got: ${PROJECT_VERSION}")
+	message(FATAL_ERROR "Incorrect project version number format: ${PROJECT_VERSION}. Please provide the project version number in the format major.minor.patch")
 endif()
 
 project(

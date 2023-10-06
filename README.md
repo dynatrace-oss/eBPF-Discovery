@@ -35,6 +35,8 @@ cmake --preset conan-debug -DTHIRDPARTY_MAKE_JOBS_COUNT=$((`nproc` / 2)) -DBUILD
 cmake --build --preset conan-debug
 ```
 
+`project version` must be provided in the format major.minor.patch e.g. 1.2.3
+
 ## Help & Support
 
 eBPF Discovery is an open source project. The features are fully supported by [Dynatrace](https://www.dynatrace.com).
