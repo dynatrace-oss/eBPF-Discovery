@@ -16,9 +16,11 @@ runs:
         printf "CAPITALISED_BUILD_TYPE=%s\n" "${buildType}" >> $GITHUB_ENV
         printf "LOWERCASE_BUILD_TYPE=%s\n" "${buildType,,}" >> $GITHUB_ENV
         
-        newestTag="$(git describe --tags --abbrev=0)"
-        artifactVersionWithTimestamp="${newestTag}"-"$(date +%Y%m%d_%H%M%S)"
-        printf "GITHUB_OCI_REGISTRY_ARTIFACT_VERSION=%s\n" "${artifactVersionWithTimestamp}" >> $GITHUB_ENV
+        newestTag="$(git describe --tags --abbrev=0 --always)"
+        printf "PROJECT_VERSION=%s\n" "${newestTag}" >> $GITHUB_ENV
+        
+        newestTagWithTimestamp="${newestTag}"-"$(date +%Y%m%d_%H%M%S)"
+        printf "ARTIFACT_VERSION=%s\n" "${newestTagWithTimestamp}" >> $GITHUB_ENV
         
         printf "RELEASE_PATH=%s\n" "${{ github.workspace }}/build/Release" >> $GITHUB_ENV
         
