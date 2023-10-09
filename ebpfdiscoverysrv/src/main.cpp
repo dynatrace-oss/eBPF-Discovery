@@ -47,7 +47,7 @@ static boost::program_options::options_description getProgramOptions() {
 
 static std::string getProgramVersion() {
 	std::ostringstream ss;
-	ss << EBPFDISCOVERY_VERSION_MAJOR << "." << EBPFDISCOVERY_VERSION_MINOR << "." << EBPFDISCOVERY_VERSION_PATCH;
+	ss << PROJECT_VERSION;
 	return ss.str();
 }
 
