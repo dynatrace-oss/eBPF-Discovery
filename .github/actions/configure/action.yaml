@@ -1,0 +1,8 @@
+name: Configure
+
+runs:
+  using: composite
+  steps:
+    - name: Configure
+      shell: bash
+      run: cmake --preset conan-${{ env.LOWERCASE_BUILD_TYPE }} -DBUILD_TESTS=ON -DPROJECT_VERSION=${{ env.PROJECT_VERSION }}
