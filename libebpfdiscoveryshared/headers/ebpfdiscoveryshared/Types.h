@@ -134,6 +134,7 @@ __attribute__((always_inline)) inline static void discoverySessionFlagsSetIPv6(D
 struct DiscoverySessionMeta {
 	__u8 sourceIPData[16];
 	DiscoverySessionFlags flags;
+	__u32 pid;
 };
 
 struct DiscoverySession {

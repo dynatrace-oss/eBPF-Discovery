@@ -150,6 +150,7 @@ __attribute__((always_inline)) inline static void handleRead(
 		}
 
 		sessionPtr->id = allSessionStatePtr->sessionCounter;
+		sessionPtr->meta.pid = event.dataKey.pid;
 		allSessionStatePtr->sessionCounter++;
 		sessionFillIP((struct DiscoveryTrackedSessionKey*)&event.dataKey, sessionPtr);
 	} else {
