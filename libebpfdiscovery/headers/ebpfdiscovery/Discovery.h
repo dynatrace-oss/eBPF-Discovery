@@ -2,17 +2,19 @@
 #pragma once
 
 #include "ebpfdiscovery/Config.h"
+#include "ebpfdiscovery/DiscoveryBpf.h"
 #include "ebpfdiscovery/LRUCache.h"
 #include "ebpfdiscovery/Session.h"
 #include "ebpfdiscoveryshared/Types.h"
 #include "httpparser/HttpRequestParser.h"
 
-#include "discovery.skel.h"
-
 #include <atomic>
 #include <chrono>
+#include <condition_variable>
+#include <mutex>
 #include <queue>
 #include <string>
+#include <thread>
 #include <unordered_map>
 
 namespace ebpfdiscovery {
@@ -21,22 +23,22 @@ using httpparser::HttpRequestParser;
 
 class Discovery {
 public:
-	Discovery();
-	Discovery(const DiscoveryConfig config);
-	~Discovery();
+	Discovery(DiscoveryBpf discoveryBpf);
+	Discovery(DiscoveryBpf discoveryBpf, const DiscoveryConfig config);
+	Discovery(const Discovery&) = delete;
+	Discovery& operator=(const Discovery&) = delete;
+	Discovery(Discovery&&) = default;
+	Discovery& operator=(Discovery&&) = default;
+	~Discovery() = default;
 
-	bool isLoaded() noexcept;
-	void load();
-	void unload() noexcept;
-
-	// Blocks current thread until stopRun() is called
-	int run();
-
-	// Thread safe operation
-	void stopRun();
+	void start();
+	void stop();
+	void wait();
 
 private:
 	typedef LRUCache<DiscoverySavedSessionKey, Session, DiscoverySavedSessionKeyHash> SavedSessionsCacheType;
+
+	void run();
 
 	void fetchEvents();
 	void saveSession(const DiscoverySavedSessionKey& session_key, const Session& session);
@@ -47,6 +49,7 @@ private:
 	void handleBufferLookupSuccess(DiscoverySavedBuffer& savedBuffer, DiscoveryEvent& event);
 	void handleExistingSession(SavedSessionsCacheType::iterator it, std::string_view& bufferView, DiscoveryEvent& event);
 	void handleNewSession(std::string_view& bufferView, DiscoveryEvent& event);
+	void handleNewRequest(const Session& session, const DiscoverySessionMeta& meta);
 	void handleCloseEvent(DiscoveryEvent& event);
 	void handleSuccessfulParse(const Session& session, const DiscoverySessionMeta& sessionMeta);
 
@@ -54,13 +57,19 @@ private:
 	int bpfDiscoveryResumeCollecting();
 	int bpfDiscoveryDeleteSession(const DiscoveryTrackedSessionKey& trackedSessionKey);
 
-	DiscoveryConfig config;
+	constexpr auto discoverySkel() const {
+		return discoveryBpf.skel;
+	}
 
-	std::atomic<bool> running;
-	std::atomic<bool> loaded;
-	discovery_bpf* discoverySkel;
-	bpf_object_open_opts discoverySkelOpenOpts;
+	DiscoveryConfig config;
+	DiscoveryBpf discoveryBpf;
 	SavedSessionsCacheType savedSessions;
+
+	std::atomic<bool> running{false};
+	bool stopReceived{false};
+	std::condition_variable stopReceivedCV;
+	std::mutex stopReceivedMutex;
+	std::thread workerThread;
 };
 
 } // namespace ebpfdiscovery
