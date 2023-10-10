@@ -11,6 +11,7 @@
 #include <filesystem>
 #include <memory>
 #include <string>
+#include <unistd.h>
 #include <vector>
 
 namespace logging {
@@ -61,10 +62,17 @@ void Logger::setup(std::string name, bool logToStdout, std::filesystem::path log
 	}
 
 	if (!logDir.empty()) {
-		if (!fs::is_directory(logDir)) {
-			throw std::runtime_error("Log directory doesn't exist or is not a directory");
+		if (!fs::exists(logDir)) {
+			throw std::runtime_error("Log directory doesn't exist");
 		}
-		// TODO: Check for permissions
+
+		if (!fs::is_directory(logDir)) {
+			throw std::runtime_error("Log directory is not a directory");
+		}
+
+		if (access(logDir.c_str(), R_OK | W_OK) != 0) {
+			throw std::runtime_error("Couldn't access log directory for reading and writing");
+		}
 
 		fs::path logFile{logDir / (name + ".log")};
 		sinks.push_back(std::make_shared<spdlog::sinks::rotating_file_sink_mt>(logFile, max_size, max_files));
@@ -117,6 +125,8 @@ void Logger::logLine(enum LogLevel level, const char* buf, size_t len) {
 	} else {
 		str.assign(buf, len);
 	}
+
 	log(level, "{}", str);
 }
+
 } // namespace logging
