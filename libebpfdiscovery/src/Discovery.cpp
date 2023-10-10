@@ -27,7 +27,6 @@ namespace ebpfdiscovery {
 static void printSession(const Session& session, const DiscoverySessionMeta& meta) {
 	const auto& request{session.parser.result};
 	std::cout << request.method << " " << request.host << request.url;
-
 	if (const auto& xForwardedFor{request.xForwardedFor}; !xForwardedFor.empty()) {
 		std::cout << " X-Forwarded-For: " << '"' << xForwardedFor << '"';
 	} else if (discoverySessionFlagsIsIPv4(meta.flags)) {
@@ -37,8 +36,7 @@ static void printSession(const Session& session, const DiscoverySessionMeta& met
 		if (auto srcIpv6{ipv6ToString(meta.sourceIPData)}; !srcIpv6.empty())
 			std::cout << " srcIpv6: " << '"' << srcIpv6 << '"';
 	}
-
-	std::cout << '\n';
+	std::cout << " pid: " << meta.pid << '\n';
 }
 
 Discovery::Discovery() : Discovery(DiscoveryConfig{}) {
