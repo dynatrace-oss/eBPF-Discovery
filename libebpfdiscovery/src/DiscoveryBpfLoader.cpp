@@ -21,7 +21,7 @@ void DiscoveryBpfLoader::load() {
 	LIBBPF_OPTS(bpf_object_open_opts, newOpenOpts);
 	openOpts = newOpenOpts;
 
-	if (int res{ensure_core_btf(&openOpts)}) {
+	if (const auto res{ensure_core_btf(&openOpts)}) {
 		throw std::runtime_error("Failed to fetch necessary BTF for CO-RE: " + std::string(strerror(-res)));
 	}
 
@@ -30,11 +30,11 @@ void DiscoveryBpfLoader::load() {
 		throw std::runtime_error("Failed to open BPF object.");
 	}
 
-	if (int res{discovery_bpf__load(skel)}) {
+	if (const auto res{discovery_bpf__load(skel)}) {
 		throw std::runtime_error("Failed to load BPF object: " + std::to_string(res));
 	}
 
-	if (int res{discovery_bpf__attach(skel)}) {
+	if (const auto res{discovery_bpf__attach(skel)}) {
 		throw std::runtime_error("Failed to attach BPF object: " + std::to_string(res));
 	}
 

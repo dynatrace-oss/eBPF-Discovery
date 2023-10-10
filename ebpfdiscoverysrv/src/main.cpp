@@ -70,7 +70,7 @@ static void runUnixSignalHandlerLoop() {
 	while (true) {
 		sigset_t sigset{getSigset()};
 		LOG_TRACE("Waiting for unix signals.");
-		int signo{sigwaitinfo(&sigset, nullptr)};
+		const auto signo{sigwaitinfo(&sigset, nullptr)};
 		if (signo == -1) {
 			LOG_CRITICAL("Failed to wait for unix signals: {}", std::strerror(errno));
 			std::abort();
