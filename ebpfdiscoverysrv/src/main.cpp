@@ -46,12 +46,6 @@ static po::options_description getProgramOptions() {
 	return desc;
 }
 
-static std::string getProgramVersion() {
-	std::ostringstream ss;
-	ss << PROJECT_VERSION;
-	return ss.str();
-}
-
 /*
  * Logging setup
  */
@@ -133,7 +127,7 @@ int main(int argc, char** argv) {
 	}
 
 	if (vm.count("version")) {
-		std::cout << "eBPF-Discovery " << getProgramVersion() << '\n';
+		std::cout << "eBPF-Discovery " << PROJECT_VERSION << '\n';
 		return EXIT_SUCCESS;
 	}
 
