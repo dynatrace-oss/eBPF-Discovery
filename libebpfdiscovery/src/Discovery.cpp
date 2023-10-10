@@ -149,27 +149,30 @@ void Discovery::handleNewRequest(const Session& session, const DiscoverySessionM
 	const auto& request{session.parser.result};
 	if (discoverySessionFlagsIsIPv4(meta.flags)) {
 		LOG_DEBUG(
-				"Handling new request. (method:'{}', host:'{}', url:'{}', X-Forwarded-For:'{}', sourceIPv4:'{}')",
+				"Handling new request. (method:'{}', host:'{}', url:'{}', X-Forwarded-For:'{}', sourceIPv4:'{}', pid:{})",
 				request.method,
 				request.host,
 				request.url,
 				request.xForwardedFor,
-				ipv4ToString(meta.sourceIPData));
+				ipv4ToString(meta.sourceIPData),
+				meta.pid);
 	} else if (discoverySessionFlagsIsIPv6(meta.flags)) {
 		LOG_DEBUG(
-				"Handling new request. (method:'{}', host:'{}', url:'{}', X-Forwarded-For:'{}', sourceIPv6:'{}')",
+				"Handling new request. (method:'{}', host:'{}', url:'{}', X-Forwarded-For:'{}', sourceIPv6:'{}', pid:{})",
 				request.method,
 				request.host,
 				request.url,
 				request.xForwardedFor,
-				ipv6ToString(meta.sourceIPData));
+				ipv6ToString(meta.sourceIPData),
+				meta.pid);
 	} else {
 		LOG_DEBUG(
-				"Handling new request. (method:'{}', host:'{}', url:'{}', X-Forwarded-For:'{}')",
+				"Handling new request. (method:'{}', host:'{}', url:'{}', X-Forwarded-For:'{}', pid:{})",
 				request.method,
 				request.host,
 				request.url,
-				request.xForwardedFor);
+				request.xForwardedFor,
+				meta.pid);
 	}
 }
 
