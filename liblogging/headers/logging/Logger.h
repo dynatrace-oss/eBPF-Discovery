@@ -37,6 +37,8 @@ public:
 	Logger(const Logger&) = delete;
 	Logger& operator=(const Logger&) = delete;
 
+	static Logger& getInstance();
+
 	void setLevel(enum LogLevel level);
 	void setup(std::string name, bool logToStdout = true, std::filesystem::path logDir = {});
 
@@ -116,3 +118,10 @@ private:
 };
 
 } // namespace logging
+
+#define LOG_TRACE(...) logging::Logger::getInstance().trace(__VA_ARGS__)
+#define LOG_DEBUG(...) logging::Logger::getInstance().debug(__VA_ARGS__)
+#define LOG_INFO(...) logging::Logger::getInstance().info(__VA_ARGS__)
+#define LOG_WARN(...) logging::Logger::getInstance().warn(__VA_ARGS__)
+#define LOG_ERROR(...) logging::Logger::getInstance().error(__VA_ARGS__)
+#define LOG_CRITICAL(...) logging::Logger::getInstance().critical(__VA_ARGS__)

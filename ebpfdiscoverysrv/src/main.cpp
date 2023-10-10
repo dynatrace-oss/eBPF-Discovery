@@ -2,7 +2,7 @@
 #include "ebpfdiscovery/Discovery.h"
 #include "ebpfdiscovery/DiscoveryBpf.h"
 #include "ebpfdiscovery/DiscoveryBpfLoader.h"
-#include "logging/Global.h"
+#include "logging/Logger.h"
 
 #include <boost/program_options.hpp>
 
@@ -15,6 +15,7 @@
 #include <unistd.h>
 
 namespace po = boost::program_options;
+using logging::Logger;
 using logging::LogLevel;
 
 enum class ProgramStatus {
@@ -56,8 +57,8 @@ static std::string getProgramVersion() {
  */
 
 static void setupLogging(logging::LogLevel logLevel, bool enableStdout, const std::filesystem::path& logDir) {
-	logging::Global::getInstance().setup("eBPF-Discovery", enableStdout, logDir);
-	logging::Global::getInstance().setLevel(logLevel);
+	Logger::getInstance().setup("eBPF-Discovery", enableStdout, logDir);
+	Logger::getInstance().setLevel(logLevel);
 	LOG_TRACE("Logging has been set up. (logDir: {})", logDir.string());
 }
 
@@ -98,13 +99,13 @@ static void runUnixSignalHandlerLoop() {
 static int libbpfPrintFn(enum libbpf_print_level level, const char* format, va_list args) {
 	switch (level) {
 	case LIBBPF_WARN:
-		logging::Global::getInstance().vlogf(logging::LogLevel::Warn, format, args);
+		Logger::getInstance().vlogf(logging::LogLevel::Warn, format, args);
 		return 0;
 	case LIBBPF_INFO:
-		logging::Global::getInstance().vlogf(logging::LogLevel::Info, format, args);
+		Logger::getInstance().vlogf(logging::LogLevel::Info, format, args);
 		return 0;
 	case LIBBPF_DEBUG:
-		logging::Global::getInstance().vlogf(logging::LogLevel::Debug, format, args);
+		Logger::getInstance().vlogf(logging::LogLevel::Debug, format, args);
 		return 0;
 	}
 	return 0;

@@ -3,7 +3,7 @@
 
 #include "StringFunctions.h"
 #include "ebpfdiscovery/Session.h"
-#include "logging/Global.h"
+#include "logging/Logger.h"
 
 #include <algorithm>
 #include <arpa/inet.h>

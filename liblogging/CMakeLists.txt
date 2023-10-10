@@ -1,4 +1,4 @@
-list(APPEND SOURCES src/Logger.cpp src/Global.cpp)
+list(APPEND SOURCES src/Logger.cpp)
 set(TARGET logging)
 
 add_library(${TARGET} SHARED ${SOURCES})

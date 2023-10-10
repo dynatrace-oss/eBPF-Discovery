@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "ebpfdiscovery/DiscoveryBpfLoader.h"
 
-#include "logging/Global.h"
+#include "logging/Logger.h"
 
 extern "C" {
 #include "bpfload/btf_helpers.h"

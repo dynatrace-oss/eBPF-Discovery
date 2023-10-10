@@ -43,6 +43,11 @@ Logger::Logger() : spdLogger("") {
 	loggerSetDefaults();
 }
 
+Logger& Logger::getInstance() {
+	static Logger instance;
+	return instance;
+}
+
 void Logger::setLevel(enum LogLevel level) {
 	spdLogger.set_level(static_cast<spdlog::level::level_enum>(level));
 }
