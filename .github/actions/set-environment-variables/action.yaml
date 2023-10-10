@@ -16,14 +16,14 @@ runs:
         printf "CAPITALISED_BUILD_TYPE=%s\n" "${buildType}" >> $GITHUB_ENV
         printf "LOWERCASE_BUILD_TYPE=%s\n" "${buildType,,}" >> $GITHUB_ENV
         
-        newestTag="$(git describe --tags --abbrev=0 --always)"
-        if printf "%s" "${newestTag}" | grep -Ev "[0-9]+\.[0-9]+\.[0-9]+"; then
-          newestTag="0.0.0"
+        newestVersion="$(git describe --tags --abbrev=0 --always)"
+        if printf "%s" "${newestVersion}" | grep -qEv "[0-9]+\.[0-9]+\.[0-9]+"; then
+          newestVersion="0.0.0"
         fi
-        printf "PROJECT_VERSION=%s\n" "${newestTag}" >> $GITHUB_ENV
+        printf "PROJECT_VERSION=%s\n" "${newestVersion}" >> $GITHUB_ENV
         
-        newestTagWithTimestamp="${newestTag}"-"$(date +%Y%m%d_%H%M%S)"
-        printf "ARTIFACT_VERSION=%s\n" "${newestTagWithTimestamp}" >> $GITHUB_ENV
+        newestVersionWithTimestamp="${newestVersion}"-"$(date +%Y%m%d_%H%M%S)"
+        printf "ARTIFACT_VERSION=%s\n" "${newestVersionWithTimestamp}" >> $GITHUB_ENV
         
         printf "RELEASE_PATH=%s\n" "${{ github.workspace }}/build/Release" >> $GITHUB_ENV
         
