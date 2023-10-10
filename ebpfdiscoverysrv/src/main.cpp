@@ -14,6 +14,9 @@
 #include <sstream>
 #include <unistd.h>
 
+namespace po = boost::program_options;
+using logging::LogLevel;
+
 enum class ProgramStatus {
 	Running,
 	UnixShutdownSignalReceived,
@@ -26,10 +29,7 @@ std::mutex programStatusMutex;
  * CLI options
  */
 
-using logging::LogLevel;
-
-static boost::program_options::options_description getProgramOptions() {
-	namespace po = boost::program_options;
+static po::options_description getProgramOptions() {
 	po::options_description desc{"Options"};
 
 	// clang-format off
@@ -40,8 +40,8 @@ static boost::program_options::options_description getProgramOptions() {
       ("log-no-stdout", po::value<bool>()->default_value(false), "Disable logging to stdout")
       ("version", "Display program version")
   ;
-
 	// clang-format on
+
 	return desc;
 }
 
@@ -115,7 +115,6 @@ static void setupLibbpf() {
 }
 
 int main(int argc, char** argv) {
-	namespace po = boost::program_options;
 	po::options_description desc{getProgramOptions()};
 	po::variables_map vm;
 
