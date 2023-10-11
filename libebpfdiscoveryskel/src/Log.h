@@ -7,7 +7,6 @@
 #include <bpf/bpf_helpers.h>
 #include <bpf/bpf_tracing.h>
 
-// Fallback definition for older vmlinux.h
 struct trace_event_raw_bpf_trace_printk___log {};
 
 #define DEBUG_PRINTLN(fmt, ...)                                                    \
