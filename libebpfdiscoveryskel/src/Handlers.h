@@ -83,7 +83,7 @@ __attribute__((always_inline)) inline static int sessionFillIPv4(
 		struct DiscoveryTrackedSessionKey* sessionKeyPtr, struct DiscoverySession* sessionPtr) {
 	struct sockaddr_in* sockipPtr = (struct sockaddr_in*)bpf_map_lookup_elem(&trackedSessionSockIPv4Map, sessionKeyPtr);
 	if (sockipPtr == NULL) {
-		DEBUG_PRINT("No IPv4 of tracked session. (id: %d)\n", sessionPtr->id);
+		DEBUG_PRINTLN("No IPv4 of tracked session. (id: %d)", sessionPtr->id);
 		return 1;
 	}
 
@@ -96,7 +96,7 @@ __attribute__((always_inline)) inline static int sessionFillIPv6(
 		struct DiscoveryTrackedSessionKey* sessionKeyPtr, struct DiscoverySession* sessionPtr) {
 	struct sockaddr_in6* sockipPtr = (struct sockaddr_in6*)bpf_map_lookup_elem(&trackedSessionSockIPv6Map, sessionKeyPtr);
 	if (sockipPtr == NULL) {
-		DEBUG_PRINT("No IPv6 of tracked session. (id: %d)\n", sessionPtr->id);
+		DEBUG_PRINTLN("No IPv6 of tracked session. (id: %d)", sessionPtr->id);
 		return 1;
 	}
 
@@ -140,9 +140,9 @@ __attribute__((always_inline)) inline static void handleRead(
 	if (sessionPtr->bufferCount == 0) {
 		if (!dataProbeIsBeginningOfHttpRequest(readArgsPtr->buf, bytesCount)) {
 			deleteTrackedSession((struct DiscoveryTrackedSessionKey*)&event.dataKey, sessionPtr);
-			DEBUG_PRINT(
-					"Received data from session. Ignoring the session, as it doesn't look like an HTTP request. pid: `%d`, fd: `%d`, "
-					"bytes_count: `%d`\n",
+			DEBUG_PRINTLN(
+					"Received data from session. Ignoring the session, as it doesn't look like an HTTP request. (pid: `%d`, fd: `%d`, "
+					"bytes_count: `%d`)",
 					event.dataKey.pid,
 					event.dataKey.fd,
 					bytesCount);
