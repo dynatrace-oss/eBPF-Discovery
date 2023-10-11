@@ -53,7 +53,7 @@ void Logger::setLevel(enum LogLevel level) {
 	spdLogger.set_level(static_cast<spdlog::level::level_enum>(level));
 }
 
-void Logger::setup(std::string name, bool logToStdout, std::filesystem::path logDir) {
+void Logger::init(std::string name, bool logToStdout, std::filesystem::path logDir) {
 	namespace fs = std::filesystem;
 
 	std::vector<spdlog::sink_ptr> sinks;
