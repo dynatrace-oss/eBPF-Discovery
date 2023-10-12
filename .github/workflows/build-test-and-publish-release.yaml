@@ -61,3 +61,4 @@ jobs:
         run: |
           cd ${{ env.ARTIFACT_PATH }}
           oras push ${{ env.GITHUB_OCI_REGISTRY_ADDRESS }}:${{ env.ARTIFACT_VERSION }} ${{ env.ARTIFACT_VERSION }}.zip
+          oras push ${{ env.GITHUB_OCI_REGISTRY_ADDRESS }}:latest ${{ env.ARTIFACT_VERSION }}.zip
