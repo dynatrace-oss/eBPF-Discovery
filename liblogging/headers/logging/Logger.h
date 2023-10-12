@@ -39,8 +39,8 @@ public:
 
 	static Logger& getInstance();
 
+	void init(std::string name, bool logToStdout = true, std::filesystem::path logDir = {});
 	void setLevel(enum LogLevel level);
-	void setup(std::string name, bool logToStdout = true, std::filesystem::path logDir = {});
 
 	template <typename... Args>
 	void log(enum LogLevel level, const char* fmt, const Args&... args) {
