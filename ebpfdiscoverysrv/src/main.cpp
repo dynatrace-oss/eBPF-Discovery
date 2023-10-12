@@ -47,17 +47,17 @@ static po::options_description getProgramOptions() {
 }
 
 /*
- * Logging setup
+ * Logging init
  */
 
-static void setupLogging(logging::LogLevel logLevel, bool enableStdout, const std::filesystem::path& logDir) {
-	Logger::getInstance().setup("eBPF-Discovery", enableStdout, logDir);
+static void initLogging(logging::LogLevel logLevel, bool enableStdout, const std::filesystem::path& logDir) {
+	Logger::getInstance().init("eBPF-Discovery", enableStdout, logDir);
 	Logger::getInstance().setLevel(logLevel);
-	LOG_TRACE("Logging has been set up. (logDir: {})", logDir.string());
+	LOG_TRACE("Logging has been set up. (enableStdout: {}, logDir: `{}`)", enableStdout, logDir.string());
 }
 
 /*
- * Unix signals setup
+ * Unix signals init
  */
 
 static sigset_t getSigset() {
@@ -87,7 +87,7 @@ static void runUnixSignalHandlerLoop() {
 }
 
 /*
- * Libbpf setup
+ * Libbpf init
  */
 
 static int libbpfPrintFn(enum libbpf_print_level level, const char* format, va_list args) {
@@ -105,7 +105,7 @@ static int libbpfPrintFn(enum libbpf_print_level level, const char* format, va_l
 	return 0;
 }
 
-static void setupLibbpf() {
+static void initLibbpf() {
 	libbpf_set_print(libbpfPrintFn);
 }
 
@@ -136,9 +136,9 @@ int main(int argc, char** argv) {
 	std::filesystem::path logDir{vm["log-dir"].as<std::filesystem::path>()};
 
 	try {
-		setupLogging(logLevel, !isStdoutLogDisabled, logDir);
+		initLogging(logLevel, !isStdoutLogDisabled, logDir);
 	} catch (const std::runtime_error& e) {
-		std::cerr << "Couldn't setup logging: " << e.what() << '\n';
+		std::cerr << "Couldn't init logging: " << e.what() << '\n';
 		return EXIT_FAILURE;
 	}
 
@@ -153,7 +153,7 @@ int main(int argc, char** argv) {
 		}
 	}
 
-	setupLibbpf();
+	initLibbpf();
 	ebpfdiscovery::DiscoveryBpfLoader loader;
 	try {
 		loader.load();
