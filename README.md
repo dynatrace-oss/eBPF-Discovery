@@ -66,4 +66,4 @@ See CONTRIBUTING.md for details on submitting changes.
 
 ## License
 
-eBPF Discovery is under Apache 2.0 license and BSD 2 Clause. See LICENSE for details.
+eBPF Discovery is under Apache 2.0 license and uses third party code under BSD 2 Clause. See LICENSE for details.
