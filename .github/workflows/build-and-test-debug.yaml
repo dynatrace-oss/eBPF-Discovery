@@ -1,9 +1,7 @@
 name: Build and test Debug
 
 on:
-  push:
-    branches-ignore:
-      - main
+  pull_request:
 
 jobs:
   build-and-test-debug:
