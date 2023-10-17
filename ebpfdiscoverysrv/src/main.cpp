@@ -36,7 +36,7 @@ static po::options_description getProgramOptions() {
 	// clang-format off
 	desc.add_options()
       ("help,h", "Display available options")
-      ("launch-test", po::bool_switch()->default_value(false), "Exit program after launching for testing")
+      ("test-launch", po::bool_switch()->default_value(false), "Exit program after launching for testing")
       ("log-dir", po::value<std::filesystem::path>()->default_value(""), "Log files directory")
       ("log-level", po::value<logging::LogLevel>()->default_value(logging::LogLevel::Err, "error"), "Set log level {trace,debug,info,warning,error,critical,off}")
       ("log-no-stdout", po::bool_switch()->default_value(false), "Disable logging to stdout")
