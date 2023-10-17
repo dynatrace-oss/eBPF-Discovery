@@ -41,7 +41,7 @@ jobs:
         run: mv ${{ github.workspace }}/LICENSE ${{ env.ARTIFACT_PATH }}/LICENSE
 
       - name: Move protobuf model to artifact directory
-        run: mv ${{ env.RELEASE_PATH }}/libebpfdiscoveryproto/proto/ebpfdiscoveryproto ${{ env.ARTIFACT_PATH }}/ebpfdiscoveryproto
+        run: mv ${{ env.RELEASE_PATH }}/libebpfdiscoveryproto/ebpfdiscoveryproto ${{ env.ARTIFACT_PATH }}/ebpfdiscoveryproto
 
       - name: Move binaries to artifact directory
         run: mv ${{ env.RELEASE_PATH }}/bin ${{ env.ARTIFACT_PATH }}/bin
@@ -54,11 +54,7 @@ jobs:
           cd ${{ env.ARTIFACT_PATH }}
           zip -r ${{ env.ARTIFACT_VERSION }}.zip .
 
-      - name: Login to GitHub OCI registry
-        run: printf "%s" ${{ secrets.GITHUB_TOKEN }} | oras login ghcr.io -u ${{ github.actor }} --password-stdin
-
       - name: Publish zip to GitHub OCI registry
         run: |
           cd ${{ env.ARTIFACT_PATH }}
-          oras push ${{ env.GITHUB_OCI_REGISTRY_ADDRESS }}/${{ env.LOWERCASE_REPOSITORY_NAME }}-linux-x86_64:${{ env.ARTIFACT_VERSION }} ${{ env.ARTIFACT_VERSION }}.zip
-          oras push ${{ env.GITHUB_OCI_REGISTRY_ADDRESS }}/${{ env.LOWERCASE_REPOSITORY_NAME }}-linux-x86_64:latest ${{ env.ARTIFACT_VERSION }}.zip
+          printf "%s" ${{ secrets.GITHUB_TOKEN }} | docker run --rm -i -v $(pwd):/workspace ghcr.io/oras-project/oras:v1.0.1 push -u ${{ github.actor }} --password-stdin ${{ env.GITHUB_OCI_REGISTRY_ADDRESS }}/${{ env.LOWERCASE_REPOSITORY_NAME }}-linux-x86_64:${{ env.ARTIFACT_VERSION }},latest ${{ env.ARTIFACT_VERSION }}.zip
