@@ -35,10 +35,11 @@ static po::options_description getProgramOptions() {
 
 	// clang-format off
 	desc.add_options()
-      ("log-level", po::value<logging::LogLevel>()->default_value(logging::LogLevel::Err, "error"), "Set log level {trace,debug,info,warning,error,critical,off}")
       ("help,h", "Display available options")
+      ("test-launch", po::bool_switch()->default_value(false), "Exit program after launching for testing")
       ("log-dir", po::value<std::filesystem::path>()->default_value(""), "Log files directory")
-      ("log-no-stdout", po::value<bool>()->default_value(false), "Disable logging to stdout")
+      ("log-level", po::value<logging::LogLevel>()->default_value(logging::LogLevel::Err, "error"), "Set log level {trace,debug,info,warning,error,critical,off}")
+      ("log-no-stdout", po::bool_switch()->default_value(false), "Disable logging to stdout")
       ("version", "Display program version")
   ;
 	// clang-format on
@@ -99,7 +100,7 @@ static int libbpfPrintFn(enum libbpf_print_level level, const char* format, va_l
 		Logger::getInstance().vlogf(logging::LogLevel::Info, format, args);
 		return 0;
 	case LIBBPF_DEBUG:
-		Logger::getInstance().vlogf(logging::LogLevel::Debug, format, args);
+		Logger::getInstance().vlogf(logging::LogLevel::Trace, format, args);
 		return 0;
 	}
 	return 0;
@@ -134,6 +135,7 @@ int main(int argc, char** argv) {
 	logging::LogLevel logLevel{vm["log-level"].as<logging::LogLevel>()};
 	bool isStdoutLogDisabled{vm["log-no-stdout"].as<bool>()};
 	std::filesystem::path logDir{vm["log-dir"].as<std::filesystem::path>()};
+	bool isLaunchTest{vm["launch-test"].as<bool>()};
 
 	try {
 		initLogging(logLevel, !isStdoutLogDisabled, logDir);
@@ -169,18 +171,25 @@ int main(int argc, char** argv) {
 		LOG_CRITICAL("Couldn't start Discovery: {}", e.what());
 	}
 
-	std::thread unixSignalThread(runUnixSignalHandlerLoop);
-	{
-		std::unique_lock<std::mutex> programStatusLock(programStatusMutex);
-		programStatusCV.wait(programStatusLock, []() { return programStatus != ProgramStatus::Running; });
+	if (!isLaunchTest) {
+		std::thread unixSignalThread(runUnixSignalHandlerLoop);
+		{
+			std::unique_lock<std::mutex> programStatusLock(programStatusMutex);
+			programStatusCV.wait(programStatusLock, []() { return programStatus != ProgramStatus::Running; });
+		}
+
+		LOG_TRACE("Waiting for unix signal thread to exit.");
+		if (unixSignalThread.joinable()) {
+			unixSignalThread.join();
+		}
 	}
 
 	LOG_DEBUG("Exiting the program.");
-	if (unixSignalThread.joinable()) {
-		unixSignalThread.join();
-	}
 	instance.stop();
+
+	LOG_TRACE("Waiting for threads to exit.");
 	instance.wait();
 
+	LOG_TRACE("Finished running the program successfully.");
 	return EXIT_SUCCESS;
 }
