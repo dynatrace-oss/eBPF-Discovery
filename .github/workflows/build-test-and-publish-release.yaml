@@ -42,6 +42,25 @@ jobs:
 
       - name: Move third party licenses to artifact directory
         run: |
+          downloadLicense() {
+            local requirement="${1}"
+            local requirementPath="${2}"
+            local licenseUrl="${3}"
+            
+            printf "[INFO] Downloading %s license file from %s to %s\n" "${requirement}" "${licenseUrl}" "${requirementPath}"
+            (cd "${requirementPath}" && curl "${licenseUrl}" --output LICENSE)
+            
+          }
+          
+          copyLicense() {
+            local requirement="${1}"
+            local requirementPath="${2}"
+            local licensePath="${3}"
+          
+            printf "[INFO] Copying %s license file %s to %s\n" "${requirement}" "${licensePath}" "${requirementPath}"
+            cp "${licensePath}" "${requirementPath}"
+          }
+          
           licenseDirPaths="$(sudo find /home/runner/.conan2/p/ -type d -name "licenses" | tr "\n" " ")"
           requirements="$(cat conanfile.txt | tr "\n" " " | grep -Po "\[requires\] \K[^\[]+")"
           
@@ -49,17 +68,13 @@ jobs:
             requirementPath=${{ env.ARTIFACT_PATH }}/thirdparty/${requirement}
             mkdir -p "${requirementPath}"
           
-            licenseUrl="https://raw.githubusercontent.com/protobuf-c/protobuf-c/master/LICENSE"
             if printf "%s" "${requirement}" | grep -q "protobuf-c/"; then
-              printf "[INFO] Downloading %s license file from %s to %s\n" "${requirement}" "${licenseUrl}" "${requirementPath}"
-              (cd "${requirementPath}" && curl "${licenseUrl}" --output LICENSE)
+              downloadLicense "${requirement}" "${requirementPath}" "https://raw.githubusercontent.com/protobuf-c/protobuf-c/master/LICENSE"
               continue
             fi
           
-            licenseUrl="https://raw.githubusercontent.com/protocolbuffers/protobuf/main/LICENSE"
             if printf "%s" "${requirement}" | grep -q "protobuf/"; then
-              printf "[INFO] Downloading %s license file from %s to %s\n" "${requirement}" "${licenseUrl}" "${requirementPath}"
-              (cd "${requirementPath}" && curl "${licenseUrl}" --output LICENSE)
+              downloadLicense "${requirement}" "${requirementPath}" "https://raw.githubusercontent.com/protocolbuffers/protobuf/main/LICENSE"
               continue
             fi
             
@@ -68,22 +83,19 @@ jobs:
             
             licensePath="${licenseDirPath}/LICENSE"
             if [ -e "${licensePath}" ]; then
-              printf "[INFO] Copying %s license file %s to %s\n" "${requirement}" "${licensePath}" "${requirementPath}"
-              cp "${licensePath}" "${requirementPath}"
+              copyLicense "${requirement}" "${requirementPath}" "${licensePath}"
               continue
             fi
             
             licensePath="${licenseDirPath}/LICENSE_1_0.txt"
             if [ -e "${licensePath}" ]; then
-              printf "[INFO] Copying %s license file %s to %s\n" "${requirement}" "${licensePath}" "${requirementPath}"
-              cp "${licensePath}" "${requirementPath}"
+              copyLicense "${requirement}" "${requirementPath}" "${licensePath}"
               continue
             fi
             
             licensePath="${licenseDirPath}/LICENSE.rst"
             if [ -e "${licensePath}" ]; then
-              printf "[INFO] Copying %s license file %s to %s\n" "${requirement}" "${licensePath}" "${requirementPath}"
-              cp "${licensePath}" "${requirementPath}"
+              copyLicense "${requirement}" "${requirementPath}" "${licensePath}"
               continue
             fi
             
