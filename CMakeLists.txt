@@ -70,8 +70,7 @@ if(NOT TARGET spdlog)
 	find_package(spdlog REQUIRED)
 endif(NOT TARGET spdlog)
 
-find_package(Protobuf REQUIRED)
-
+find_package(protobuf-c REQUIRED)
 
 find_package(Microsoft.GSL REQUIRED)
 if(Microsoft.GSL_FOUND)
