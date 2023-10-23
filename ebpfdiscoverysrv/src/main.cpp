@@ -135,7 +135,7 @@ int main(int argc, char** argv) {
 	logging::LogLevel logLevel{vm["log-level"].as<logging::LogLevel>()};
 	bool isStdoutLogDisabled{vm["log-no-stdout"].as<bool>()};
 	std::filesystem::path logDir{vm["log-dir"].as<std::filesystem::path>()};
-	bool isLaunchTest{vm["launch-test"].as<bool>()};
+	bool isLaunchTest{vm["test-launch"].as<bool>()};
 
 	try {
 		initLogging(logLevel, !isStdoutLogDisabled, logDir);
