@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "logging/Logger.h"
 
+#include "Formatting.h"
+
 #include <spdlog/common.h>
 #include <spdlog/sinks/rotating_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
@@ -86,22 +88,13 @@ void Logger::vlogf(enum LogLevel level, const char* format, va_list args) {
 		return;
 	}
 
-	const int staticBufSize{512};
-	static char staticBuf[staticBufSize]{};
-
-	static va_list argsCopy;
-	va_copy(argsCopy, args);
-
-	int resultSize{vsnprintf(staticBuf, staticBufSize, format, args)};
-	if (resultSize <= staticBufSize) {
-		logLine(level, staticBuf, resultSize);
+	auto formatted{logging::vaFormat(format, args)};
+	if (formatted.empty()) {
 		return;
 	}
 
-	char buf[resultSize]{};
-	vsnprintf(buf, resultSize, format, argsCopy);
-
-	logLine(level, buf, resultSize);
+	formatted = logging::trimNewline(formatted);
+	log(level, "{}", formatted);
 }
 
 void Logger::setLogger(spdlog::logger logger) {
@@ -112,21 +105,6 @@ void Logger::setLogger(spdlog::logger logger) {
 void Logger::loggerSetDefaults() {
 	spdLogger.set_level(spdlog::level::off);
 	spdLogger.set_pattern("%Y-%m-%d %H:%M:%S.%e [%t] %^%l%$ [%n] %v");
-}
-
-void Logger::logLine(enum LogLevel level, const char* buf, size_t len) {
-	if (buf == nullptr || len == 0) {
-		return;
-	}
-
-	std::string str;
-	if (len > 1 && buf[len - 1] == '\n') {
-		str.assign(buf, len - 1);
-	} else {
-		str.assign(buf, len);
-	}
-
-	log(level, "{}", str);
 }
 
 } // namespace logging
