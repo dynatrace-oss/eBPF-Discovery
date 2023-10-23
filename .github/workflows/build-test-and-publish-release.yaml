@@ -40,6 +40,73 @@ jobs:
       - name: Move license to artifact directory
         run: mv ${{ github.workspace }}/LICENSE ${{ env.ARTIFACT_PATH }}/LICENSE
 
+      - name: Move third party licenses to artifact directory
+        run: |
+          downloadLicense() {
+            local requirement="${1}"
+            local requirementPath="${2}"
+            local licenseUrl="${3}"
+            
+            printf "[INFO] Downloading %s license file from %s to %s\n" "${requirement}" "${licenseUrl}" "${requirementPath}"
+            (cd "${requirementPath}" && curl "${licenseUrl}" --output LICENSE)
+            
+          }
+          
+          copyLicense() {
+            local requirement="${1}"
+            local requirementPath="${2}"
+            local licensePath="${3}"
+          
+            printf "[INFO] Copying %s license file %s to %s\n" "${requirement}" "${licensePath}" "${requirementPath}"
+            cp "${licensePath}" "${requirementPath}"
+          }
+          
+          licenseDirPaths="$(sudo find /home/runner/.conan2/p/ -type d -name "licenses" | tr "\n" " ")"
+          requirements="$(cat conanfile.txt | tr "\n" " " | grep -Po "\[requires\] \K[^\[]+")"
+          
+          for requirement in $requirements; do
+            if printf "%s" "${requirement}" | grep -q "gtest/"; then
+              continue
+            fi
+          
+            requirementPath=${{ env.ARTIFACT_PATH }}/thirdparty/${requirement}
+            mkdir -p "${requirementPath}"
+          
+            if printf "%s" "${requirement}" | grep -q "protobuf-c/"; then
+              downloadLicense "${requirement}" "${requirementPath}" "https://raw.githubusercontent.com/protobuf-c/protobuf-c/master/LICENSE"
+              continue
+            fi
+          
+            if printf "%s" "${requirement}" | grep -q "protobuf/"; then
+              downloadLicense "${requirement}" "${requirementPath}" "https://raw.githubusercontent.com/protocolbuffers/protobuf/main/LICENSE"
+              continue
+            fi
+            
+            cacheDirectoryPrefix="$(printf "%s" "${requirement}" | cut -d'/' -f1 | cut -c1-5)"
+            licenseDirPath="$(printf "%s" "${licenseDirPaths}" | grep -o "/home/runner/.conan2/p/[^ ]*${cacheDirectoryPrefix}[^ ]*/licenses")"
+            
+            licensePath="${licenseDirPath}/LICENSE"
+            if [ -e "${licensePath}" ]; then
+              copyLicense "${requirement}" "${requirementPath}" "${licensePath}"
+              continue
+            fi
+            
+            licensePath="${licenseDirPath}/LICENSE_1_0.txt"
+            if [ -e "${licensePath}" ]; then
+              copyLicense "${requirement}" "${requirementPath}" "${licensePath}"
+              continue
+            fi
+            
+            licensePath="${licenseDirPath}/LICENSE.rst"
+            if [ -e "${licensePath}" ]; then
+              copyLicense "${requirement}" "${requirementPath}" "${licensePath}"
+              continue
+            fi
+            
+            printf "[ERROR] No license file for %s has been found in %s\n" "${requirement}" "${licenseDirPath}"
+            return 1
+          done
+
       - name: Move protobuf model to artifact directory
         run: mv ${{ env.RELEASE_PATH }}/libebpfdiscoveryproto/ebpfdiscoveryproto ${{ env.ARTIFACT_PATH }}/ebpfdiscoveryproto
 
