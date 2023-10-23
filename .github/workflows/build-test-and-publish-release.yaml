@@ -41,7 +41,7 @@ jobs:
         run: mv ${{ github.workspace }}/LICENSE ${{ env.ARTIFACT_PATH }}/LICENSE
 
       - name: Move protobuf model to artifact directory
-        run: mv ${{ env.RELEASE_PATH }}/libebpfdiscoveryproto/proto/ebpfdiscoveryproto ${{ env.ARTIFACT_PATH }}/ebpfdiscoveryproto
+        run: mv ${{ env.RELEASE_PATH }}/libebpfdiscoveryproto/ebpfdiscoveryproto ${{ env.ARTIFACT_PATH }}/ebpfdiscoveryproto
 
       - name: Move binaries to artifact directory
         run: mv ${{ env.RELEASE_PATH }}/bin ${{ env.ARTIFACT_PATH }}/bin
