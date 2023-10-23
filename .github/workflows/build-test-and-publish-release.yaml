@@ -65,6 +65,10 @@ jobs:
           requirements="$(cat conanfile.txt | tr "\n" " " | grep -Po "\[requires\] \K[^\[]+")"
           
           for requirement in $requirements; do
+            if printf "%s" "${requirement}" | grep -q "gtest/"; then
+              continue
+            fi
+          
             requirementPath=${{ env.ARTIFACT_PATH }}/thirdparty/${requirement}
             mkdir -p "${requirementPath}"
           
