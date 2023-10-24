@@ -7,6 +7,7 @@
 #include "ebpfdiscovery/Session.h"
 #include "ebpfdiscoveryshared/Types.h"
 #include "httpparser/HttpRequestParser.h"
+#include "service/Aggregator.h"
 
 #include <atomic>
 #include <chrono>
@@ -35,8 +36,10 @@ public:
 	void stop();
 	void wait();
 
+	std::vector<service::Service> getServices();
+
 private:
-	typedef LRUCache<DiscoverySavedSessionKey, Session, DiscoverySavedSessionKeyHash> SavedSessionsCacheType;
+	using SavedSessionsCacheType = LRUCache<DiscoverySavedSessionKey, Session, DiscoverySavedSessionKeyHash>;
 
 	void run();
 
@@ -64,6 +67,9 @@ private:
 	DiscoveryConfig config;
 	DiscoveryBpf discoveryBpf;
 	SavedSessionsCacheType savedSessions;
+	ebpfdiscovery::NetlinkCalls netlinkCalls;
+	ebpfdiscovery::IpAddressChecker ipChecker{{}, netlinkCalls};
+	service::Aggregator serviceAggregator{ipChecker};
 
 	std::atomic<bool> running{false};
 	bool stopReceived{false};

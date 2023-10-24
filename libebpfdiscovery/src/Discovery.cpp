@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "ebpfdiscovery/Discovery.h"
 
-#include "StringFunctions.h"
 #include "ebpfdiscovery/Session.h"
+#include "ebpfdiscovery/StringFunctions.h"
 #include "logging/Logger.h"
 
 #include <algorithm>
@@ -174,6 +174,11 @@ void Discovery::handleNewRequest(const Session& session, const DiscoverySessionM
 				request.xForwardedFor,
 				meta.pid);
 	}
+	serviceAggregator.newRequest(request, meta);
+}
+
+std::vector<service::Service> Discovery::getServices() {
+	return serviceAggregator.getServices();
 }
 
 void Discovery::handleCloseEvent(DiscoveryEvent& event) {

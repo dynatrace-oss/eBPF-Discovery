@@ -2,6 +2,7 @@
 #include "ebpfdiscovery/Discovery.h"
 #include "ebpfdiscovery/DiscoveryBpf.h"
 #include "ebpfdiscovery/DiscoveryBpfLoader.h"
+#include "ebpfdiscoveryproto/Translator.h"
 #include "logging/Logger.h"
 
 #include <boost/program_options.hpp>
@@ -41,6 +42,7 @@ static po::options_description getProgramOptions() {
       ("log-level", po::value<logging::LogLevel>()->default_value(logging::LogLevel::Err, "error"), "Set log level {trace,debug,info,warning,error,critical,off}")
       ("log-no-stdout", po::bool_switch()->default_value(false), "Disable logging to stdout")
       ("version", "Display program version")
+	  ("interval", po::value<int>()->default_value(60), "Services reporting time interval (in seconds)")
   ;
 	// clang-format on
 
@@ -110,6 +112,18 @@ static void initLibbpf() {
 	libbpf_set_print(libbpfPrintFn);
 }
 
+void servicesProvidingLoop(ebpfdiscovery::Discovery& discoveryInstance, std::chrono::seconds interval) {
+	while (true) {
+		if (auto services = discoveryInstance.getServices(); !services.empty()) {
+			auto servicesProto = proto::Translator::internalToProto(services);
+			LOG_DEBUG("Services list:\n{}\n", servicesProto.DebugString());
+			auto servicesJson = proto::Translator::protoToJson(servicesProto);
+			std::cout << servicesJson << std::endl;
+		}
+		std::this_thread::sleep_for(interval);
+	}
+}
+
 int main(int argc, char** argv) {
 	po::options_description desc{getProgramOptions()};
 	po::variables_map vm;
@@ -172,6 +186,7 @@ int main(int argc, char** argv) {
 	}
 
 	if (!isLaunchTest) {
+		std::thread servicesProvider(servicesProvidingLoop, std::ref(instance), std::chrono::seconds(vm["interval"].as<int>()));
 		std::thread unixSignalThread(runUnixSignalHandlerLoop);
 		{
 			std::unique_lock<std::mutex> programStatusLock(programStatusMutex);
