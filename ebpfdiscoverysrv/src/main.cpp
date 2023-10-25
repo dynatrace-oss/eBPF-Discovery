@@ -202,9 +202,10 @@ int main(int argc, char** argv) {
 		if (unixSignalThread.joinable()) {
 			unixSignalThread.join();
 		}
-	}
-	if (servicesProvider.joinable()) {
-		servicesProvider.join();
+		LOG_TRACE("Waiting for services providing thread to exit.");
+		if (servicesProvider.joinable()) {
+			servicesProvider.join();
+		}
 	}
 
 	LOG_DEBUG("Exiting the program.");

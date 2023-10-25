@@ -20,7 +20,7 @@ protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${PROTO_SOURCES})
 add_library(${TARGET} STATIC ${PROTO_SRCS} ${SOURCES})
 target_link_libraries(${TARGET} protobuf::libprotobuf)
 target_link_libraries(${TARGET} service)
-target_include_directories(${TARGET} PRIVATE src PUBLIC ${CMAKE_CURRENT_BINARY_DIR}/${PROTO_DIR_NAME} headers)
+target_include_directories(${TARGET} PRIVATE src PUBLIC ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_BINARY_DIR}/${PROTO_DIR_NAME} headers)
 
 if (BUILD_TESTS)
     list(APPEND TEST_SOURCES test/TranslatorTest.cpp)
