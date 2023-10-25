@@ -41,7 +41,7 @@ void Aggregator::newRequest(const httpparser::HttpRequest& request, const Discov
 	if (locked)
 		return;
 
-	auto endpoint{getEndpoint(request.host, request.url)};
+	const auto endpoint{getEndpoint(request.host, request.url)};
 	ServiceKey key{meta.pid, endpoint};
 
 	auto it{services.find(key)};
