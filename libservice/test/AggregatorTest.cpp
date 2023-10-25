@@ -37,7 +37,7 @@ TEST_F(ServiceAggregatorTest, aggregate) {
 	EXPECT_EQ(aggregator.getServices().size(), 0);
 	// Service 1
 	{
-		auto [request, meta] = getRequest(100, "host", "/url", DISCOVERY_SESSION_FLAGS_IPV4);
+		const auto [request, meta]{getRequest(100, "host", "/url", DISCOVERY_SESSION_FLAGS_IPV4)};
 		EXPECT_CALL(ipCheckerMock, isAddressExternalLocal).WillOnce(testing::Return(true));
 		aggregator.newRequest(request, meta);
 	}
