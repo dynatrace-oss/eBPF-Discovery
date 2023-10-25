@@ -44,7 +44,7 @@ void Aggregator::newRequest(const httpparser::HttpRequest& request, const Discov
 	const auto endpoint{getEndpoint(request.host, request.url)};
 	ServiceKey key{meta.pid, endpoint};
 
-	auto it{services.find(key)};
+	const auto it{services.find(key)};
 	if (it != services.end()) {
 		updateServiceClientsNumber((*it).second, meta);
 		return;
