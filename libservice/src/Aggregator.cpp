@@ -11,7 +11,7 @@ Aggregator::Aggregator(ebpfdiscovery::IpAddressCheckerInerface& ipChecker) : ipC
 
 void Aggregator::updateServiceClientsNumber(Service& service, const DiscoverySessionMeta& meta) {
 	if (discoverySessionFlagsIsIPv4(meta.flags)) {
-		auto v4Addr = inet_addr(ebpfdiscovery::ipv4ToString(meta.sourceIPData).c_str());
+		const auto v4Addr{inet_addr(ebpfdiscovery::ipv4ToString(meta.sourceIPData).c_str())};
 		if (ipChecker.isAddressExternalLocal(v4Addr)) {
 			++service.externalClientsNumber;
 		} else {
