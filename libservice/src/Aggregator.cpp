@@ -18,7 +18,7 @@ void Aggregator::updateServiceClientsNumber(Service& service, const DiscoverySes
 			++service.internalClientsNumber;
 		}
 	} else if (discoverySessionFlagsIsIPv6(meta.flags)) {
-		auto v6Addr = inet_addr(ebpfdiscovery::ipv6ToString(meta.sourceIPData).c_str());
+		const auto v6Addr{inet_addr(ebpfdiscovery::ipv6ToString(meta.sourceIPData).c_str())};
 		LOG_DEBUG("IPv6 not currently supported, request from src {} skipped", v6Addr);
 	} else {
 		++service.externalClientsNumber;
