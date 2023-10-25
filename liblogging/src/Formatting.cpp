@@ -4,14 +4,6 @@
 
 namespace logging {
 
-std::string_view trimNewline(std::string_view str) {
-	if (!str.empty() && str.back() == '\n') {
-		return std::string_view(str.data(), str.length() - 1);
-	} else {
-		return str;
-	}
-}
-
 std::string vaFormat(const char* format, va_list args) noexcept {
 	std::string result(256, '\0');
 

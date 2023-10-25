@@ -7,7 +7,6 @@
 #include <cstdarg>
 #include <string>
 
-using logging::trimNewline;
 using logging::vaFormat;
 
 TEST(VaFormatTest, testFormat) {
@@ -43,11 +42,5 @@ TEST(VaFormatTest, test255Format) {
 	const std::string expected{longString + "3"};
 	const std::string format{longString + "%d"};
 	const std::string actual = vaFormat(format.c_str(), 3);
-	ASSERT_EQ(actual, expected);
-}
-
-TEST(FormattingTest, testTrimNewline) {
-	const std::string expected{"Hello, World!"};
-	const auto actual = trimNewline("Hello, World!\0");
 	ASSERT_EQ(actual, expected);
 }

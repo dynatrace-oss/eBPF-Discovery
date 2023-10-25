@@ -3,6 +3,7 @@
 
 #include "Formatting.h"
 
+#include <boost/algorithm/string.hpp>
 #include <spdlog/common.h>
 #include <spdlog/sinks/rotating_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
@@ -93,7 +94,7 @@ void Logger::vlogf(enum LogLevel level, const char* format, va_list args) {
 		return;
 	}
 
-	formatted = logging::trimNewline(formatted);
+	boost::trim_right(formatted);
 	log(level, "{}", formatted);
 }
 

@@ -6,8 +6,6 @@
 
 namespace logging {
 
-std::string_view trimNewline(std::string_view str);
-
 std::string vaFormat(const char* format, va_list args) noexcept;
 std::string vaFormat(const char* format, ...) noexcept;
 
