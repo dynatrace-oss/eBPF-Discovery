@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+message ServicesList {
+  repeated Service service = 1;
+}
+
+message Service {
+  uint32 pid = 1;
+  string endpoint = 2;
+  uint32 internalClientsNumber = 3;
+  uint32 externalClientsNumber = 4;
+}
