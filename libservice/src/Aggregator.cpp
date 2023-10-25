@@ -38,8 +38,9 @@ Service Aggregator::toService(const httpparser::HttpRequest& request, const Disc
 }
 
 void Aggregator::newRequest(const httpparser::HttpRequest& request, const DiscoverySessionMeta& meta) {
-	if (locked)
+	if (locked) {
 		return;
+	}
 
 	const auto endpoint{getEndpoint(request.host, request.url)};
 	ServiceKey key{meta.pid, endpoint};
