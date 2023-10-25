@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-#include "StringFunctions.h"
+#include "ebpfdiscovery/StringFunctions.h"
 
 #include <arpa/inet.h>
 

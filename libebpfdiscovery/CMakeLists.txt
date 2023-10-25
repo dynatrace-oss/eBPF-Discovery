@@ -1,14 +1,14 @@
 list(
-	APPEND
-	SOURCES
-	src/Config.cpp
-	src/Discovery.cpp
-	src/DiscoveryBpf.cpp
-	src/DiscoveryBpfLoader.cpp
-	src/IpAddressChecker.cpp
-	src/NetlinkCalls.cpp
-	src/Session.cpp
-	src/StringFunctions.cpp
+        APPEND
+        SOURCES
+        src/Config.cpp
+        src/Discovery.cpp
+        src/DiscoveryBpf.cpp
+        src/DiscoveryBpfLoader.cpp
+        src/IpAddressChecker.cpp
+        src/NetlinkCalls.cpp
+        src/Session.cpp
+        src/StringFunctions.cpp
 )
 set(TARGET ebpfdiscovery)
 
@@ -24,13 +24,14 @@ target_link_libraries(${TARGET} fmt::fmt)
 target_link_libraries(${TARGET} httpparser)
 target_link_libraries(${TARGET} logging)
 target_link_libraries(${TARGET} spdlog::spdlog)
+target_link_libraries(${TARGET} service)
 
-if(BUILD_TESTS)
-	list(APPEND TEST_SOURCES test/StringFunctionsTest.cpp test/LRUCacheTest.cpp test/IpAddressCheckerTest.cpp)
-	set(TEST_TARGET test${TARGET})
+if (BUILD_TESTS)
+    list(APPEND TEST_SOURCES test/StringFunctionsTest.cpp test/LRUCacheTest.cpp test/IpAddressCheckerTest.cpp)
+    set(TEST_TARGET test${TARGET})
 
-	add_executable(${TEST_TARGET} ${TEST_SOURCES})
-	target_link_libraries(${TEST_TARGET} GTest::gtest_main GTest::gmock_main ${TARGET})
-	target_include_directories(${TEST_TARGET} PRIVATE src)
-	gtest_discover_tests(${TEST_TARGET})
-endif()
+    add_executable(${TEST_TARGET} ${TEST_SOURCES})
+    target_link_libraries(${TEST_TARGET} GTest::gtest_main GTest::gmock_main ${TARGET})
+    target_include_directories(${TEST_TARGET} PRIVATE src)
+    gtest_discover_tests(${TEST_TARGET})
+endif ()

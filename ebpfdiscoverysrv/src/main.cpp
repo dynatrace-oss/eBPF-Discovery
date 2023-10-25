@@ -2,6 +2,7 @@
 #include "ebpfdiscovery/Discovery.h"
 #include "ebpfdiscovery/DiscoveryBpf.h"
 #include "ebpfdiscovery/DiscoveryBpfLoader.h"
+#include "ebpfdiscoveryproto/Translator.h"
 #include "logging/Logger.h"
 
 #include <boost/program_options.hpp>
@@ -41,6 +42,7 @@ static po::options_description getProgramOptions() {
       ("log-level", po::value<logging::LogLevel>()->default_value(logging::LogLevel::Err, "error"), "Set log level {trace,debug,info,warning,error,critical,off}")
       ("log-no-stdout", po::bool_switch()->default_value(false), "Disable logging to stdout")
       ("version", "Display program version")
+      ("interval", po::value<int>()->default_value(60), "Services reporting time interval (in seconds)")
   ;
 	// clang-format on
 
@@ -110,6 +112,19 @@ static void initLibbpf() {
 	libbpf_set_print(libbpfPrintFn);
 }
 
+void servicesProvidingLoop(ebpfdiscovery::Discovery& discoveryInstance, std::chrono::seconds interval) {
+	std::unique_lock<std::mutex> lock(programStatusMutex);
+	while (programStatus == ProgramStatus::Running) {
+		if (auto services = discoveryInstance.popServices(); !services.empty()) {
+			auto servicesProto = proto::internalToProto(services);
+			LOG_DEBUG("Services list:\n{}\n", servicesProto.DebugString());
+			auto servicesJson = proto::protoToJson(servicesProto);
+			std::cout << servicesJson << std::endl;
+		}
+		programStatusCV.wait_for(lock, interval);
+	}
+}
+
 int main(int argc, char** argv) {
 	po::options_description desc{getProgramOptions()};
 	po::variables_map vm;
@@ -172,6 +187,7 @@ int main(int argc, char** argv) {
 	}
 
 	if (!isLaunchTest) {
+		std::thread servicesProvider(servicesProvidingLoop, std::ref(instance), std::chrono::seconds(vm["interval"].as<int>()));
 		std::thread unixSignalThread(runUnixSignalHandlerLoop);
 		{
 			std::unique_lock<std::mutex> programStatusLock(programStatusMutex);
@@ -181,6 +197,10 @@ int main(int argc, char** argv) {
 		LOG_TRACE("Waiting for unix signal thread to exit.");
 		if (unixSignalThread.joinable()) {
 			unixSignalThread.join();
+		}
+		LOG_TRACE("Waiting for services providing thread to exit.");
+		if (servicesProvider.joinable()) {
+			servicesProvider.join();
 		}
 	}
 
