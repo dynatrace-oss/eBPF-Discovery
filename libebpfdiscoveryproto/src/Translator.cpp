@@ -7,7 +7,8 @@ namespace proto {
 ServicesList Translator::internalToProto(const std::vector<service::Service>& internalServices) {
 	ServicesList external;
 	for (const auto& i : internalServices) {
-		auto service = external.add_service();
+		const auto service{external.add_service()};
+
 		service->set_pid(i.pid);
 		service->set_endpoint(i.endpoint);
 		service->set_internalclientsnumber(i.internalClientsNumber);
