@@ -4,7 +4,6 @@
 #include <initializer_list>
 #include <vector>
 
-
 namespace ebpfdiscovery {
 
 using IPv4int = uint32_t;
@@ -17,7 +16,12 @@ struct IpIfce {
 	bool isLocalBridge;
 };
 
-class IpAddressChecker {
+class IpAddressCheckerInerface {
+public:
+	virtual bool isAddressExternalLocal(IPv4int addr) = 0;
+};
+
+class IpAddressChecker : public IpAddressCheckerInerface {
 	std::vector<IpIfce> interfaces;
 	std::vector<IpIfce>::iterator bridgeEnd = interfaces.end();
 	const NetlinkCalls& netlink;
@@ -27,13 +31,14 @@ class IpAddressChecker {
 	bool isLoopback(const IpIfce&);
 	void addIpIfce(IpIfce&& ifce);
 	void markBridge(int idx);
+
 protected:
 	void moveBridges();
+
 public:
-	IpAddressChecker(const NetlinkCalls &calls);
-	IpAddressChecker(std::initializer_list<IpIfce> config, const NetlinkCalls &calls);
-	bool isAddressExternalLocal(IPv4int addr);
+	IpAddressChecker(const NetlinkCalls& calls);
+	IpAddressChecker(std::initializer_list<IpIfce> config, const NetlinkCalls& calls);
+	bool isAddressExternalLocal(IPv4int addr) override;
 	bool readNetworks();
 };
 } // namespace ebpfdiscovery
-
