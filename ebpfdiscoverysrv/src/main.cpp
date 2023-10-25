@@ -112,20 +112,16 @@ static void initLibbpf() {
 	libbpf_set_print(libbpfPrintFn);
 }
 
-bool isProgramRunning() {
-	std::lock_guard<std::mutex> lock(programStatusMutex);
-	return programStatus == ProgramStatus::Running;
-}
-
 void servicesProvidingLoop(ebpfdiscovery::Discovery& discoveryInstance, std::chrono::seconds interval) {
-	while (isProgramRunning()) {
+	std::unique_lock<std::mutex> lock(programStatusMutex);
+	while (programStatus == ProgramStatus::Running) {
 		if (auto services = discoveryInstance.popServices(); !services.empty()) {
 			auto servicesProto = proto::internalToProto(services);
 			LOG_DEBUG("Services list:\n{}\n", servicesProto.DebugString());
 			auto servicesJson = proto::protoToJson(servicesProto);
 			std::cout << servicesJson << std::endl;
 		}
-		std::this_thread::sleep_for(interval);
+		programStatusCV.wait_for(lock, interval);
 	}
 }
 
