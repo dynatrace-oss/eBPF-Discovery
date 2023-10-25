@@ -53,7 +53,7 @@ void Aggregator::newRequest(const httpparser::HttpRequest& request, const Discov
 	services[key] = std::move(newService);
 }
 
-std::vector<Service> Aggregator::getServices() {
+std::vector<Service> Aggregator::popServices() {
 	locked = true;
 
 	std::vector<Service> ret;

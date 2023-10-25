@@ -4,7 +4,7 @@
 
 namespace proto {
 
-ServicesList Translator::internalToProto(const std::vector<service::Service>& internalServices) {
+ServicesList internalToProto(const std::vector<service::Service>& internalServices) {
 	ServicesList external;
 	for (const auto& i : internalServices) {
 		const auto service{external.add_service()};
@@ -17,7 +17,7 @@ ServicesList Translator::internalToProto(const std::vector<service::Service>& in
 	return external;
 }
 
-std::string Translator::protoToJson(const ServicesList& protoServices) {
+std::string protoToJson(const ServicesList& protoServices) {
 	std::string json;
 	google::protobuf::util::JsonPrintOptions options;
 	options.add_whitespace = false;

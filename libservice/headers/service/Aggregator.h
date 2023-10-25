@@ -28,7 +28,7 @@ class Aggregator {
 public:
 	Aggregator(ebpfdiscovery::IpAddressCheckerInerface& ipChecker);
 
-	std::vector<Service> getServices();
+	std::vector<Service> popServices();
 
 	void newRequest(const httpparser::HttpRequest& request, const DiscoverySessionMeta& meta);
 

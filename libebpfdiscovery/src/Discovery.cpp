@@ -177,8 +177,8 @@ void Discovery::handleNewRequest(const Session& session, const DiscoverySessionM
 	serviceAggregator.newRequest(request, meta);
 }
 
-std::vector<service::Service> Discovery::getServices() {
-	return serviceAggregator.getServices();
+std::vector<service::Service> Discovery::popServices() {
+	return serviceAggregator.popServices();
 }
 
 void Discovery::handleCloseEvent(DiscoveryEvent& event) {

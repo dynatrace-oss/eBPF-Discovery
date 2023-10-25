@@ -7,7 +7,6 @@
 using namespace proto;
 
 struct ProtobufTranslatorTest : public testing::Test {
-	Translator translator;
 	const std::string expectedServicesJson{
 			"{\"service\":[{\"pid\":1,\"endpoint\":\"/endpoint/"
 			"1\",\"internalClientsNumber\":1,\"externalClientsNumber\":2},{\"pid\":2,\"endpoint\":\"/endpoint/"
@@ -26,7 +25,7 @@ struct ProtobufTranslatorTest : public testing::Test {
 };
 
 TEST_F(ProtobufTranslatorTest, successfulTranslation) {
-	auto proto = translator.internalToProto(internalServices);
-	auto json = translator.protoToJson(proto);
+	auto proto = internalToProto(internalServices);
+	auto json = protoToJson(proto);
 	EXPECT_EQ(json, expectedServicesJson);
 }

@@ -9,11 +9,8 @@
 
 namespace proto {
 
-class Translator {
-public:
-	static ServicesList internalToProto(const std::vector<service::Service>& internalServices);
+ServicesList internalToProto(const std::vector<service::Service>& internalServices);
 
-	static std::string protoToJson(const ServicesList& protoServices);
-};
+std::string protoToJson(const ServicesList& protoServices);
 
 } // namespace proto

@@ -36,7 +36,7 @@ public:
 	void stop();
 	void wait();
 
-	std::vector<service::Service> getServices();
+	std::vector<service::Service> popServices();
 
 private:
 	using SavedSessionsCacheType = LRUCache<DiscoverySavedSessionKey, Session, DiscoverySavedSessionKeyHash>;
