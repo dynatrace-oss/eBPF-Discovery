@@ -49,7 +49,7 @@ void Aggregator::newRequest(const httpparser::HttpRequest& request, const Discov
 		updateServiceClientsNumber((*it).second, meta);
 		return;
 	}
-	auto newService = toService(request, meta);
+	auto newService{toService(request, meta)};
 	services[key] = std::move(newService);
 }
 
