@@ -22,7 +22,7 @@ runs:
         fi
         printf "PROJECT_VERSION=%s\n" "${newestVersion}" >> $GITHUB_ENV
         
-        newestVersionWithTimestamp="${newestVersion}"-"$(date +%Y%m%d_%H%M%S)"
+        newestVersionWithTimestamp="${newestVersion}"."$(date +%Y%m%d-%H%M%S)"
         printf "ARTIFACT_VERSION=%s\n" "${newestVersionWithTimestamp}" >> $GITHUB_ENV
         
         printf "RELEASE_PATH=%s\n" "${{ github.workspace }}/build/Release" >> $GITHUB_ENV
