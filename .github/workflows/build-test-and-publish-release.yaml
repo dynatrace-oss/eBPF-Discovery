@@ -48,8 +48,7 @@ jobs:
             local licenseUrl="${3}"
             
             printf "[INFO] Downloading %s license file from %s to %s\n" "${requirement}" "${licenseUrl}" "${requirementPath}"
-            (cd "${requirementPath}" && curl "${licenseUrl}" --output LICENSE)
-            
+            (cd "${requirementPath}" && curl "${licenseUrl}" --output LICENSE)  
           }
           
           copyLicense() {
