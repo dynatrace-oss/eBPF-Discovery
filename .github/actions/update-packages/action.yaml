@@ -1,9 +1,0 @@
-name: Update packages
-
-runs:
-  using: composite
-  steps:
-    - name: Update packages
-      shell: bash
-      run: |
-        sudo apt-get update

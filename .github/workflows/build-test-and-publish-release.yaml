@@ -14,16 +14,13 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Update packages
-        uses: ./.github/actions/update-packages
-
       - name: Set environment variables
         uses: ./.github/actions/set-environment-variables
         with:
           build-type: Release
 
-      - name: Install requirements
-        uses: ./.github/actions/install-requirements
+      - name: Build docker image
+        uses: ./.github/actions/build-docker-image
 
       - name: Configure
         uses: ./.github/actions/configure

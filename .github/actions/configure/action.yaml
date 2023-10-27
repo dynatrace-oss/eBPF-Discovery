@@ -1,4 +1,5 @@
 name: Configure
+description: Configure build environment
 
 runs:
   using: composite
@@ -6,11 +7,17 @@ runs:
     - name: Configure
       shell: bash
       run: >-
+        docker run -i --rm
+        -w /home/runner/work/eBPF-Discovery/eBPF-Discovery
+        --user=$(id -u):$(id -g)
+        -v /home/runner:/home/runner
+        -v /etc/passwd:/etc/passwd
+        ${{ env.IMAGE_NAME }}:latest
         cmake
-        -S . 
+        -S .
         -B ${{ env.BUILD_PATH }}
-        -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} 
-        -DCMAKE_C_COMPILER=gcc 
+        -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
+        -DCMAKE_C_COMPILER=gcc
         '-DCMAKE_CXX_COMPILER=g++'
-        -DBUILD_TESTS=ON 
+        -DBUILD_TESTS=ON
         -DPROJECT_VERSION=${{ env.PROJECT_VERSION }}
