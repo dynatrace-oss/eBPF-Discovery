@@ -14,6 +14,14 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Build docker image
+        run: docker build -t ${{ env.CONTAINER_IMAGE }}:latest .
+
+      - name: Run docker image
+        run: |
+          pwd
+          docker run -d -v /home:/home ${{ env.CONTAINER_IMAGE }}:latest .
+
       - name: Update packages
         uses: ./.github/actions/update-packages
 

@@ -12,6 +12,9 @@ runs:
     - name: Set environment variables
       shell: bash
       run: |
+        printf "IMAGE_NAME=%s\n" "ebpf_discovery_image" >> $GITHUB_ENV
+        printf "CONTAINER_NAME=%s\n" "ebpf_discovery_container" >> $GITHUB_ENV
+        
         buildType=${{ inputs.build-type }}
         printf "CAPITALISED_BUILD_TYPE=%s\n" "${buildType}" >> $GITHUB_ENV
         printf "LOWERCASE_BUILD_TYPE=%s\n" "${buildType,,}" >> $GITHUB_ENV
