@@ -1,10 +1,10 @@
 list(
         APPEND
         SOURCES
-        src/Config.cpp
         src/Discovery.cpp
         src/DiscoveryBpf.cpp
         src/DiscoveryBpfLoader.cpp
+        src/DiscoveryBpfLogHandler.cpp
         src/IpAddressChecker.cpp
         src/NetlinkCalls.cpp
         src/Session.cpp

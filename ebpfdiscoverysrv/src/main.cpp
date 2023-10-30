@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0
+#include "ebpfdiscovery/Config.h"
 #include "ebpfdiscovery/Discovery.h"
 #include "ebpfdiscovery/DiscoveryBpf.h"
 #include "ebpfdiscovery/DiscoveryBpfLoader.h"
+#include "ebpfdiscovery/DiscoveryBpfLogHandler.h"
 #include "ebpfdiscoveryproto/Translator.h"
 #include "logging/Logger.h"
 
@@ -159,7 +161,7 @@ int main(int argc, char** argv) {
 		return EXIT_FAILURE;
 	}
 
-	LOG_DEBUG("Starting the program.");
+	LOG_INFO("Starting the program. (PID: {})", getpid());
 
 	{
 		LOG_TRACE("Setting up unix signals handling.");
@@ -179,11 +181,19 @@ int main(int argc, char** argv) {
 		return EXIT_FAILURE;
 	}
 
-	ebpfdiscovery::Discovery instance(loader.get());
+	ebpfdiscovery::DiscoveryConfig discoveryConfig;
+	ebpfdiscovery::Discovery instance(loader.get(), discoveryConfig);
+	ebpfdiscovery::DiscoveryBpfLogHandler bpfLogHandler(loader.get(), discoveryConfig);
 	try {
 		instance.start();
 	} catch (const std::runtime_error& e) {
 		LOG_CRITICAL("Couldn't start Discovery: {}", e.what());
+	}
+
+	try {
+		bpfLogHandler.start();
+	} catch (const std::runtime_error& e) {
+		LOG_CRITICAL("Couldn't start Discovery BPF log event handler: {}", e.what());
 	}
 
 	if (!isLaunchTest) {
@@ -194,22 +204,29 @@ int main(int argc, char** argv) {
 			programStatusCV.wait(programStatusLock, []() { return programStatus != ProgramStatus::Running; });
 		}
 
-		LOG_TRACE("Waiting for unix signal thread to exit.");
+		LOG_DEBUG("Waiting for unix signal thread to exit.");
 		if (unixSignalThread.joinable()) {
 			unixSignalThread.join();
 		}
-		LOG_TRACE("Waiting for services providing thread to exit.");
+
+		LOG_DEBUG("Waiting for services providing thread to exit.");
 		if (servicesProvider.joinable()) {
 			servicesProvider.join();
 		}
 	}
 
-	LOG_DEBUG("Exiting the program.");
+	LOG_INFO("Exiting the program.");
 	instance.stop();
 
-	LOG_TRACE("Waiting for threads to exit.");
+	LOG_DEBUG("Waiting for Discovery to exit.");
 	instance.wait();
 
-	LOG_TRACE("Finished running the program successfully.");
+	LOG_DEBUG("Stopping the Discovery BPF log event handler.");
+	bpfLogHandler.stop();
+
+	LOG_DEBUG("Waiting for Discovery BPF log event handler to exit.");
+	bpfLogHandler.wait();
+
+	LOG_DEBUG("Finished running the program successfully.");
 	return EXIT_SUCCESS;
 }

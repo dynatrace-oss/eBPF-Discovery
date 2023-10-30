@@ -7,9 +7,9 @@
 namespace ebpfdiscovery {
 
 struct DiscoveryConfig {
-	std::chrono::milliseconds eventQueuePollInterval;
-
-	DiscoveryConfig() noexcept;
+	std::chrono::milliseconds eventQueuePollInterval{std::chrono::milliseconds(250)};
+	std::chrono::milliseconds logPerfPollInterval{std::chrono::milliseconds(250)};
+	size_t logPerfBufferPages{1024};
 };
 
 } // namespace ebpfdiscovery

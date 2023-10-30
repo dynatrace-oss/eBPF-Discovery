@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0
 #pragma once
 
+#include "DebugPrint.h"
 #include "Log.h"
 #include "ebpfdiscoveryshared/Constants.h"
 #include "ebpfdiscoveryshared/Types.h"

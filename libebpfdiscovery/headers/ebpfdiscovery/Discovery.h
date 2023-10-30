@@ -28,7 +28,7 @@ public:
 	Discovery(DiscoveryBpf discoveryBpf, const DiscoveryConfig config);
 	Discovery(const Discovery&) = delete;
 	Discovery& operator=(const Discovery&) = delete;
-	Discovery(Discovery&&) = default;
+	Discovery(Discovery&&) = delete;
 	Discovery& operator=(Discovery&&) = default;
 	~Discovery() = default;
 

@@ -2,6 +2,7 @@
 #pragma once
 
 #include "DataFunctions.h"
+#include "DebugPrint.h"
 #include "GlobalData.h"
 #include "Log.h"
 #include "Pid.h"
