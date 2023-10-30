@@ -5,4 +5,12 @@ runs:
   steps:
     - name: Configure
       shell: bash
-      run: cmake --preset conan-${{ env.LOWERCASE_BUILD_TYPE }} -DBUILD_TESTS=ON -DPROJECT_VERSION=${{ env.PROJECT_VERSION }}
+      run: >-
+        cmake
+        -S . 
+        -B ${{ env.CMAKE_BUILD_DIR }}
+        -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} 
+        -DCMAKE_C_COMPILER=gcc 
+        '-DCMAKE_CXX_COMPILER=g++'
+        -DBUILD_TESTS=ON 
+        -DPROJECT_VERSION=${{ env.PROJECT_VERSION }}
