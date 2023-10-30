@@ -11,7 +11,7 @@ if(BUILD_TESTS)
 	set(TEST_TARGET test${TARGET})
 
 	add_executable(${TEST_TARGET} ${TEST_SOURCES})
-	target_link_libraries(${TEST_TARGET} GTest::gtest_main ${TARGET})
+	target_link_libraries(${TEST_TARGET} CONAN_PKG::gtest ${TARGET})
 	target_include_directories(${TEST_TARGET} PRIVATE src)
 	gtest_discover_tests(${TEST_TARGET})
 endif()

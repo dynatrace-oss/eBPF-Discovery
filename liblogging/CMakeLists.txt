@@ -3,4 +3,4 @@ set(TARGET logging)
 
 add_library(${TARGET} STATIC ${SOURCES})
 target_include_directories(${TARGET} PRIVATE src PUBLIC headers)
-target_link_libraries(${TARGET} spdlog::spdlog)
+target_link_libraries(${TARGET} CONAN_PKG::spdlog)
