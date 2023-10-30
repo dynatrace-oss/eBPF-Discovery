@@ -72,11 +72,6 @@ jobs:
             requirementPath=${{ env.ARTIFACT_PATH }}/thirdparty/${requirement}
             mkdir -p "${requirementPath}"
           
-            if printf "%s" "${requirement}" | grep -q "protobuf-c/"; then
-              downloadLicense "${requirement}" "${requirementPath}" "https://raw.githubusercontent.com/protobuf-c/protobuf-c/master/LICENSE"
-              continue
-            fi
-          
             if printf "%s" "${requirement}" | grep -q "protobuf/"; then
               downloadLicense "${requirement}" "${requirementPath}" "https://raw.githubusercontent.com/protocolbuffers/protobuf/main/LICENSE"
               continue
