@@ -11,10 +11,11 @@ runs:
       shell: bash
       run: |
         sudo su
-        pip install -r "${{ github.workspace }}/testing/requirements.txt"
+        pip install -r "${{ env.TEST_PATH }}/requirements.txt"
 
     - name: Integration tests
       shell: bash
       run: |
         sudo su
-        pytest "${{ github.workspace }}/testing" --discovery_path="${{ env.DISCOVERY_BIN_PATH }}"
+        chmod +rwx "${{ env.DISCOVERY_BIN_PATH }}"
+        pytest "${{ env.TEST_PATH }}" --discovery_path="${{ env.DISCOVERY_BIN_PATH }}"
