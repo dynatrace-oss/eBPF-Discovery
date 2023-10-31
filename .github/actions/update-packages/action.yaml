@@ -7,4 +7,3 @@ runs:
       shell: bash
       run: |
         sudo apt-get update
-        sudo apt-get upgrade -y

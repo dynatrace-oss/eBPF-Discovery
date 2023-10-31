@@ -46,10 +46,10 @@ jobs:
             local requirement="${1}"
             local requirementPath="${2}"
             local licenseUrl="${3}"
-            
+          
             printf "[INFO] Downloading %s license file from %s to %s\n" "${requirement}" "${licenseUrl}" "${requirementPath}"
             (cd "${requirementPath}" && curl "${licenseUrl}" --output LICENSE)
-            
+          
           }
           
           copyLicense() {
@@ -76,37 +76,37 @@ jobs:
               downloadLicense "${requirement}" "${requirementPath}" "https://raw.githubusercontent.com/protocolbuffers/protobuf/main/LICENSE"
               continue
             fi
-            
+          
             cacheDirectoryPrefix="$(printf "%s" "${requirement}" | cut -d'/' -f1 | cut -c1-5)"
             licenseDirPath="$(printf "%s" "${licenseDirPaths}" | grep -o "/home/runner/.conan2/p/[^ ]*${cacheDirectoryPrefix}[^ ]*/licenses")"
-            
+          
             licensePath="${licenseDirPath}/LICENSE"
             if [ -e "${licensePath}" ]; then
               copyLicense "${requirement}" "${requirementPath}" "${licensePath}"
               continue
             fi
-            
+          
             licensePath="${licenseDirPath}/LICENSE_1_0.txt"
             if [ -e "${licensePath}" ]; then
               copyLicense "${requirement}" "${requirementPath}" "${licensePath}"
               continue
             fi
-            
+          
             licensePath="${licenseDirPath}/LICENSE.rst"
             if [ -e "${licensePath}" ]; then
               copyLicense "${requirement}" "${requirementPath}" "${licensePath}"
               continue
             fi
-            
+          
             printf "[ERROR] No license file for %s has been found in %s\n" "${requirement}" "${licenseDirPath}"
             return 1
           done
 
       - name: Move protobuf model to artifact directory
-        run: mv ${{ env.RELEASE_PATH }}/libebpfdiscoveryproto/ebpfdiscoveryproto ${{ env.ARTIFACT_PATH }}/ebpfdiscoveryproto
+        run: mv ${{ env.BUILD_PATH }}/libebpfdiscoveryproto/ebpfdiscoveryproto ${{ env.ARTIFACT_PATH }}/ebpfdiscoveryproto
 
       - name: Move binaries to artifact directory
-        run: mv ${{ env.RELEASE_PATH }}/bin ${{ env.ARTIFACT_PATH }}/bin
+        run: mv ${{ env.BUILD_PATH }}/bin ${{ env.ARTIFACT_PATH }}/bin
 
       - name: Remove test binaries from artifact directory
         run: find ${{ env.ARTIFACT_PATH }}/* -name 'test*' -exec rm {} \;
