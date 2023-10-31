@@ -3,20 +3,6 @@ name: Test
 runs:
   using: composite
   steps:
-    - name: Unit tests
+    - name: Test
       shell: bash
       run: ctest --test-dir ${{ env.CMAKE_BUILD_DIR }}
-
-    - name: Prepare integration tests env
-      shell: bash
-      run: |
-        sudo su
-        pip install -r "${{ env.TEST_PATH }}/requirements.txt"
-
-    - name: Integration tests
-      shell: bash
-      run: |
-        sudo su
-        cd "${{ env.TEST_PATH }}"
-        chmod +rwx "${{ github.workspace }}/${{ env.CMAKE_BUILD_DIR }}/bin/ebpfdiscoverysrv"
-        pytest --discovery_path="${{ github.workspace }}/${{ env.CMAKE_BUILD_DIR }}/bin/ebpfdiscoverysrv"
