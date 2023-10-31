@@ -18,5 +18,6 @@ runs:
       run: |
         sudo su
         cd "${{ env.TEST_PATH }}"
-        find . -name docker-compose.*
+        echo DEBUG
+        find "${{ github.workspace }}" -name ebpfdiscoverysrv
         pytest --discovery_path="${{ env.CMAKE_BUILD_DIR }}/bin/ebpfdiscoverysrv"
