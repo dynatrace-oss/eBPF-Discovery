@@ -8,7 +8,5 @@ runs:
       run: |
         sudo apt-get install -y libelf-dev
         sudo apt-get install -y clang
-        pip install cmake==3.23.3
-        pip install conan==2.0
-        conan profile detect
-        conan install . --build=missing -s build_type=${{ env.CAPITALISED_BUILD_TYPE }}
+        pip install cmake==3.22.3
+        pip install conan==1.56.0
