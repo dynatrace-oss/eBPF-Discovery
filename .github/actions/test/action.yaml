@@ -7,6 +7,14 @@ runs:
       shell: bash
       run: ctest --test-dir ${{ env.CMAKE_BUILD_DIR }}
 
+    - name: Prepare integration tests env
+      shell: bash
+      run: |
+        sudo su
+        pip install -r "${{ github.workspace }}/testing/requirements.txt"
+
     - name: Integration tests
       shell: bash
-      run: sudo pytest "${{ github.workspace }}/testing" --discovery_path="${{ env.DISCOVERY_BIN_PATH }}"
+      run: |
+        sudo su
+        pytest "${{ github.workspace }}/testing" --discovery_path="${{ env.DISCOVERY_BIN_PATH }}"
