@@ -37,10 +37,6 @@ def get_discovered_service_json(discovery: subprocess.Popen, url: str) -> typing
 
 
 def discovered_service_has_clients(discovery: subprocess.Popen, url: str, local_clients_number: int, external_clients_number: int) -> bool:
-    # HACK remove when discovery starts correctly identifying local and external clients num
-    local_clients_number, external_clients_number = external_clients_number, local_clients_number
-    # HACK
-
     service = get_discovered_service_json(discovery, url)
     if not service:
         logging.warning("No discovered service for endpoint {}".format(url))
