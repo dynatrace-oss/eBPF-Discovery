@@ -1,18 +1,6 @@
-import time
 import json
 import logging
-
-import requests as requests
-from requests.exceptions import ConnectionError
-
-
-def wait_until(predicate, timeout=2, period=0.25):
-    end = time.time() + timeout
-    while time.time() < end:
-        if predicate():
-            return True
-        time.sleep(period)
-    return False
+import requests
 
 
 def send_http_requests(url, requests_num):
@@ -25,7 +13,7 @@ def is_responsive(url):
         response = requests.get(url)
         if response.status_code == 200:
             return True
-    except ConnectionError:
+    except (requests.ConnectionError, requests.ConnectTimeout, requests.Timeout):
         return False
 
 
@@ -37,9 +25,12 @@ def get_discovered_service_json(discovery, url):
     if not output:
         return None
     services_json = json.loads(output)
-    for service in services_json["service"]:
-        if url_matches_endpoint(url, service["endpoint"]):
-            return service
+    try:
+        for service in services_json["service"]:
+            if url_matches_endpoint(url, service["endpoint"]):
+                return service
+    except KeyError:
+        return None
     return None
 
 

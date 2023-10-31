@@ -3,6 +3,10 @@ name: Test
 runs:
   using: composite
   steps:
-    - name: Test
+    - name: Unit tests
       shell: bash
       run: ctest --test-dir ${{ env.CMAKE_BUILD_DIR }}
+
+    - name: Integration tests
+      shell: bash
+      run: pytest "${{ github.workspace }}/testing" --discovery_path="${{ env.DISCOVERY_BIN_PATH }}"

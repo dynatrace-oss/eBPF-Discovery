@@ -1,7 +1,11 @@
+import os
+
 import pytest
 import subprocess
+import glob
 
 from utils import discovered_service_has_clients, is_responsive
+from time import sleep
 
 
 def pytest_addoption(parser):
@@ -20,7 +24,16 @@ def ebpf_discovery(discovery_path):
     args = (discovery_path, "--interval", "2")
     discovery = subprocess.Popen(args, stdout=subprocess.PIPE)
     yield discovery
+
     discovery.terminate()
+    while discovery.poll() is None:
+        sleep(0.5)
+    exit_code = discovery.returncode
+    assert not exit_code, "Discovery returned exit code: {}".format(exit_code)
+
+    discovery_root_dir = os.path.dirname(os.path.realpath(discovery_path))
+    log_files = glob.glob(discovery_root_dir+'/*.log')
+    assert log_files == [], "Discovery produced log files on exit: {}".format(log_files)
 
 
 @pytest.fixture(scope="session")

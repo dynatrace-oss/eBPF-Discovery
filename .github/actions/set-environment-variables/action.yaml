@@ -25,7 +25,9 @@ runs:
         newestVersionWithTimestamp="${newestVersion}"."$(date +%Y%m%d-%H%M%S)"
         printf "ARTIFACT_VERSION=%s\n" "${newestVersionWithTimestamp}" >> $GITHUB_ENV
         
-        printf "RELEASE_PATH=%s\n" "${{ github.workspace }}/build/Release" >> $GITHUB_ENV
+        printf "BUILD_PATH=%s\n" "${{ github.workspace }}/build/${buildType}" >> $GITHUB_ENV
+        
+        printf "DISCOVERY_BIN_PATH=%s\n" "${{ env.BUILD_PATH }}/bin/ebpfdiscoverysrv" >> $GITHUB_ENV
         
         printf "ARTIFACT_PATH=%s\n" "${{ github.workspace }}/artifact" >> $GITHUB_ENV
         
