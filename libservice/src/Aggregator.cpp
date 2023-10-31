@@ -6,7 +6,8 @@
 
 namespace service {
 
-Aggregator::Aggregator(ebpfdiscovery::IpAddressCheckerInerface& ipChecker) : ipChecker(ipChecker) {
+Aggregator::Aggregator(ebpfdiscovery::IpAddressChecker& ipChecker) : ipChecker(ipChecker) {
+	ipChecker.readNetworks();
 }
 
 void Aggregator::updateServiceClientsNumber(Service& service, const DiscoverySessionMeta& meta) {

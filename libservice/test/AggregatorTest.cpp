@@ -10,8 +10,9 @@
 using namespace ebpfdiscovery;
 using namespace service;
 
-class IpAddressCheckerMock : public IpAddressCheckerInerface {
+class IpAddressCheckerMock : public IpAddressChecker {
 public:
+	using IpAddressChecker::IpAddressChecker;
 	MOCK_METHOD(bool, isAddressExternalLocal, (IPv4int), (override));
 };
 
@@ -29,7 +30,8 @@ struct ServiceAggregatorTest : public testing::Test {
 		return {request, meta};
 	}
 
-	IpAddressCheckerMock ipCheckerMock;
+	const NetlinkCalls netlink;
+	IpAddressCheckerMock ipCheckerMock{netlink};
 	Aggregator aggregator{ipCheckerMock};
 };
 
