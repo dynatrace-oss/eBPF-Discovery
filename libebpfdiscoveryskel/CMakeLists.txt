@@ -14,6 +14,6 @@ if(BUILD_BPF_TESTS)
 	set(TEST_TARGET test${TARGET})
 
 	add_executable(${TEST_TARGET} ${TEST_SOURCES})
-	target_link_libraries(${TEST_TARGET} GTest::gtest_main ${TEST_SKEL_TARGET})
+	target_link_libraries(${TEST_TARGET} CONAN_PKG::gtest ${TEST_SKEL_TARGET})
 	gtest_discover_tests(${TEST_TARGET})
 endif()

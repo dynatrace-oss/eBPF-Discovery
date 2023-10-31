@@ -44,10 +44,10 @@ jobs:
         run: mv ${{ env.RELEASE_PATH }}/licenses ${{ env.ARTIFACT_PATH }}/thirdparty
 
       - name: Move protobuf model to artifact directory
-        run: mv ${{ env.RELEASE_PATH }}/libebpfdiscoveryproto/ebpfdiscoveryproto ${{ env.ARTIFACT_PATH }}/ebpfdiscoveryproto
+        run: mv ${{ env.BUILD_PATH }}/libebpfdiscoveryproto/ebpfdiscoveryproto ${{ env.ARTIFACT_PATH }}/ebpfdiscoveryproto
 
       - name: Move binaries to artifact directory
-        run: mv ${{ env.RELEASE_PATH }}/bin ${{ env.ARTIFACT_PATH }}/bin
+        run: mv ${{ env.BUILD_PATH }}/bin ${{ env.ARTIFACT_PATH }}/bin
 
       - name: Remove test binaries from artifact directory
         run: find ${{ env.ARTIFACT_PATH }}/* -name 'test*' -exec rm {} \;

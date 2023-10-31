@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.23)
+cmake_minimum_required(VERSION 3.22.3)
 
 option(BUILD_TESTS "Build tests" ON)
 set(THIRDPARTY_MAKE_JOBS_COUNT "1" CACHE STRING "Number of jobs to use when compiling thirdparty submodules")
@@ -57,25 +57,15 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     set(BPF_C_FLAGS ${BPF_C_FLAGS} ${EXTRA_DEBUG_FLAGS})
 endif ()
 
-set(Boost_USE_STATIC_LIBS ON)
-find_package(Boost REQUIRED COMPONENTS program_options)
-if (Boost_FOUND)
-    include_directories(${Boost_INCLUDE_DIRS})
-endif ()
-
-if (NOT TARGET fmt)
-    find_package(fmt REQUIRED)
-endif (NOT TARGET fmt)
-if (NOT TARGET spdlog)
-    find_package(spdlog REQUIRED)
-endif (NOT TARGET spdlog)
-
-find_package(Protobuf REQUIRED)
-
-
-find_package(Microsoft.GSL REQUIRED)
-if (Microsoft.GSL_FOUND)
-    include_directories(${Microsoft.GSL_INCLUDE_DIRS})
+if (CONAN_EXPORTED)
+	include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
+	conan_basic_setup(TARGETS)
+else ()
+	include(conan.cmake)
+	conan_cmake_run(CONANFILE conanfile.txt
+			BASIC_SETUP CMAKE_TARGETS UPDATE NO_OUTPUT_DIRS
+			BUILD never
+	)
 endif ()
 
 function (collect_licenses conanfile)
@@ -107,10 +97,6 @@ collect_licenses(conanfile.txt)
 set(INSTALL_GTEST OFF CACHE BOOL "Disable installation of googletest" FORCE)
 
 if (BUILD_TESTS OR BUILD_BPF_TESTS)
-    include(FetchContent)
-    FetchContent_Declare(googletest URL https://github.com/google/googletest/archive/03597a01ee50ed33e9dfd640b249b4be3799d395.zip)
-    FetchContent_MakeAvailable(googletest)
-
     include(CTest)
     include(GoogleTest)
     enable_testing()
