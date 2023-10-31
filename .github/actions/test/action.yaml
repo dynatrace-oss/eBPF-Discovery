@@ -5,4 +5,4 @@ runs:
   steps:
     - name: Test
       shell: bash
-      run: ctest --preset conan-${{ env.LOWERCASE_BUILD_TYPE }}
+      run: ctest --test-dir ${{ env.CMAKE_BUILD_DIR }}
