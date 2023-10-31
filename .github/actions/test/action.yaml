@@ -18,4 +18,5 @@ runs:
       run: |
         sudo su
         cd "${{ env.TEST_PATH }}"
+        chmod +rwx "${{ github.workspace }}/${{ env.CMAKE_BUILD_DIR }}/bin/ebpfdiscoverysrv"
         pytest --discovery_path="${{ github.workspace }}/${{ env.CMAKE_BUILD_DIR }}/bin/ebpfdiscoverysrv"
