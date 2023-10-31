@@ -9,4 +9,4 @@ runs:
 
     - name: Integration tests
       shell: bash
-      run: pytest "${{ github.workspace }}/testing" --discovery_path="${{ env.DISCOVERY_BIN_PATH }}"
+      run: sudo pytest "${{ github.workspace }}/testing" --discovery_path="${{ env.DISCOVERY_BIN_PATH }}"
