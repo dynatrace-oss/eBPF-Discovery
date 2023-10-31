@@ -17,4 +17,6 @@ runs:
       shell: bash
       run: |
         sudo su
-        pytest "${{ env.TEST_PATH }}" --discovery_path="${{ env.CMAKE_BUILD_DIR }}/bin/ebpfdiscoverysrv"
+        cd "${{ env.TEST_PATH }}"
+        find . -name docker-compose.*
+        pytest --discovery_path="${{ env.CMAKE_BUILD_DIR }}/bin/ebpfdiscoverysrv"
