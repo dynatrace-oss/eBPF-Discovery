@@ -26,12 +26,12 @@ def get_discovered_service_json(discovery: subprocess.Popen, url: str) -> typing
     output = discovery.stdout.readline()
     if not output:
         return None
-    services_json = json.loads(output)
     try:
+        services_json = json.loads(output)
         for service in services_json["service"]:
             if url_matches_endpoint(url, service["endpoint"]):
                 return service
-    except KeyError:
+    except (json.decoder.JSONDecodeError, KeyError):
         return None
     return None
 
