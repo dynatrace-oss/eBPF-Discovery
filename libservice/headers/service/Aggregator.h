@@ -26,7 +26,7 @@ namespace service {
 
 class Aggregator {
 public:
-	Aggregator(ebpfdiscovery::IpAddressCheckerInerface& ipChecker);
+	Aggregator(ebpfdiscovery::IpAddressChecker& ipChecker);
 
 	std::vector<Service> popServices();
 
@@ -38,7 +38,7 @@ private:
 
 	using ServiceKey = std::pair<uint32_t, std::string>;
 	std::unordered_map<ServiceKey, Service> services;
-	ebpfdiscovery::IpAddressCheckerInerface& ipChecker;
+	ebpfdiscovery::IpAddressChecker& ipChecker;
 
 	std::atomic<bool> locked{false};
 };
