@@ -29,8 +29,6 @@ runs:
         
         printf "TEST_PATH=%s\n" "${{ github.workspace }}/testing" >> $GITHUB_ENV
         
-        printf "DISCOVERY_BIN_PATH=%s\n" "${{ github.workspace }}/build/${buildType}/bin/ebpfdiscoverysrv" >> $GITHUB_ENV
-        
         printf "ARTIFACT_PATH=%s\n" "${{ github.workspace }}/artifact" >> $GITHUB_ENV
         
         repositoryName="$(printf "%s" "${{ github.repository }}" | sed -e "s/^${{ github.repository_owner }}\///")"

@@ -17,6 +17,4 @@ runs:
       shell: bash
       run: |
         sudo su
-        find ${{ env.CMAKE_BUILD_DIR }} -name ebpfdiscoverysrv
-        chmod +rwx "${{ env.DISCOVERY_BIN_PATH }}"
-        pytest "${{ env.TEST_PATH }}" --discovery_path="${{ env.DISCOVERY_BIN_PATH }}"
+        pytest "${{ env.TEST_PATH }}" --discovery_path="${{ env.CMAKE_BUILD_DIR }}/bin/ebpfdiscoverysrv"
