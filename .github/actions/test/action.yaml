@@ -18,6 +18,4 @@ runs:
       run: |
         sudo su
         cd "${{ env.TEST_PATH }}"
-        echo DEBUG
-        find "${{ github.workspace }}" -name ebpfdiscoverysrv
-        pytest --discovery_path="${{ env.CMAKE_BUILD_DIR }}/bin/ebpfdiscoverysrv"
+        pytest --discovery_path="${{ github.workspace }}/${{ env.CMAKE_BUILD_DIR }}/bin/ebpfdiscoverysrv"
