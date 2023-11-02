@@ -5,4 +5,4 @@ runs:
   steps:
     - name: Test
       shell: bash
-      run: ctest --test-dir ${{ env.CMAKE_BUILD_DIR }}
+      run: ctest --test-dir ${{ env.BUILD_PATH }}
