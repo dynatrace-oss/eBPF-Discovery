@@ -5,8 +5,20 @@
 
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace httpparser {
+
+struct XForwardedFor {
+	std::vector<std::string> addresses;
+	void clear();
+};
+
+class XForwardedForValueParser {
+public:
+	void parse(std::string_view data);
+	XForwardedFor result;
+};
 
 struct HttpRequest {
 	std::string method;

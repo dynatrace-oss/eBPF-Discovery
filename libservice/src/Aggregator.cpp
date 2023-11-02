@@ -10,19 +10,33 @@ Aggregator::Aggregator(ebpfdiscovery::IpAddressChecker& ipChecker) : ipChecker(i
 	ipChecker.readNetworks();
 }
 
-void Aggregator::updateServiceClientsNumber(Service& service, const DiscoverySessionMeta& meta) {
-	if (discoverySessionFlagsIsIPv4(meta.flags)) {
-		const auto v4Addr{inet_addr(ebpfdiscovery::ipv4ToString(meta.sourceIPData).c_str())};
-		if (ipChecker.isAddressExternalLocal(v4Addr)) {
-			++service.externalClientsNumber;
-		} else {
-			++service.internalClientsNumber;
+void Aggregator::updateServiceClientsNumber(Service& service, const httpparser::HttpRequest& request, const DiscoverySessionMeta& meta) {
+	in_addr_t clientAddr4{0};
+	if (!request.xForwardedFor.empty()) {
+		xForwardedForValueParser.parse(request.xForwardedFor);
+		if (xForwardedForValueParser.result.addresses.empty()) {
+			LOG_DEBUG("Malformed or empty X-Forwarded-For. (value: `{}`)", request.xForwardedFor);
+			return;
 		}
+		const auto& clientAddr{xForwardedForValueParser.result.addresses.front()};
+		clientAddr4 = inet_addr(clientAddr.c_str());
+		xForwardedForValueParser.result.clear();
+	} else if (discoverySessionFlagsIsIPv4(meta.flags)) {
+		clientAddr4 = inet_addr(ebpfdiscovery::ipv4ToString(meta.sourceIPData).c_str());
 	} else if (discoverySessionFlagsIsIPv6(meta.flags)) {
 		const auto v6Addr{inet_addr(ebpfdiscovery::ipv6ToString(meta.sourceIPData).c_str())};
 		LOG_DEBUG("IPv6 not currently supported, request from src {} skipped", v6Addr);
-	} else {
+	}
+
+	if (clientAddr4 == 0 || clientAddr4 == INADDR_NONE) {
+		LOG_TRACE("Client address hasn't been parsed successfully.");
+		return;
+	}
+
+	if (ipChecker.isAddressExternalLocal(clientAddr4)) {
 		++service.externalClientsNumber;
+	} else {
+		++service.internalClientsNumber;
 	}
 }
 
@@ -34,7 +48,7 @@ Service Aggregator::toService(const httpparser::HttpRequest& request, const Disc
 	Service service;
 	service.pid = meta.pid;
 	service.endpoint = getEndpoint(request.host, request.url);
-	updateServiceClientsNumber(service, meta);
+	updateServiceClientsNumber(service, request, meta);
 	return service;
 }
 
@@ -48,7 +62,7 @@ void Aggregator::newRequest(const httpparser::HttpRequest& request, const Discov
 
 	const auto it{services.find(key)};
 	if (it != services.end()) {
-		updateServiceClientsNumber((*it).second, meta);
+		updateServiceClientsNumber((*it).second, request, meta);
 		return;
 	}
 	auto newService{toService(request, meta)};

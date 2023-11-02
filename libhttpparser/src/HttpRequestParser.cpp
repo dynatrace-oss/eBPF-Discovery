@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "httpparser/HttpRequestParser.h"
+#include <iostream>
 
 namespace httpparser {
 
@@ -44,6 +45,24 @@ inline static bool isValidHostHeaderValueChar(const char ch) {
 
 inline static bool isValidXForwardedForHeaderValueChar(const char ch) {
 	return std::isalnum(ch) || constants::VALID_X_FORWARDED_FOR_HEADER_VALUE_SPECIAL_CHARS.find(ch) != std::string_view::npos;
+}
+
+void XForwardedFor::clear() {
+	addresses.clear();
+}
+
+void XForwardedForValueParser::parse(std::string_view data) {
+	auto beg{0};
+	while (beg < data.length()) {
+		auto end{data.find_first_of(',', beg)};
+		auto const field{data.substr(beg, end - beg)};
+		result.addresses.push_back(std::string(field));
+		if (end == std::string_view::npos) {
+			return;
+		}
+		beg = end + 1;
+	}
+	return;
 }
 
 HttpRequest::HttpRequest() {

@@ -6,11 +6,9 @@
 
 #include <algorithm>
 #include <numeric>
-#include <string>
-#include <string_view>
-#include <vector>
 
 using httpparser::HttpRequestParser;
+using httpparser::XForwardedForValueParser;
 
 std::vector<std::string> chunkString(const std::string_view str, int chunkSize) {
 	std::vector<std::string> chunks;
@@ -20,6 +18,42 @@ std::vector<std::string> chunkString(const std::string_view str, int chunkSize) 
 	}
 
 	return chunks;
+}
+
+class XForwardedForValueParserTest : public ::testing::Test {
+protected:
+	XForwardedForValueParser parser;
+};
+
+TEST_F(XForwardedForValueParserTest, testIPv4AddressParsing) {
+	std::string input{"192.168.0.1,10.0.0.1,9.9.9.9"};
+	parser.parse(input);
+
+	const auto& result{parser.result};
+	ASSERT_EQ(result.addresses.size(), 3);
+	ASSERT_EQ(result.addresses[0], "192.168.0.1");
+	ASSERT_EQ(result.addresses[1], "10.0.0.1");
+	ASSERT_EQ(result.addresses[2], "9.9.9.9");
+}
+
+TEST_F(XForwardedForValueParserTest, testIPv6AddressParsing) {
+	std::string input{"[2001:0db8:85a3::8a2e:0370:7334],[2001:0db8:85a3::8a2e:0370:7335]"};
+	parser.parse(input);
+
+	const auto& result{parser.result};
+	ASSERT_EQ(result.addresses.size(), 2);
+	ASSERT_EQ(result.addresses[0], "[2001:0db8:85a3::8a2e:0370:7334]");
+	ASSERT_EQ(result.addresses[1], "[2001:0db8:85a3::8a2e:0370:7335]");
+}
+
+TEST_F(XForwardedForValueParserTest, testDomainAddressParsing) {
+	std::string input{"example.com:1234,example.org:8080"};
+	parser.parse(input);
+
+	const auto& result = parser.result;
+	ASSERT_EQ(result.addresses.size(), 2);
+	ASSERT_EQ(result.addresses[0], "example.com:1234");
+	ASSERT_EQ(result.addresses[1], "example.org:8080");
 }
 
 struct HttpRequestTestData {
