@@ -5,6 +5,7 @@
 
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace httpparser {
 
@@ -13,7 +14,7 @@ struct HttpRequest {
 	std::string url;
 	std::string protocol;
 	std::string host;
-	std::string xForwardedFor;
+	std::vector<std::string> xForwardedFor;
 
 	HttpRequest();
 	void clear();
@@ -69,7 +70,14 @@ private:
 	bool isCurrentHeaderKeyHost();
 	bool isCurrentHeaderKeyXForwardedFor();
 
-	std::string currentHeaderKey;
+	void parseXForwardedFor(const std::string& data);
+
+	struct HttpHeader {
+		std::string key;
+		std::string value;
+	};
+
+	HttpHeader currentHeader;
 	size_t length;
 };
 

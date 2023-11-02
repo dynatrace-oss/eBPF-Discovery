@@ -13,19 +13,28 @@ static std::string getEndpoint(const std::string& host, const std::string& url) 
 	return host + url;
 }
 
-static void incrementServiceClientsNumber(IpAddressChecker& ipChecker, Service& service, const DiscoverySessionMeta& meta) {
-	if (discoverySessionFlagsIsIPv4(meta.flags)) {
-		const auto v4Addr{inet_addr(ipv4ToString(meta.sourceIPData).c_str())};
-		if (ipChecker.isAddressExternalLocal(v4Addr)) {
-			++service.externalClientsNumber;
-		} else {
-			++service.internalClientsNumber;
-		}
+static void incrementServiceClientsNumber(IpAddressChecker& ipChecker, Service& service, const httpparser::HttpRequest& request, const DiscoverySessionMeta& meta) {
+	std::string clientAddr;
+	if (!request.xForwardedFor.empty()) {
+		clientAddr = request.xForwardedFor.front();
+	} else if (discoverySessionFlagsIsIPv4(meta.flags)) {
+		clientAddr = ipv4ToString(meta.sourceIPData);
 	} else if (discoverySessionFlagsIsIPv6(meta.flags)) {
 		const auto v6Addr{inet_addr(ipv6ToString(meta.sourceIPData).c_str())};
 		LOG_DEBUG("IPv6 not currently supported, request from src {} skipped", v6Addr);
-	} else {
+		return;
+	}
+
+	in_addr_t clientAddrBinary;
+	if (inet_pton(AF_INET, clientAddr.c_str(), &clientAddrBinary) != 1) {
+		LOG_TRACE("Client address hasn't been parsed successfully");
+		return;
+	}
+
+	if (ipChecker.isAddressExternalLocal(clientAddrBinary)) {
 		++service.externalClientsNumber;
+	} else {
+		++service.internalClientsNumber;
 	}
 }
 
@@ -33,7 +42,7 @@ static Service toService(IpAddressChecker& ipChecker, const httpparser::HttpRequ
 	Service service;
 	service.pid = meta.pid;
 	service.endpoint = getEndpoint(request.host, request.url);
-	incrementServiceClientsNumber(ipChecker, service, meta);
+	incrementServiceClientsNumber(ipChecker, service, request, meta);
 	return service;
 }
 
@@ -51,7 +60,7 @@ void Aggregator::newRequest(const httpparser::HttpRequest& request, const Discov
 
 	const auto it{services.find(key)};
 	if (it != services.end()) {
-		incrementServiceClientsNumber(ipChecker, it->second, meta);
+		incrementServiceClientsNumber(ipChecker, it->second, request, meta);
 		return;
 	}
 	auto newService{toService(ipChecker, request, meta)};
