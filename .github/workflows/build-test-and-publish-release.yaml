@@ -41,7 +41,7 @@ jobs:
         run: mv ${{ github.workspace }}/LICENSE ${{ env.ARTIFACT_PATH }}/LICENSE
 
       - name: Move third party licenses to artifact directory
-        run: mv ${{ env.RELEASE_PATH }}/licenses ${{ env.ARTIFACT_PATH }}/thirdparty
+        run: mv ${{ env.BUILD_PATH }}/licenses ${{ env.ARTIFACT_PATH }}/thirdparty
 
       - name: Move protobuf model to artifact directory
         run: mv ${{ env.BUILD_PATH }}/libebpfdiscoveryproto/ebpfdiscoveryproto ${{ env.ARTIFACT_PATH }}/ebpfdiscoveryproto
