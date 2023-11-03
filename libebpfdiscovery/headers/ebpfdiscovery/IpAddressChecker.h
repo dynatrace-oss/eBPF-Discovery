@@ -16,12 +16,7 @@ struct IpIfce {
 	bool isLocalBridge;
 };
 
-class IpAddressCheckerInerface {
-public:
-	virtual bool isAddressExternalLocal(IPv4int addr) = 0;
-};
-
-class IpAddressChecker : public IpAddressCheckerInerface {
+class IpAddressChecker {
 	std::vector<IpIfce> interfaces;
 	std::vector<IpIfce>::iterator bridgeEnd = interfaces.end();
 	const NetlinkCalls& netlink;
@@ -31,14 +26,14 @@ class IpAddressChecker : public IpAddressCheckerInerface {
 	bool isLoopback(const IpIfce&);
 	void addIpIfce(IpIfce&& ifce);
 	void markBridge(int idx);
-
+	void printInfo();
 protected:
 	void moveBridges();
 
 public:
 	IpAddressChecker(const NetlinkCalls& calls);
 	IpAddressChecker(std::initializer_list<IpIfce> config, const NetlinkCalls& calls);
-	bool isAddressExternalLocal(IPv4int addr) override;
+	virtual bool isAddressExternalLocal(IPv4int addr);
 	bool readNetworks();
 };
 } // namespace ebpfdiscovery
