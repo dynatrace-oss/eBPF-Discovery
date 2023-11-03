@@ -4,7 +4,7 @@ set(TARGET logging)
 add_library(${TARGET} STATIC ${SOURCES})
 target_include_directories(${TARGET} PRIVATE src PUBLIC headers)
 
-target_link_libraries(${TARGET} CONAN_PKG::spdlog)
+target_link_libraries(${TARGET} CONAN_PKG::spdlog CONAN_PKG::boost)
 
 if(BUILD_TESTS)
 	list(APPEND TEST_SOURCES test/FormattingTest.cpp)
