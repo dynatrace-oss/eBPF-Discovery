@@ -112,7 +112,6 @@ public:
 private:
 	void loggerSetDefaults();
 	void setLogger(spdlog::logger logger);
-	void logLine(enum LogLevel level, const char* str, size_t len);
 
 	spdlog::logger spdLogger;
 };
