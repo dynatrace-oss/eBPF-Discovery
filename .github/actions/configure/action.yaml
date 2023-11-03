@@ -8,7 +8,7 @@ runs:
       run: >-
         cmake
         -S . 
-        -B ${{ env.CMAKE_BUILD_DIR }}
+        -B ${{ env.BUILD_PATH }}
         -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} 
         -DCMAKE_C_COMPILER=gcc 
         '-DCMAKE_CXX_COMPILER=g++'

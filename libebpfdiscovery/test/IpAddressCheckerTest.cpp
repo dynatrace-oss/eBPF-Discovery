@@ -62,6 +62,12 @@ TEST(TestAddressChecker, NOTLocalBridgeIp) {
 	EXPECT_TRUE(u.isAddressExternalLocal(inet_addr("10.3.34.2")));
 }
 
+TEST(TestAddressChecker, LocalIfceIpSrc) {
+	const NetlinkCallsMock netlinkMock;
+	IpAddressCheckerTest u({{{inet_addr("10.2.6.5")}, {}, 0x0000ffff, 0, false}}, netlinkMock);
+	EXPECT_FALSE(u.isAddressExternalLocal(inet_addr("10.2.6.5")));
+}
+
 TEST(TestAddressChecker, SimpleClassATest) {
 	NetlinkCalls calls;
 	IpAddressCheckerTest u(calls);

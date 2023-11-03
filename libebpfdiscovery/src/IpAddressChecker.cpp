@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "ebpfdiscovery/IpAddressChecker.h"
-
+#include "logging/Logger.h"
 #include <algorithm>
 #include <arpa/inet.h>
 #include <array>
@@ -80,7 +80,7 @@ bool IpAddressChecker::readNetworks() {
 	} else {
 		bridgeEnd = interfaces.end();
 	}
-
+	printInfo();
 	return ret;
 }
 
@@ -139,6 +139,15 @@ static bool handleNetlink(S send, R receive, P parse, int domain) {
 	return true;
 }
 
+void IpAddressChecker::printInfo() {
+	char buff[16];
+	for (const auto& ifce : interfaces) {
+		for (const auto& ip : ifce.ip) {
+			LOG_INFO("IfceIdx:{} Ip:{} isLocalBridge:{}", ifce.index, inet_ntop(AF_INET, &ip, buff, sizeof(buff)), ifce.isLocalBridge);
+		}
+	}
+}
+
 bool IpAddressChecker::readAllIpAddrs() {
 	return handleNetlink(
 			[this](int fd, sockaddr_nl* sa, int domain) { return netlink.sendIpAddrRequest(fd, sa, AF_INET); },
@@ -186,6 +195,13 @@ bool IpAddressChecker::isAddressExternalLocal(IPv4int addr) {
 		return false;
 	}
 
+	const bool srcLocal = std::any_of(bridgeEnd, interfaces.end(), [addr](const auto& it) {
+		return std::any_of(it.ip.begin(), it.ip.end(), [addr](const auto& ip) { return addr == ip; });
+	});
+
+	if (srcLocal) {
+		return false;
+	}
 	const bool bridgeRelated = std::any_of(interfaces.begin(), bridgeEnd, [addr](const auto& it) {
 		return std::any_of(it.ip.begin(), it.ip.end(), [addr, mask = it.mask](const auto& ip) { return (addr & mask) == (ip & mask); });
 	});

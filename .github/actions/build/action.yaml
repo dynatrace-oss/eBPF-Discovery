@@ -5,4 +5,4 @@ runs:
   steps:
     - name: Build
       shell: bash
-      run: cmake --build ${{ env.CMAKE_BUILD_DIR }}
+      run: cmake --build ${{ env.BUILD_PATH }}
