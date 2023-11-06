@@ -8,6 +8,7 @@
 #include "ebpfdiscoveryshared/Types.h"
 #include "httpparser/HttpRequestParser.h"
 #include "service/Aggregator.h"
+#include "service/IpAddressChecker.h"
 
 #include <atomic>
 #include <chrono>
@@ -67,8 +68,8 @@ private:
 	DiscoveryConfig config;
 	DiscoveryBpf discoveryBpf;
 	SavedSessionsCacheType savedSessions;
-	ebpfdiscovery::NetlinkCalls netlinkCalls;
-	ebpfdiscovery::IpAddressChecker ipChecker{{}, netlinkCalls};
+	service::NetlinkCalls netlinkCalls;
+	service::IpAddressChecker ipChecker{{}, netlinkCalls};
 	service::Aggregator serviceAggregator{ipChecker};
 
 	std::atomic<bool> running{false};

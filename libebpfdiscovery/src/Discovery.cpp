@@ -2,8 +2,8 @@
 #include "ebpfdiscovery/Discovery.h"
 
 #include "ebpfdiscovery/Session.h"
-#include "ebpfdiscovery/StringFunctions.h"
 #include "logging/Logger.h"
+#include "service/IpAddress.h"
 
 #include <algorithm>
 #include <arpa/inet.h>
@@ -154,7 +154,7 @@ void Discovery::handleNewRequest(const Session& session, const DiscoverySessionM
 				request.host,
 				request.url,
 				request.xForwardedFor,
-				ipv4ToString(meta.sourceIPData),
+				service::ipv4ToString(meta.sourceIPData),
 				meta.pid);
 	} else if (discoverySessionFlagsIsIPv6(meta.flags)) {
 		LOG_DEBUG(
@@ -163,7 +163,7 @@ void Discovery::handleNewRequest(const Session& session, const DiscoverySessionM
 				request.host,
 				request.url,
 				request.xForwardedFor,
-				ipv6ToString(meta.sourceIPData),
+				service::ipv6ToString(meta.sourceIPData),
 				meta.pid);
 	} else {
 		LOG_DEBUG(

@@ -1,11 +1,13 @@
-#include "ebpfdiscovery/NetlinkCalls.h"
+// SPDX-License-Identifier: Apache-2.0
+#include "service/NetlinkCalls.h"
+
 #include <arpa/inet.h>
 #include <array>
+#include <cstring>
 #include <linux/rtnetlink.h>
 #include <net/if.h>
-#include <cstring>
 
-namespace ebpfdiscovery {
+namespace service {
 
 static constexpr uint32_t BUFFLEN{4096};
 
@@ -81,4 +83,4 @@ int NetlinkCalls::receive(int fd, sockaddr_nl* dst, void* buf, size_t len) const
 
 	return recvmsg(fd, &msg, 0);
 }
-} // namespace ebpfdiscovery
+} // namespace service

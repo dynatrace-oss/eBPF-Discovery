@@ -1,13 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
-
 #include "service/Aggregator.h"
 
-#include "ebpfdiscovery/IpAddressChecker.h"
+#include "service/IpAddressChecker.h"
 
 #include <algorithm>
 #include <gmock/gmock.h>
 
-using namespace ebpfdiscovery;
 using namespace service;
 
 class IpAddressCheckerMock : public IpAddressChecker {

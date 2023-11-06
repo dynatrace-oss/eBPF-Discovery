@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
-
 #pragma once
 
+#include "IpAddressChecker.h"
 #include "Service.h"
-#include "ebpfdiscovery/IpAddressChecker.h"
 #include "ebpfdiscoveryshared/Types.h"
 #include "httpparser/HttpRequestParser.h"
 
@@ -27,7 +26,7 @@ namespace service {
 
 class Aggregator {
 public:
-	Aggregator(ebpfdiscovery::IpAddressChecker& ipChecker);
+	Aggregator(service::IpAddressChecker& ipChecker);
 
 	std::vector<Service> popServices();
 
@@ -39,7 +38,7 @@ private:
 
 	using ServiceKey = std::pair<uint32_t, std::string>;
 
-	ebpfdiscovery::IpAddressChecker& ipChecker;
+	IpAddressChecker& ipChecker;
 
 	std::unordered_map<ServiceKey, Service> services;
 	std::mutex servicesMutex;
