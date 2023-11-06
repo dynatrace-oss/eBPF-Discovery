@@ -53,10 +53,6 @@ Service Aggregator::toService(const httpparser::HttpRequest& request, const Disc
 }
 
 void Aggregator::newRequest(const httpparser::HttpRequest& request, const DiscoverySessionMeta& meta) {
-	if (locked) {
-		return;
-	}
-
 	const auto endpoint{getEndpoint(request.host, request.url)};
 	ServiceKey key{meta.pid, endpoint};
 
@@ -66,11 +62,13 @@ void Aggregator::newRequest(const httpparser::HttpRequest& request, const Discov
 		return;
 	}
 	auto newService{toService(request, meta)};
+
+	std::lock_guard<std::mutex> lock(servicesMutex);
 	services[key] = std::move(newService);
 }
 
 std::vector<Service> Aggregator::popServices() {
-	locked = true;
+	std::lock_guard<std::mutex> lock(servicesMutex);
 
 	std::vector<Service> ret;
 	ret.reserve(services.size());
@@ -80,7 +78,6 @@ std::vector<Service> Aggregator::popServices() {
 	}
 
 	services.clear();
-	locked = false;
 	return ret;
 }
 

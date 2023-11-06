@@ -9,6 +9,7 @@
 
 #include <atomic>
 #include <cstdint>
+#include <mutex>
 #include <unordered_map>
 #include <vector>
 
@@ -37,11 +38,12 @@ private:
 	Service toService(const httpparser::HttpRequest& request, const DiscoverySessionMeta& meta);
 
 	using ServiceKey = std::pair<uint32_t, std::string>;
-	std::unordered_map<ServiceKey, Service> services;
+
 	ebpfdiscovery::IpAddressChecker& ipChecker;
 	httpparser::XForwardedForValueParser xForwardedForValueParser;
 
-	std::atomic<bool> locked{false};
+	std::unordered_map<ServiceKey, Service> services;
+	std::mutex servicesMutex;
 };
 
 } // namespace service
