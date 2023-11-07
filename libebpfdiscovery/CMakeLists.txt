@@ -24,7 +24,6 @@ target_link_libraries(${TARGET}
             service
             CONAN_PKG::spdlog
             CONAN_PKG::fmt
-            CONAN_PKG::ms-gsl
             CONAN_PKG::boost
 )
 

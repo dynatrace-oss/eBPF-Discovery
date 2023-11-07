@@ -33,30 +33,26 @@ public:
 	Discovery& operator=(Discovery&&) = default;
 	~Discovery() = default;
 
-	void start();
-	void stop();
-	void wait();
-
-	std::vector<service::Service> popServices();
+	void fetchAndHandleEvents();
+	void outputServicesToStdout();
+	void init();
 
 private:
 	using SavedSessionsCacheType = LRUCache<DiscoverySavedSessionKey, Session, DiscoverySavedSessionKeyHash>;
 
-	void run();
-
-	void fetchEvents();
+	void handleNewEvent(DiscoveryEvent event);
 	void saveSession(const DiscoverySavedSessionKey& session_key, const Session& session);
 
-	void handleNewEvent(DiscoveryEvent event);
-
 	void handleNewDataEvent(DiscoveryEvent& event);
+	void handleCloseEvent(DiscoveryEvent& event);
+
 	void handleBufferLookupSuccess(DiscoverySavedBuffer& savedBuffer, DiscoveryEvent& event);
 	void handleExistingSession(SavedSessionsCacheType::iterator it, std::string_view& bufferView, DiscoveryEvent& event);
 	void handleNewSession(std::string_view& bufferView, DiscoveryEvent& event);
 	void handleNewRequest(const Session& session, const DiscoverySessionMeta& meta);
-	void handleCloseEvent(DiscoveryEvent& event);
 	void handleSuccessfulParse(const Session& session, const DiscoverySessionMeta& sessionMeta);
 
+	int bpfDiscoveryFetchAndHandleEvents();
 	int bpfDiscoveryResetConfig();
 	int bpfDiscoveryResumeCollecting();
 	int bpfDiscoveryDeleteSession(const DiscoveryTrackedSessionKey& trackedSessionKey);
@@ -71,12 +67,6 @@ private:
 	service::NetlinkCalls netlinkCalls;
 	service::IpAddressChecker ipChecker{{}, netlinkCalls};
 	service::Aggregator serviceAggregator{ipChecker};
-
-	std::atomic<bool> running{false};
-	bool stopReceived{false};
-	std::condition_variable stopReceivedCV;
-	std::mutex stopReceivedMutex;
-	std::thread workerThread;
 };
 
 } // namespace ebpfdiscovery

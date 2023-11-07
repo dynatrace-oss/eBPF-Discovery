@@ -112,19 +112,6 @@ static void initLibbpf() {
 	libbpf_set_print(libbpfPrintFn);
 }
 
-void servicesProvidingLoop(ebpfdiscovery::Discovery& discoveryInstance, std::chrono::seconds interval) {
-	std::unique_lock<std::mutex> lock(programStatusMutex);
-	while (programStatus == ProgramStatus::Running) {
-		if (auto services = discoveryInstance.popServices(); !services.empty()) {
-			auto servicesProto = proto::internalToProto(services);
-			LOG_DEBUG("Services list:\n{}\n", servicesProto.DebugString());
-			auto servicesJson = proto::protoToJson(servicesProto);
-			std::cout << servicesJson << std::endl;
-		}
-		programStatusCV.wait_for(lock, interval);
-	}
-}
-
 int main(int argc, char** argv) {
 	po::options_description desc{getProgramOptions()};
 	po::variables_map vm;
@@ -181,34 +168,29 @@ int main(int argc, char** argv) {
 
 	ebpfdiscovery::Discovery instance(loader.get());
 	try {
-		instance.start();
+		instance.init();
 	} catch (const std::runtime_error& e) {
-		LOG_CRITICAL("Couldn't start Discovery: {}", e.what());
+		LOG_CRITICAL("Couldn't initialize Discovery: {}", e.what());
 	}
 
 	if (!isLaunchTest) {
-		std::thread servicesProvider(servicesProvidingLoop, std::ref(instance), std::chrono::seconds(vm["interval"].as<int>()));
 		std::thread unixSignalThread(runUnixSignalHandlerLoop);
+
 		{
+			// The loop is reimplemented in future commits.
 			std::unique_lock<std::mutex> programStatusLock(programStatusMutex);
-			programStatusCV.wait(programStatusLock, []() { return programStatus != ProgramStatus::Running; });
+			while (programStatus == ProgramStatus::Running) {
+				instance.fetchAndHandleEvents();
+				instance.outputServicesToStdout();
+				programStatusCV.wait_for(programStatusLock, std::chrono::milliseconds(300));
+			}
 		}
 
 		LOG_TRACE("Waiting for unix signal thread to exit.");
 		if (unixSignalThread.joinable()) {
 			unixSignalThread.join();
 		}
-		LOG_TRACE("Waiting for services providing thread to exit.");
-		if (servicesProvider.joinable()) {
-			servicesProvider.join();
-		}
 	}
-
-	LOG_DEBUG("Exiting the program.");
-	instance.stop();
-
-	LOG_TRACE("Waiting for threads to exit.");
-	instance.wait();
 
 	LOG_TRACE("Finished running the program successfully.");
 	return EXIT_SUCCESS;

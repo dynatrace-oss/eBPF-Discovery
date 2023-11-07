@@ -5,6 +5,7 @@
 #include "Service.h"
 #include "ebpfdiscoveryshared/Types.h"
 #include "httpparser/HttpRequestParser.h"
+#include "service/IpAddressChecker.h"
 
 #include <atomic>
 #include <cstdint>
@@ -25,23 +26,26 @@ struct std::hash<std::pair<uint32_t, std::string>> {
 namespace service {
 
 class Aggregator {
+private:
+	using ServiceKey = std::pair<uint32_t, std::string>;
+	using ServiceStorage = std::unordered_map<ServiceKey, Service>;
+
 public:
 	Aggregator(service::IpAddressChecker& ipChecker);
 
-	std::vector<Service> popServices();
+	ServiceStorage::iterator begin();
+	ServiceStorage::const_iterator begin() const;
+	ServiceStorage::iterator end();
+	ServiceStorage::const_iterator end() const;
 
+	void clear();
 	void newRequest(const httpparser::HttpRequest& request, const DiscoverySessionMeta& meta);
+	std::vector<Service> getServices();
+	std::vector<std::reference_wrapper<Service>> getServicesRef();
 
 private:
-	void updateServiceClientsNumber(Service& service, const DiscoverySessionMeta& meta);
-	Service toService(const httpparser::HttpRequest& request, const DiscoverySessionMeta& meta);
-
-	using ServiceKey = std::pair<uint32_t, std::string>;
-
 	IpAddressChecker& ipChecker;
-
-	std::unordered_map<ServiceKey, Service> services;
-	std::mutex servicesMutex;
+	ServiceStorage services;
 };
 
 } // namespace service

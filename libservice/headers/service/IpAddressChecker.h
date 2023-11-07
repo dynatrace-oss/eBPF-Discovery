@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 #pragma once
 
-#include "service/NetlinkCalls.h"
+#include "NetlinkCalls.h"
 
 #include <initializer_list>
 #include <vector>

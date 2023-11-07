@@ -4,17 +4,18 @@
 
 namespace proto {
 
-ServicesList internalToProto(const std::vector<service::Service>& internalServices) {
-	ServicesList external;
-	for (const auto& i : internalServices) {
-		const auto service{external.add_service()};
+ServicesList internalToProto(const std::vector<std::reference_wrapper<service::Service>>& services) {
+	ServicesList protoServicesList;
+	for (const auto& serviceRef : services) {
+		const auto protoService{protoServicesList.add_service()};
+		const auto& service{serviceRef.get()};
 
-		service->set_pid(i.pid);
-		service->set_endpoint(i.endpoint);
-		service->set_internalclientsnumber(i.internalClientsNumber);
-		service->set_externalclientsnumber(i.externalClientsNumber);
+		protoService->set_pid(service.pid);
+		protoService->set_endpoint(service.endpoint);
+		protoService->set_internalclientsnumber(service.internalClientsNumber);
+		protoService->set_externalclientsnumber(service.externalClientsNumber);
 	}
-	return external;
+	return protoServicesList;
 }
 
 std::string protoToJson(const ServicesList& protoServices) {

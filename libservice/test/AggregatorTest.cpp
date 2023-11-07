@@ -34,7 +34,7 @@ struct ServiceAggregatorTest : public testing::Test {
 };
 
 TEST_F(ServiceAggregatorTest, aggregate) {
-	EXPECT_EQ(aggregator.popServices().size(), 0);
+	EXPECT_EQ(aggregator.getServices().size(), 0);
 	// Service 1
 	{
 		const auto [request, meta]{makeRequest(100, "host", "/url", DISCOVERY_SESSION_FLAGS_IPV4)};
@@ -69,7 +69,7 @@ TEST_F(ServiceAggregatorTest, aggregate) {
 	}
 
 	{
-		auto services = aggregator.popServices();
+		auto services = aggregator.getServices();
 		EXPECT_EQ(services.size(), 3);
 
 		Service expectedService1{.pid{100}, .endpoint{"host/url"}, .internalClientsNumber{0}, .externalClientsNumber{2}};
@@ -79,5 +79,5 @@ TEST_F(ServiceAggregatorTest, aggregate) {
 		EXPECT_THAT(services, testing::Contains(expectedService2));
 		EXPECT_THAT(services, testing::Contains(expectedService3));
 	}
-	EXPECT_EQ(aggregator.popServices().size(), 0);
+	EXPECT_EQ(aggregator.getServices().size(), 0);
 }

@@ -9,36 +9,56 @@
 
 namespace service {
 
-Aggregator::Aggregator(IpAddressChecker& ipChecker) : ipChecker(ipChecker) {
-	ipChecker.readNetworks();
+static std::string getEndpoint(const std::string& host, const std::string& url) {
+	return host + url;
 }
 
-void Aggregator::updateServiceClientsNumber(Service& service, const DiscoverySessionMeta& meta) {
+static void incrementServiceClientsNumber(IpAddressChecker& ipChecker, Service& service, const DiscoverySessionMeta& meta) {
 	if (discoverySessionFlagsIsIPv4(meta.flags)) {
-		const auto v4Addr{inet_addr(service::ipv4ToString(meta.sourceIPData).c_str())};
+		const auto v4Addr{inet_addr(ipv4ToString(meta.sourceIPData).c_str())};
 		if (ipChecker.isAddressExternalLocal(v4Addr)) {
 			++service.externalClientsNumber;
 		} else {
 			++service.internalClientsNumber;
 		}
 	} else if (discoverySessionFlagsIsIPv6(meta.flags)) {
-		const auto v6Addr{inet_addr(service::ipv6ToString(meta.sourceIPData).c_str())};
+		const auto v6Addr{inet_addr(ipv6ToString(meta.sourceIPData).c_str())};
 		LOG_DEBUG("IPv6 not currently supported, request from src {} skipped", v6Addr);
 	} else {
 		++service.externalClientsNumber;
 	}
 }
 
-static std::string getEndpoint(const std::string& host, const std::string& url) {
-	return host + url;
-}
-
-Service Aggregator::toService(const httpparser::HttpRequest& request, const DiscoverySessionMeta& meta) {
+static Service toService(IpAddressChecker& ipChecker, const httpparser::HttpRequest& request, const DiscoverySessionMeta& meta) {
 	Service service;
 	service.pid = meta.pid;
 	service.endpoint = getEndpoint(request.host, request.url);
-	updateServiceClientsNumber(service, meta);
+	incrementServiceClientsNumber(ipChecker, service, meta);
 	return service;
+}
+
+Aggregator::Aggregator(IpAddressChecker& ipChecker) : ipChecker(ipChecker) {
+	ipChecker.readNetworks();
+}
+
+void Aggregator::clear() {
+	services.clear();
+}
+
+Aggregator::ServiceStorage::iterator Aggregator::begin() {
+	return services.begin();
+}
+
+Aggregator::ServiceStorage::const_iterator Aggregator::begin() const {
+	return services.begin();
+}
+
+Aggregator::ServiceStorage::iterator Aggregator::end() {
+	return services.end();
+}
+
+Aggregator::ServiceStorage::const_iterator Aggregator::end() const {
+	return services.end();
 }
 
 void Aggregator::newRequest(const httpparser::HttpRequest& request, const DiscoverySessionMeta& meta) {
@@ -47,27 +67,34 @@ void Aggregator::newRequest(const httpparser::HttpRequest& request, const Discov
 
 	const auto it{services.find(key)};
 	if (it != services.end()) {
-		updateServiceClientsNumber((*it).second, meta);
+		incrementServiceClientsNumber(ipChecker, it->second, meta);
 		return;
 	}
-	auto newService{toService(request, meta)};
+	auto newService{toService(ipChecker, request, meta)};
 
-	std::lock_guard<std::mutex> lock(servicesMutex);
 	services[key] = std::move(newService);
 }
 
-std::vector<Service> Aggregator::popServices() {
-	std::lock_guard<std::mutex> lock(servicesMutex);
+std::vector<Service> Aggregator::getServices() {
+	std::vector<Service> servicesVec;
+	servicesVec.reserve(services.size());
 
-	std::vector<Service> ret;
-	ret.reserve(services.size());
-
-	for (auto s : services) {
-		ret.emplace_back(s.second);
+	for (const auto& pair : services) {
+		servicesVec.push_back(pair.second);
 	}
 
-	services.clear();
-	return ret;
+	return servicesVec;
+}
+
+std::vector<std::reference_wrapper<Service>> Aggregator::getServicesRef() {
+	std::vector<std::reference_wrapper<Service>> servicesVec;
+	servicesVec.reserve(services.size());
+
+	for (auto& pair : services) {
+		servicesVec.push_back(pair.second);
+	}
+
+	return servicesVec;
 }
 
 } // namespace service

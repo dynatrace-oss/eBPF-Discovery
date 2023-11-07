@@ -2,6 +2,7 @@
 #include "ebpfdiscovery/Discovery.h"
 
 #include "ebpfdiscovery/Session.h"
+#include "ebpfdiscoveryproto/Translator.h"
 #include "logging/Logger.h"
 #include "service/IpAddress.h"
 
@@ -25,49 +26,31 @@ Discovery::Discovery(DiscoveryBpf discoveryBpf, const DiscoveryConfig config)
 		: discoveryBpf(discoveryBpf), savedSessions(DISCOVERY_MAX_SESSIONS) {
 }
 
-void Discovery::start() {
-	if (running) {
-		return;
-	}
-	running = true;
-
+void Discovery::init() {
 	if (int ret{bpfDiscoveryResumeCollecting()}; ret != 0) {
-		running = false;
 		throw std::runtime_error("Could not initialize BPF program configuration: " + std::to_string(ret));
 	}
-
-	workerThread = std::thread([&]() { run(); });
 }
 
-void Discovery::run() {
-	LOG_TRACE("Discovery is starting the BPF event handler loop.");
-	std::unique_lock<std::mutex> lock(stopReceivedMutex);
-	while (!stopReceived) {
-		fetchEvents();
-		bpfDiscoveryResumeCollecting();
-		stopReceivedCV.wait_for(lock, config.eventQueuePollInterval);
-	}
-
-	return;
+void Discovery::fetchAndHandleEvents() {
+	bpfDiscoveryResumeCollecting();
+	bpfDiscoveryFetchAndHandleEvents();
 }
 
-void Discovery::stop() {
-	std::lock_guard<std::mutex> lock(stopReceivedMutex);
-	stopReceived = true;
-	stopReceivedCV.notify_all();
+void Discovery::outputServicesToStdout() {
+	const auto services{serviceAggregator.getServicesRef()};
+	const auto servicesProto{proto::internalToProto(services)};
+	const auto servicesJson{proto::protoToJson(servicesProto)};
+	std::cout << servicesJson << std::endl;
 }
 
-void Discovery::wait() {
-	if (workerThread.joinable()) {
-		workerThread.join();
-	}
-}
-
-void Discovery::fetchEvents() {
+int Discovery::bpfDiscoveryFetchAndHandleEvents() {
 	DiscoveryEvent event;
 	while (bpf_map__lookup_and_delete_elem(discoverySkel()->maps.eventsToUserspaceQueueMap, NULL, 0, &event, sizeof(event), BPF_ANY) == 0) {
 		handleNewEvent(std::move(event));
 	}
+
+	return 0;
 }
 
 void Discovery::handleNewEvent(DiscoveryEvent event) {
@@ -175,10 +158,6 @@ void Discovery::handleNewRequest(const Session& session, const DiscoverySessionM
 				meta.pid);
 	}
 	serviceAggregator.newRequest(request, meta);
-}
-
-std::vector<service::Service> Discovery::popServices() {
-	return serviceAggregator.popServices();
 }
 
 void Discovery::handleCloseEvent(DiscoveryEvent& event) {
