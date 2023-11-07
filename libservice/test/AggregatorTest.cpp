@@ -79,5 +79,6 @@ TEST_F(ServiceAggregatorTest, aggregate) {
 		EXPECT_THAT(services, testing::Contains(expectedService2));
 		EXPECT_THAT(services, testing::Contains(expectedService3));
 	}
+	aggregator.clear();
 	EXPECT_EQ(aggregator.getServices().size(), 0);
 }
