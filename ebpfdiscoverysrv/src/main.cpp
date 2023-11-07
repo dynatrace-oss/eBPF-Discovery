@@ -185,7 +185,10 @@ int main(int argc, char** argv) {
 		programRunningFlag.clear();
 	}
 
-	std::thread unixSignalThread(runUnixSignalHandlerLoop);
+	std::unique_ptr<std::thread> unixSignalThread{nullptr};
+	if (!isLaunchTest) {
+		unixSignalThread = std::make_unique<std::thread>(runUnixSignalHandlerLoop);
+	}
 
 	auto eventQueuePollInterval{std::chrono::milliseconds(250)};
 	auto fetchAndHandleTimer{boost::asio::steady_timer(ioContext, eventQueuePollInterval)};
@@ -201,9 +204,9 @@ int main(int argc, char** argv) {
 	programRunningFlag.clear();
 
 	LOG_DEBUG("Exiting the program.");
-	if (unixSignalThread.joinable()) {
+	if (unixSignalThread && unixSignalThread->joinable()) {
 		LOG_TRACE("Waiting for unix signal thread to exit.");
-		unixSignalThread.join();
+		unixSignalThread->join();
 	}
 
 	LOG_TRACE("Finished running the program successfully.");
