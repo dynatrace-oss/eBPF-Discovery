@@ -1,7 +1,6 @@
 list(
         APPEND
         SOURCES
-        src/Config.cpp
         src/Discovery.cpp
         src/DiscoveryBpf.cpp
         src/DiscoveryBpfLoader.cpp

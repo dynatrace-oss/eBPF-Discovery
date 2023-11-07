@@ -19,11 +19,7 @@
 
 namespace ebpfdiscovery {
 
-Discovery::Discovery(DiscoveryBpf discoveryBpf) : Discovery(discoveryBpf, DiscoveryConfig{}) {
-}
-
-Discovery::Discovery(DiscoveryBpf discoveryBpf, const DiscoveryConfig config)
-		: discoveryBpf(discoveryBpf), savedSessions(DISCOVERY_MAX_SESSIONS) {
+Discovery::Discovery(DiscoveryBpf discoveryBpf) : discoveryBpf(discoveryBpf), savedSessions(DISCOVERY_MAX_SESSIONS) {
 }
 
 void Discovery::init() {

@@ -2,12 +2,12 @@
 #include "ebpfdiscovery/Discovery.h"
 #include "ebpfdiscovery/DiscoveryBpf.h"
 #include "ebpfdiscovery/DiscoveryBpfLoader.h"
-#include "ebpfdiscoveryproto/Translator.h"
 #include "logging/Logger.h"
 
+#include <boost/asio/steady_timer.hpp>
 #include <boost/program_options.hpp>
 
-#include <condition_variable>
+#include <atomic>
 #include <filesystem>
 #include <iostream>
 #include <memory>
@@ -19,13 +19,20 @@ namespace po = boost::program_options;
 using logging::Logger;
 using logging::LogLevel;
 
-enum class ProgramStatus {
-	Running,
-	UnixShutdownSignalReceived,
-} programStatus;
+static std::atomic_flag programRunningFlag{ATOMIC_FLAG_INIT};
 
-std::condition_variable programStatusCV;
-std::mutex programStatusMutex;
+template <typename Duration>
+static void scheduleFunction(
+		boost::asio::io_context& ioContext, boost::asio::steady_timer& timer, Duration interval, std::function<void()> func) {
+	timer.expires_from_now(interval);
+	timer.async_wait([&ioContext, &timer, interval, func](const boost::system::error_code& err) {
+		if (err) {
+			return;
+		}
+		func();
+		scheduleFunction(ioContext, timer, interval, func);
+	});
+}
 
 /*
  * CLI options
@@ -80,10 +87,8 @@ static void runUnixSignalHandlerLoop() {
 		}
 		LOG_DEBUG("Received unix signal. (signo: {})", signo);
 		if (signo == SIGINT || signo == SIGPIPE || signo == SIGTERM) {
-			std::lock_guard<std::mutex> lock(programStatusMutex);
-			programStatus = ProgramStatus::UnixShutdownSignalReceived;
 			LOG_TRACE("Unix signal handler is notifying for shutdown.");
-			programStatusCV.notify_all();
+			programRunningFlag.clear();
 			break;
 		}
 	}
@@ -113,6 +118,8 @@ static void initLibbpf() {
 }
 
 int main(int argc, char** argv) {
+	programRunningFlag.test_and_set();
+
 	po::options_description desc{getProgramOptions()};
 	po::variables_map vm;
 
@@ -146,6 +153,7 @@ int main(int argc, char** argv) {
 		return EXIT_FAILURE;
 	}
 
+	boost::asio::io_context ioContext;
 	LOG_DEBUG("Starting the program.");
 
 	{
@@ -173,23 +181,29 @@ int main(int argc, char** argv) {
 		LOG_CRITICAL("Couldn't initialize Discovery: {}", e.what());
 	}
 
-	if (!isLaunchTest) {
-		std::thread unixSignalThread(runUnixSignalHandlerLoop);
+	if (isLaunchTest) {
+		programRunningFlag.clear();
+	}
 
-		{
-			// The loop is reimplemented in future commits.
-			std::unique_lock<std::mutex> programStatusLock(programStatusMutex);
-			while (programStatus == ProgramStatus::Running) {
-				instance.fetchAndHandleEvents();
-				instance.outputServicesToStdout();
-				programStatusCV.wait_for(programStatusLock, std::chrono::milliseconds(300));
-			}
-		}
+	std::thread unixSignalThread(runUnixSignalHandlerLoop);
 
+	auto eventQueuePollInterval{std::chrono::milliseconds(250)};
+	auto fetchAndHandleTimer{boost::asio::steady_timer(ioContext, eventQueuePollInterval)};
+	scheduleFunction(ioContext, fetchAndHandleTimer, eventQueuePollInterval, [&instance]() { instance.fetchAndHandleEvents(); });
+
+	auto outputServicesToStdoutInterval{std::chrono::seconds(vm["interval"].as<int>())};
+	auto outputServicesToStdoutTimer{boost::asio::steady_timer(ioContext, outputServicesToStdoutInterval)};
+	scheduleFunction(ioContext, outputServicesToStdoutTimer, outputServicesToStdoutInterval, [&]() { instance.outputServicesToStdout(); });
+
+	do {
+		ioContext.run_one();
+	} while (programRunningFlag.test_and_set());
+	programRunningFlag.clear();
+
+	LOG_DEBUG("Exiting the program.");
+	if (unixSignalThread.joinable()) {
 		LOG_TRACE("Waiting for unix signal thread to exit.");
-		if (unixSignalThread.joinable()) {
-			unixSignalThread.join();
-		}
+		unixSignalThread.join();
 	}
 
 	LOG_TRACE("Finished running the program successfully.");

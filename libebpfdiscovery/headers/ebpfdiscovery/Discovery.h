@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 #pragma once
 
-#include "ebpfdiscovery/Config.h"
 #include "ebpfdiscovery/DiscoveryBpf.h"
 #include "ebpfdiscovery/LRUCache.h"
 #include "ebpfdiscovery/Session.h"
@@ -26,7 +25,6 @@ using httpparser::HttpRequestParser;
 class Discovery {
 public:
 	Discovery(DiscoveryBpf discoveryBpf);
-	Discovery(DiscoveryBpf discoveryBpf, const DiscoveryConfig config);
 	Discovery(const Discovery&) = delete;
 	Discovery& operator=(const Discovery&) = delete;
 	Discovery(Discovery&&) = default;
@@ -61,7 +59,6 @@ private:
 		return discoveryBpf.skel;
 	}
 
-	DiscoveryConfig config;
 	DiscoveryBpf discoveryBpf;
 	SavedSessionsCacheType savedSessions;
 	service::NetlinkCalls netlinkCalls;
