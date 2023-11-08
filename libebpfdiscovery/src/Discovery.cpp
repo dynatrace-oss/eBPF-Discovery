@@ -35,6 +35,10 @@ void Discovery::fetchAndHandleEvents() {
 
 void Discovery::outputServicesToStdout() {
 	const auto services{serviceAggregator.collectServices()};
+	if (services.empty()) {
+		return;
+	}
+
 	const auto servicesProto{proto::internalToProto(services)};
 	const auto servicesJson{proto::protoToJson(servicesProto)};
 	std::cout << servicesJson << std::endl;
