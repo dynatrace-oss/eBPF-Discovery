@@ -57,12 +57,11 @@ int Discovery::bpfDiscoveryFetchAndHandleEvents() {
 	int ret;
 	for (;;) {
 		ret = bpf_map__lookup_and_delete_elem(discoverySkel()->maps.eventsToUserspaceQueueMap, NULL, 0, &event, sizeof(event), BPF_ANY);
-		if (ret == 0) {
-			handleNewEvent(std::move(event));
-			continue;
+		if (ret != 0) {
+			break;
 		}
 
-		break;
+		handleNewEvent(std::move(event));
 	};
 
 	if (ret != -ENOENT) {
