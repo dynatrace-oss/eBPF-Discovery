@@ -33,11 +33,6 @@ private:
 public:
 	Aggregator(service::IpAddressChecker& ipChecker);
 
-	ServiceStorage::iterator begin();
-	ServiceStorage::const_iterator begin() const;
-	ServiceStorage::iterator end();
-	ServiceStorage::const_iterator end() const;
-
 	void clear();
 	void newRequest(const httpparser::HttpRequest& request, const DiscoverySessionMeta& meta);
 	std::vector<Service> getServices();

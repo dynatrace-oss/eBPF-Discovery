@@ -45,22 +45,6 @@ void Aggregator::clear() {
 	services.clear();
 }
 
-Aggregator::ServiceStorage::iterator Aggregator::begin() {
-	return services.begin();
-}
-
-Aggregator::ServiceStorage::const_iterator Aggregator::begin() const {
-	return services.begin();
-}
-
-Aggregator::ServiceStorage::iterator Aggregator::end() {
-	return services.end();
-}
-
-Aggregator::ServiceStorage::const_iterator Aggregator::end() const {
-	return services.end();
-}
-
 void Aggregator::newRequest(const httpparser::HttpRequest& request, const DiscoverySessionMeta& meta) {
 	const auto endpoint{getEndpoint(request.host, request.url)};
 	ServiceKey key{meta.pid, endpoint};
