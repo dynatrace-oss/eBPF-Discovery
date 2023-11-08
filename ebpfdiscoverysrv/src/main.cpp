@@ -21,23 +21,6 @@ using logging::LogLevel;
 
 static std::atomic_flag programRunningFlag{ATOMIC_FLAG_INIT};
 
-template <typename Duration>
-static void scheduleFunction(
-		boost::asio::io_context& ioContext, boost::asio::steady_timer& timer, Duration interval, std::function<void()> func) {
-	timer.expires_from_now(interval);
-	timer.async_wait([&ioContext, &timer, interval, func](const boost::system::error_code& err) {
-		if (err) {
-			return;
-		}
-		func();
-		scheduleFunction(ioContext, timer, interval, func);
-	});
-}
-
-/*
- * CLI options
- */
-
 static po::options_description getProgramOptions() {
 	po::options_description desc{"Options"};
 
@@ -56,47 +39,17 @@ static po::options_description getProgramOptions() {
 	return desc;
 }
 
-/*
- * Logging init
- */
-
 static void initLogging(logging::LogLevel logLevel, bool enableStdout, const std::filesystem::path& logDir) {
 	Logger::getInstance().init("eBPF-Discovery", enableStdout, logDir);
 	Logger::getInstance().setLevel(logLevel);
 	LOG_TRACE("Logging has been set up. (enableStdout: {}, logDir: `{}`)", enableStdout, logDir.string());
 }
 
-/*
- * Unix signals init
- */
-
-static sigset_t getSigset() {
-	sigset_t sigset;
-	sigfillset(&sigset);
-	return sigset;
-}
-
-static void runUnixSignalHandlerLoop() {
-	while (true) {
-		sigset_t sigset{getSigset()};
-		LOG_TRACE("Waiting for unix signals.");
-		const auto signo{sigwaitinfo(&sigset, nullptr)};
-		if (signo == -1) {
-			LOG_CRITICAL("Failed to wait for unix signals: {}", std::strerror(errno));
-			std::abort();
-		}
-		LOG_DEBUG("Received unix signal. (signo: {})", signo);
-		if (signo == SIGINT || signo == SIGPIPE || signo == SIGTERM) {
-			LOG_TRACE("Unix signal handler is notifying for shutdown.");
-			programRunningFlag.clear();
-			break;
-		}
+static void handleUnixSignal(int signal) {
+	if (signal == SIGINT || signal == SIGPIPE || signal == SIGTERM) {
+		programRunningFlag.clear();
 	}
 }
-
-/*
- * Libbpf init
- */
 
 static int libbpfPrintFn(enum libbpf_print_level level, const char* format, va_list args) {
 	switch (level) {
@@ -117,8 +70,24 @@ static void initLibbpf() {
 	libbpf_set_print(libbpfPrintFn);
 }
 
+template <typename Duration>
+static void scheduleFunction(
+		boost::asio::io_context& ioContext, boost::asio::steady_timer& timer, Duration interval, std::function<void()> func) {
+	timer.expires_from_now(interval);
+	timer.async_wait([&ioContext, &timer, interval, func](const boost::system::error_code& err) {
+		if (err) {
+			return;
+		}
+		func();
+		scheduleFunction(ioContext, timer, interval, func);
+	});
+}
+
 int main(int argc, char** argv) {
 	programRunningFlag.test_and_set();
+	std::signal(SIGINT, handleUnixSignal);
+	std::signal(SIGPIPE, handleUnixSignal);
+	std::signal(SIGTERM, handleUnixSignal);
 
 	po::options_description desc{getProgramOptions()};
 	po::variables_map vm;
@@ -156,15 +125,6 @@ int main(int argc, char** argv) {
 	boost::asio::io_context ioContext;
 	LOG_DEBUG("Starting the program.");
 
-	{
-		LOG_TRACE("Setting up unix signals handling.");
-		sigset_t sigset = getSigset();
-		if (sigprocmask(SIG_BLOCK, &sigset, nullptr) == -1) {
-			LOG_CRITICAL("Failed to block unix signals: {}", std::strerror(errno));
-			return EXIT_FAILURE;
-		}
-	}
-
 	initLibbpf();
 	ebpfdiscovery::DiscoveryBpfLoader loader;
 	try {
@@ -183,11 +143,6 @@ int main(int argc, char** argv) {
 
 	if (isLaunchTest) {
 		programRunningFlag.clear();
-	}
-
-	std::thread unixSignalThread;
-	if (!isLaunchTest) {
-		std::thread(runUnixSignalHandlerLoop).swap(unixSignalThread);
 	}
 
 	auto eventQueuePollInterval{std::chrono::milliseconds(250)};
@@ -210,11 +165,5 @@ int main(int argc, char** argv) {
 	programRunningFlag.clear();
 
 	LOG_DEBUG("Exiting the program.");
-	if (unixSignalThread.joinable()) {
-		LOG_TRACE("Waiting for unix signal thread to exit.");
-		unixSignalThread.join();
-	}
-
-	LOG_TRACE("Finished running the program successfully.");
 	return EXIT_SUCCESS;
 }
