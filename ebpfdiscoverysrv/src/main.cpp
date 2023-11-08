@@ -185,9 +185,9 @@ int main(int argc, char** argv) {
 		programRunningFlag.clear();
 	}
 
-	std::unique_ptr<std::thread> unixSignalThread{nullptr};
+	std::thread unixSignalThread;
 	if (!isLaunchTest) {
-		unixSignalThread = std::make_unique<std::thread>(runUnixSignalHandlerLoop);
+		std::thread(runUnixSignalHandlerLoop).swap(unixSignalThread);
 	}
 
 	auto eventQueuePollInterval{std::chrono::milliseconds(250)};
@@ -204,9 +204,9 @@ int main(int argc, char** argv) {
 	programRunningFlag.clear();
 
 	LOG_DEBUG("Exiting the program.");
-	if (unixSignalThread && unixSignalThread->joinable()) {
+	if (unixSignalThread.joinable()) {
 		LOG_TRACE("Waiting for unix signal thread to exit.");
-		unixSignalThread->join();
+		unixSignalThread.join();
 	}
 
 	LOG_TRACE("Finished running the program successfully.");
