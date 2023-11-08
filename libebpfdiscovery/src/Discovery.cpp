@@ -38,6 +38,7 @@ void Discovery::outputServicesToStdout() {
 	const auto servicesProto{proto::internalToProto(services)};
 	const auto servicesJson{proto::protoToJson(servicesProto)};
 	std::cout << servicesJson << std::endl;
+	serviceAggregator.clear();
 }
 
 int Discovery::bpfDiscoveryFetchAndHandleEvents() {
