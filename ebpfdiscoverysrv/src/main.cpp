@@ -157,9 +157,9 @@ int main(int argc, char** argv) {
 	auto outputServicesToStdoutTimer{boost::asio::steady_timer(ioContext, outputServicesToStdoutInterval)};
 	scheduleFunction(ioContext, outputServicesToStdoutTimer, outputServicesToStdoutInterval, [&]() { instance.outputServicesToStdout(); });
 
-	do {
+	while (programRunningFlag.test_and_set()) {
 		ioContext.run_one();
-	} while (programRunningFlag.test_and_set());
+	}
 	programRunningFlag.clear();
 
 	LOG_DEBUG("Exiting the program.");
