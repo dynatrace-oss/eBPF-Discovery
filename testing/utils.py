@@ -5,18 +5,12 @@ import subprocess
 import typing
 
 
-def send_http_requests(url: str, requests_num: int):
+def send_http_requests(url: str, requests_num: int, x_forwarded_for: typing.Optional[str] = None):
+    headers = {}
+    if x_forwarded_for:
+        headers.update({"X-Forwarded-For": x_forwarded_for})
     for i in range(requests_num):
-        requests.get(url)
-
-
-def is_responsive(url: str) -> bool:
-    try:
-        response = requests.get(url)
-        if response.status_code == 200:
-            return True
-    except (requests.ConnectionError, requests.ConnectTimeout, requests.Timeout):
-        return False
+        requests.get(url, headers=headers)
 
 
 def get_discovered_service_json(discovery: subprocess.Popen, url: str) -> typing.Optional[dict]:
@@ -36,7 +30,8 @@ def get_discovered_service_json(discovery: subprocess.Popen, url: str) -> typing
     return None
 
 
-def discovered_service_has_clients(discovery: subprocess.Popen, url: str, local_clients_number: int, external_clients_number: int) -> bool:
+def discovered_service_has_clients(discovery: subprocess.Popen, url: str, local_clients_number: int,
+                                   external_clients_number: int) -> bool:
     service = get_discovered_service_json(discovery, url)
     if not service:
         logging.warning("No discovered service for endpoint {}".format(url))
