@@ -45,10 +45,8 @@ static void initLogging(logging::LogLevel logLevel, bool enableStdout, const std
 	LOG_TRACE("Logging has been set up. (enableStdout: {}, logDir: `{}`)", enableStdout, logDir.string());
 }
 
-static void handleUnixSignal(int signal) {
-	if (signal == SIGINT || signal == SIGPIPE || signal == SIGTERM) {
-		programRunningFlag.clear();
-	}
+static void handleUnixShutdownSignal(int signal) {
+	programRunningFlag.clear();
 }
 
 static int libbpfPrintFn(enum libbpf_print_level level, const char* format, va_list args) {
@@ -85,9 +83,9 @@ static void scheduleFunction(
 
 int main(int argc, char** argv) {
 	programRunningFlag.test_and_set();
-	std::signal(SIGINT, handleUnixSignal);
-	std::signal(SIGPIPE, handleUnixSignal);
-	std::signal(SIGTERM, handleUnixSignal);
+	std::signal(SIGINT, handleUnixShutdownSignal);
+	std::signal(SIGPIPE, handleUnixShutdownSignal);
+	std::signal(SIGTERM, handleUnixShutdownSignal);
 
 	po::options_description desc{getProgramOptions()};
 	po::variables_map vm;
