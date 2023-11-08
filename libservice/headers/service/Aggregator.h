@@ -35,8 +35,7 @@ public:
 
 	void clear();
 	void newRequest(const httpparser::HttpRequest& request, const DiscoverySessionMeta& meta);
-	std::vector<Service> getServices();
-	std::vector<std::reference_wrapper<Service>> getServicesRef();
+	std::vector<std::reference_wrapper<Service>> collectServices();
 
 private:
 	IpAddressChecker& ipChecker;
