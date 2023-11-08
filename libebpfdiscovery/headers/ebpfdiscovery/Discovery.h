@@ -31,7 +31,7 @@ public:
 	Discovery& operator=(Discovery&&) = default;
 	~Discovery() = default;
 
-	void fetchAndHandleEvents();
+	int fetchAndHandleEvents();
 	void outputServicesToStdout();
 	void init();
 

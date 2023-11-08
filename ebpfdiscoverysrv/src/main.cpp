@@ -192,7 +192,13 @@ int main(int argc, char** argv) {
 
 	auto eventQueuePollInterval{std::chrono::milliseconds(250)};
 	auto fetchAndHandleTimer{boost::asio::steady_timer(ioContext, eventQueuePollInterval)};
-	scheduleFunction(ioContext, fetchAndHandleTimer, eventQueuePollInterval, [&instance]() { instance.fetchAndHandleEvents(); });
+	scheduleFunction(ioContext, fetchAndHandleTimer, eventQueuePollInterval, [&instance]() {
+		auto ret{instance.fetchAndHandleEvents()};
+		if (ret != 0) {
+			LOG_CRITICAL("Failed to fetch and handle events: {}", std::strerror(-ret));
+			programRunningFlag.clear();
+		}
+	});
 
 	auto outputServicesToStdoutInterval{std::chrono::seconds(vm["interval"].as<int>())};
 	auto outputServicesToStdoutTimer{boost::asio::steady_timer(ioContext, outputServicesToStdoutInterval)};
