@@ -11,29 +11,30 @@ Aggregator::Aggregator(ebpfdiscovery::IpAddressChecker& ipChecker) : ipChecker(i
 }
 
 void Aggregator::updateServiceClientsNumber(Service& service, const httpparser::HttpRequest& request, const DiscoverySessionMeta& meta) {
-	in_addr_t clientAddr4{0};
+	std::string clientAddr;
 	if (!request.xForwardedFor.empty()) {
 		xForwardedForValueParser.parse(request.xForwardedFor);
 		if (xForwardedForValueParser.result.addresses.empty()) {
 			LOG_DEBUG("Malformed or empty X-Forwarded-For. (value: `{}`)", request.xForwardedFor);
 			return;
 		}
-		const auto& clientAddr{xForwardedForValueParser.result.addresses.front()};
-		clientAddr4 = inet_addr(clientAddr.c_str());
+		clientAddr = xForwardedForValueParser.result.addresses.front();
 		xForwardedForValueParser.result.clear();
 	} else if (discoverySessionFlagsIsIPv4(meta.flags)) {
-		clientAddr4 = inet_addr(ebpfdiscovery::ipv4ToString(meta.sourceIPData).c_str());
+		clientAddr = ebpfdiscovery::ipv4ToString(meta.sourceIPData);
 	} else if (discoverySessionFlagsIsIPv6(meta.flags)) {
-		const auto v6Addr{inet_addr(ebpfdiscovery::ipv6ToString(meta.sourceIPData).c_str())};
+		const auto v6Addr{ebpfdiscovery::ipv6ToString(meta.sourceIPData)};
 		LOG_DEBUG("IPv6 not currently supported, request from src {} skipped", v6Addr);
-	}
-
-	if (clientAddr4 == 0 || clientAddr4 == INADDR_NONE) {
-		LOG_TRACE("Client address hasn't been parsed successfully.");
 		return;
 	}
 
-	if (ipChecker.isAddressExternalLocal(clientAddr4)) {
+	in_addr_t clientAddrBinary;
+	if (inet_pton(AF_INET, clientAddr.c_str(), &clientAddrBinary) != 1) {
+		LOG_TRACE("Client address hasn't been parsed successfully");
+		return;
+	}
+
+	if (ipChecker.isAddressExternalLocal(clientAddrBinary)) {
 		++service.externalClientsNumber;
 	} else {
 		++service.internalClientsNumber;
