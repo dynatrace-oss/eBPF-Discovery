@@ -10,3 +10,4 @@ runs:
         sudo apt-get install -y clang
         pip install cmake==3.22.3
         pip install conan==1.56.0
+        pip install -r "${{ env.TESTING_PATH }}/requirements.txt"

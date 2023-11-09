@@ -29,5 +29,8 @@ jobs:
       - name: Build
         uses: ./.github/actions/build
 
-      - name: Test
-        uses: ./.github/actions/test
+      - name: Unit tests
+        uses: ./.github/actions/unit-tests
+
+      - name: Component tests
+        uses: ./.github/actions/component-tests
