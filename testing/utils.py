@@ -1,11 +1,12 @@
 import json
 import logging
-import requests
 import subprocess
-import typing
+import time
+
+import requests
 
 
-def send_http_requests(url: str, requests_num: int, x_forwarded_for: typing.Optional[str] = None):
+def send_http_requests(url: str, requests_num: int, x_forwarded_for: str | None = None):
     headers = {}
     if x_forwarded_for:
         headers.update({"X-Forwarded-For": x_forwarded_for})
@@ -13,7 +14,25 @@ def send_http_requests(url: str, requests_num: int, x_forwarded_for: typing.Opti
         requests.get(url, headers=headers)
 
 
-def get_discovered_service_json(discovery: subprocess.Popen, url: str) -> typing.Optional[dict]:
+def is_responsive(url: str) -> bool:
+    try:
+        response = requests.get(url)
+        if response.status_code == 200:
+            return True
+    except (requests.ConnectionError, requests.ConnectTimeout, requests.Timeout):
+        return False
+
+
+def wait_until(predicate, timeout=2, period=0.25):
+    while timeout > 0:
+        if predicate():
+            return True
+        time.sleep(period)
+        timeout -= period
+    return False
+
+
+def get_discovered_service_json(discovery: subprocess.Popen, url: str) -> dict | None:
     def url_matches_endpoint(url, endpoint):
         return url[len("http://"):] == endpoint
 

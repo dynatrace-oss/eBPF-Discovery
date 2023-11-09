@@ -1,11 +1,13 @@
+import glob
 import logging
 import os
-import sys
-import pytest
 import subprocess
-import glob
-
+import sys
 from time import sleep
+
+import pytest
+
+from utils import is_responsive, wait_until
 
 logging.basicConfig(level=logging.INFO)
 
@@ -34,18 +36,19 @@ def run_ebpf_discovery(discovery_path):
     args = (discovery_path, "--interval", "2", "--log-no-stdout", "--log-dir", discovery_root_dir,
             "--log-level", "debug")
     discovery = subprocess.Popen(args, stdout=subprocess.PIPE)
+    sleep(0.2)  # delay to avoid sending requests before ebpf_discovery is responsive
     yield discovery
 
     discovery.terminate()
     while discovery.poll() is None:
-        sleep(0.5)
+        sleep(0.2)
     exit_code = discovery.returncode
-    assert not exit_code, "Discovery returned exit code: {}".format(exit_code)
+    assert not exit_code, "eBPF Discovery returned exit code: {}".format(exit_code)
 
-    log_files = glob.glob(discovery_root_dir+'/*.log')
-    assert log_files != [], "Discovery didn't produce any log files"
+    log_files = glob.glob(discovery_root_dir + '/*.log')
+    assert log_files != [], "eBPF Discovery didn't produce any log files"
 
-    logging.info("Discovery produced logs:")
+    logging.info("eBPF Discovery produced logs:")
     for file in log_files:
         with open(file, 'r') as f:
             content = f.read()
@@ -54,8 +57,10 @@ def run_ebpf_discovery(discovery_path):
 
 @pytest.fixture(scope="session")
 def run_http_service(http_server_port):
-    args = (str(sys.executable), "-m", "http.server", "--bind", "127.0.0.1", str(http_server_port))
+    ip_addr = "127.0.0.1"
+    url = "http://{}:{}".format(ip_addr, http_server_port)
+    args = (sys.executable, "-m", "http.server", "--bind", ip_addr, str(http_server_port))
     server = subprocess.Popen(args)
-    sleep(2)
-    yield server
+    wait_until(lambda: is_responsive(url), timeout=2)
+    yield url
     server.terminate()
