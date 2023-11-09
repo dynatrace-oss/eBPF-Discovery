@@ -1,0 +1,11 @@
+name: Test
+
+runs:
+  using: composite
+  steps:
+    - name: Component tests
+      shell: bash
+      run: |
+        discoveryBinPath="${{ env.BUILD_PATH }}/bin/ebpfdiscoverysrv"
+        sudo setcap cap_dac_override,cap_sys_admin,cap_sys_resource+ep "${discoveryBinPath}"
+        pytest ${{ env.TESTING_PATH }} -s -v --discovery_path="${discoveryBinPath}"
