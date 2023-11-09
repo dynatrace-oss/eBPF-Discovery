@@ -23,7 +23,7 @@ def is_responsive(url: str) -> bool:
         return False
 
 
-def wait_until(predicate, timeout=2, period=0.25):
+def wait_until(predicate, timeout, period=1):
     while timeout > 0:
         if predicate():
             return True

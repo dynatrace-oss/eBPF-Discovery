@@ -61,6 +61,6 @@ def run_http_service(http_server_port):
     url = "http://{}:{}".format(ip_addr, http_server_port)
     args = (sys.executable, "-m", "http.server", "--bind", ip_addr, str(http_server_port))
     server = subprocess.Popen(args)
-    wait_until(lambda: is_responsive(url), period=1, timeout=10)
+    wait_until(lambda: is_responsive(url), timeout=10)
     yield url
     server.terminate()

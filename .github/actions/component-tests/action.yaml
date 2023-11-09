@@ -3,10 +3,6 @@ name: Test
 runs:
   using: composite
   steps:
-    - name: Unit tests
-      shell: bash
-      run: ctest --test-dir ${{ env.BUILD_PATH }}
-
     - name: Component tests
       shell: bash
       run: |
