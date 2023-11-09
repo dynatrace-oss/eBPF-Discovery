@@ -6,26 +6,24 @@
 
 using namespace proto;
 
-struct ProtobufTranslatorTest : public testing::Test {
-	const std::string expectedServicesJson{
-			"{\"service\":[{\"pid\":1,\"endpoint\":\"/endpoint/"
-			"1\",\"internalClientsNumber\":1,\"externalClientsNumber\":2},{\"pid\":2,\"endpoint\":\"/endpoint/"
-			"1\",\"internalClientsNumber\":1,\"externalClientsNumber\":2},{\"pid\":3,\"endpoint\":\"/endpoint/"
-			"2\",\"internalClientsNumber\":1,\"externalClientsNumber\":2}]}"};
-	std::vector<service::Service> internalServices;
+class ProtobufTranslatorTest : public testing::Test {};
 
-	void SetUp() override {
-		internalServices.emplace_back(
-				service::Service{.pid = 1, .endpoint = "/endpoint/1", .internalClientsNumber = 1, .externalClientsNumber = 2});
-		internalServices.emplace_back(
-				service::Service{.pid = 2, .endpoint = "/endpoint/1", .internalClientsNumber = 1, .externalClientsNumber = 2});
-		internalServices.emplace_back(
-				service::Service{.pid = 3, .endpoint = "/endpoint/2", .internalClientsNumber = 1, .externalClientsNumber = 2});
-	}
-};
+TEST_F(ProtobufTranslatorTest, successfulTranslationToJson) {
 
-TEST_F(ProtobufTranslatorTest, successfulTranslation) {
-	auto proto = internalToProto(internalServices);
-	auto json = protoToJson(proto);
-	EXPECT_EQ(json, expectedServicesJson);
+	std::vector<std::reference_wrapper<service::Service>> internalServices;
+	service::Service service1{.pid = 1, .endpoint = "/endpoint/1", .internalClientsNumber = 1, .externalClientsNumber = 2};
+	service::Service service2{.pid = 2, .endpoint = "/endpoint/1", .internalClientsNumber = 1, .externalClientsNumber = 2};
+	service::Service service3{.pid = 3, .endpoint = "/endpoint/2", .internalClientsNumber = 1, .externalClientsNumber = 2};
+
+	internalServices.push_back(service1);
+	internalServices.push_back(service2);
+	internalServices.push_back(service3);
+
+	const auto proto{internalToProto(internalServices)};
+	const auto result{protoToJson(proto)};
+	const std::string expected{"{\"service\":[{\"pid\":1,\"endpoint\":\"/endpoint/"
+							   "1\",\"internalClientsNumber\":1,\"externalClientsNumber\":2},{\"pid\":2,\"endpoint\":\"/endpoint/"
+							   "1\",\"internalClientsNumber\":1,\"externalClientsNumber\":2},{\"pid\":3,\"endpoint\":\"/endpoint/"
+							   "2\",\"internalClientsNumber\":1,\"externalClientsNumber\":2}]}"};
+	EXPECT_EQ(result, expected);
 }

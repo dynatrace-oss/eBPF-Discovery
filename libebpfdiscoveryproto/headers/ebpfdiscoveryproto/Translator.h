@@ -9,7 +9,7 @@
 
 namespace proto {
 
-ServicesList internalToProto(const std::vector<service::Service>& internalServices);
+ServicesList internalToProto(const std::vector<std::reference_wrapper<service::Service>>& services);
 
 std::string protoToJson(const ServicesList& protoServices);
 

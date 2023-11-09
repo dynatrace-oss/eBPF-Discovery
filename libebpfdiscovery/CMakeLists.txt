@@ -1,14 +1,10 @@
 list(
         APPEND
         SOURCES
-        src/Config.cpp
         src/Discovery.cpp
         src/DiscoveryBpf.cpp
         src/DiscoveryBpfLoader.cpp
-        src/IpAddressChecker.cpp
-        src/NetlinkCalls.cpp
         src/Session.cpp
-        src/StringFunctions.cpp
 )
 set(TARGET ebpfdiscovery)
 
@@ -27,12 +23,11 @@ target_link_libraries(${TARGET}
             service
             CONAN_PKG::spdlog
             CONAN_PKG::fmt
-            CONAN_PKG::ms-gsl
             CONAN_PKG::boost
 )
 
 if (BUILD_TESTS)
-    list(APPEND TEST_SOURCES test/StringFunctionsTest.cpp test/LRUCacheTest.cpp test/IpAddressCheckerTest.cpp)
+    list(APPEND TEST_SOURCES test/LRUCacheTest.cpp)
     set(TEST_TARGET test${TARGET})
 
     add_executable(${TEST_TARGET} ${TEST_SOURCES})

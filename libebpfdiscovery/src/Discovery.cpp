@@ -2,8 +2,9 @@
 #include "ebpfdiscovery/Discovery.h"
 
 #include "ebpfdiscovery/Session.h"
-#include "ebpfdiscovery/StringFunctions.h"
+#include "ebpfdiscoveryproto/Translator.h"
 #include "logging/Logger.h"
+#include "service/IpAddress.h"
 
 #include <algorithm>
 #include <arpa/inet.h>
@@ -18,56 +19,56 @@
 
 namespace ebpfdiscovery {
 
-Discovery::Discovery(DiscoveryBpf discoveryBpf) : Discovery(discoveryBpf, DiscoveryConfig{}) {
+Discovery::Discovery(DiscoveryBpf discoveryBpf) : discoveryBpf(discoveryBpf), savedSessions(DISCOVERY_MAX_SESSIONS) {
 }
 
-Discovery::Discovery(DiscoveryBpf discoveryBpf, const DiscoveryConfig config)
-		: discoveryBpf(discoveryBpf), savedSessions(DISCOVERY_MAX_SESSIONS) {
-}
-
-void Discovery::start() {
-	if (running) {
-		return;
-	}
-	running = true;
-
+void Discovery::init() {
 	if (int ret{bpfDiscoveryResumeCollecting()}; ret != 0) {
-		running = false;
 		throw std::runtime_error("Could not initialize BPF program configuration: " + std::to_string(ret));
 	}
-
-	workerThread = std::thread([&]() { run(); });
 }
 
-void Discovery::run() {
-	LOG_TRACE("Discovery is starting the BPF event handler loop.");
-	std::unique_lock<std::mutex> lock(stopReceivedMutex);
-	while (!stopReceived) {
-		fetchEvents();
-		bpfDiscoveryResumeCollecting();
-		stopReceivedCV.wait_for(lock, config.eventQueuePollInterval);
+int Discovery::fetchAndHandleEvents() {
+	if (auto ret{bpfDiscoveryResumeCollecting()}; ret != 0) {
+		return ret;
 	}
 
-	return;
-}
-
-void Discovery::stop() {
-	std::lock_guard<std::mutex> lock(stopReceivedMutex);
-	stopReceived = true;
-	stopReceivedCV.notify_all();
-}
-
-void Discovery::wait() {
-	if (workerThread.joinable()) {
-		workerThread.join();
+	if (auto ret{bpfDiscoveryFetchAndHandleEvents()}; ret != 0) {
+		return ret;
 	}
+
+	return 0;
 }
 
-void Discovery::fetchEvents() {
+void Discovery::outputServicesToStdout() {
+	const auto services{serviceAggregator.collectServices()};
+	if (services.empty()) {
+		return;
+	}
+
+	const auto servicesProto{proto::internalToProto(services)};
+	const auto servicesJson{proto::protoToJson(servicesProto)};
+	std::cout << servicesJson << std::endl;
+	serviceAggregator.clear();
+}
+
+int Discovery::bpfDiscoveryFetchAndHandleEvents() {
 	DiscoveryEvent event;
-	while (bpf_map__lookup_and_delete_elem(discoverySkel()->maps.eventsToUserspaceQueueMap, NULL, 0, &event, sizeof(event), BPF_ANY) == 0) {
+	int ret;
+	for (;;) {
+		ret = bpf_map__lookup_and_delete_elem(discoverySkel()->maps.eventsToUserspaceQueueMap, nullptr, 0, &event, sizeof(event), BPF_ANY);
+		if (ret != 0) {
+			break;
+		}
+
 		handleNewEvent(std::move(event));
+	};
+
+	if (ret != -ENOENT) {
+		return ret;
 	}
+
+	return 0;
 }
 
 void Discovery::handleNewEvent(DiscoveryEvent event) {
@@ -154,7 +155,7 @@ void Discovery::handleNewRequest(const Session& session, const DiscoverySessionM
 				request.host,
 				request.url,
 				request.xForwardedFor,
-				ipv4ToString(meta.sourceIPData),
+				service::ipv4ToString(meta.sourceIPData),
 				meta.pid);
 	} else if (discoverySessionFlagsIsIPv6(meta.flags)) {
 		LOG_DEBUG(
@@ -163,7 +164,7 @@ void Discovery::handleNewRequest(const Session& session, const DiscoverySessionM
 				request.host,
 				request.url,
 				request.xForwardedFor,
-				ipv6ToString(meta.sourceIPData),
+				service::ipv6ToString(meta.sourceIPData),
 				meta.pid);
 	} else {
 		LOG_DEBUG(
@@ -175,10 +176,6 @@ void Discovery::handleNewRequest(const Session& session, const DiscoverySessionM
 				meta.pid);
 	}
 	serviceAggregator.newRequest(request, meta);
-}
-
-std::vector<service::Service> Discovery::popServices() {
-	return serviceAggregator.popServices();
 }
 
 void Discovery::handleCloseEvent(DiscoveryEvent& event) {

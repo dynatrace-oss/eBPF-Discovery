@@ -1,13 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
-
 #include "service/Aggregator.h"
 
-#include "ebpfdiscovery/IpAddressChecker.h"
+#include "service/IpAddressChecker.h"
 
 #include <algorithm>
 #include <gmock/gmock.h>
 
-using namespace ebpfdiscovery;
 using namespace service;
 
 class IpAddressCheckerMock : public IpAddressChecker {
@@ -36,7 +34,7 @@ struct ServiceAggregatorTest : public testing::Test {
 };
 
 TEST_F(ServiceAggregatorTest, aggregate) {
-	EXPECT_EQ(aggregator.popServices().size(), 0);
+	EXPECT_EQ(aggregator.collectServices().size(), 0);
 	// Service 1
 	{
 		const auto [request, meta]{makeRequest(100, "host", "/url", DISCOVERY_SESSION_FLAGS_IPV4)};
@@ -71,15 +69,21 @@ TEST_F(ServiceAggregatorTest, aggregate) {
 	}
 
 	{
-		auto services = aggregator.popServices();
+		auto services{aggregator.collectServices()};
 		EXPECT_EQ(services.size(), 3);
 
 		Service expectedService1{.pid{100}, .endpoint{"host/url"}, .internalClientsNumber{0}, .externalClientsNumber{2}};
 		Service expectedService2{.pid{100}, .endpoint{"host/url2"}, .internalClientsNumber{1}, .externalClientsNumber{0}};
 		Service expectedService3{.pid{200}, .endpoint{"host/url2"}, .internalClientsNumber{1}, .externalClientsNumber{2}};
-		EXPECT_THAT(services, testing::Contains(expectedService1));
-		EXPECT_THAT(services, testing::Contains(expectedService2));
-		EXPECT_THAT(services, testing::Contains(expectedService3));
+
+		std::vector<Service> servicesCopy;
+		std::transform(services.begin(), services.end(), std::back_inserter(servicesCopy), [](const auto& ref) { return ref.get(); });
+
+		EXPECT_THAT(servicesCopy, testing::Contains(expectedService1));
+		EXPECT_THAT(servicesCopy, testing::Contains(expectedService2));
+		EXPECT_THAT(servicesCopy, testing::Contains(expectedService3));
 	}
-	EXPECT_EQ(aggregator.popServices().size(), 0);
+
+	aggregator.clear();
+	EXPECT_EQ(aggregator.collectServices().size(), 0);
 }
