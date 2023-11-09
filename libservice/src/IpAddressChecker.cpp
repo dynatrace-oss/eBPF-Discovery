@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
-#include "ebpfdiscovery/IpAddressChecker.h"
+#include "service/IpAddressChecker.h"
+
 #include "logging/Logger.h"
 #include <algorithm>
 #include <arpa/inet.h>
@@ -25,12 +26,14 @@ static constexpr uint32_t MASK_LINK_LOCAL{0x0000ffff};
 static constexpr uint32_t IP_LOOPBACK{0x0000007f}; // 127.0.*.*
 static constexpr uint32_t MASK_LOOPBACK{0x00ffffff};
 
+using IpIfce = service::IpIfce;
+
 static void logErrorFromErrno(std::string_view prefix) {
 	std::cout << prefix << ": " << strerror(errno) << "\n";
 }
 
-static ebpfdiscovery::IpIfce parseIfceIPv4(void* data, size_t len) {
-	ebpfdiscovery::IpIfce ifce{};
+static IpIfce parseIfceIPv4(void* data, size_t len) {
+	IpIfce ifce{};
 	ifaddrmsg* ifa = reinterpret_cast<ifaddrmsg*>(data);
 	ifce.index = ifa->ifa_index;
 	ifce.mask = htonl(-1 << (32 - ifa->ifa_prefixlen));
@@ -51,7 +54,7 @@ static ebpfdiscovery::IpIfce parseIfceIPv4(void* data, size_t len) {
 	return ifce;
 }
 
-static ebpfdiscovery::IpIfce parseIfce(void* data, size_t len) {
+static IpIfce parseIfce(void* data, size_t len) {
 	if (reinterpret_cast<ifaddrmsg*>(data)->ifa_family != AF_INET) {
 		return {};
 	}
@@ -64,13 +67,13 @@ static int getIfIndex(void* data) {
 	return ifa->ifi_index;
 }
 
-namespace ebpfdiscovery {
+namespace service {
 
-IpAddressChecker::IpAddressChecker(std::initializer_list<IpIfce> config, const NetlinkCalls &calls) :netlink(calls) {
+IpAddressChecker::IpAddressChecker(std::initializer_list<IpIfce> config, const NetlinkCalls& calls) : netlink(calls) {
 	interfaces.insert(interfaces.end(), config.begin(), config.end());
 }
 
-IpAddressChecker::IpAddressChecker(const NetlinkCalls &calls) :netlink(calls) {
+IpAddressChecker::IpAddressChecker(const NetlinkCalls& calls) : netlink(calls) {
 }
 
 bool IpAddressChecker::readNetworks() {
@@ -152,18 +155,20 @@ bool IpAddressChecker::readAllIpAddrs() {
 	return handleNetlink(
 			[this](int fd, sockaddr_nl* sa, int domain) { return netlink.sendIpAddrRequest(fd, sa, AF_INET); },
 			[this](int fd, sockaddr_nl* dst, void* buf, size_t len) { return netlink.receive(fd, dst, buf, len); },
-			[this](void* buf, size_t len) { addIpIfce(parseIfce(buf, len)); }, AF_INET);
+			[this](void* buf, size_t len) { addIpIfce(parseIfce(buf, len)); },
+			AF_INET);
 }
 
 bool IpAddressChecker::markLocalBridges() {
 	return handleNetlink(
 			[this](int fd, sockaddr_nl* sa, int domain) { return netlink.sendBridgesRequest(fd, sa, AF_INET); },
 			[this](int fd, sockaddr_nl* dst, void* buf, size_t len) { return netlink.receive(fd, dst, buf, len); },
-			[this](void* buf, size_t len) { markBridge(getIfIndex(buf)); }, AF_INET);
+			[this](void* buf, size_t len) { markBridge(getIfIndex(buf)); },
+			AF_INET);
 }
 
 void IpAddressChecker::addIpIfce(IpIfce&& ifce) {
-	if(!isLoopback(ifce)){
+	if (!isLoopback(ifce)) {
 		interfaces.push_back(ifce);
 	}
 }
@@ -179,13 +184,12 @@ void IpAddressChecker::markBridge(int idx) {
 
 bool IpAddressChecker::isLoopback(const IpIfce& ifce) {
 
-	return std::all_of(ifce.ip.begin(), ifce.ip.end(), [](const auto& ipv4) {
-		return ((ipv4 & MASK_LOOPBACK) == IP_LOOPBACK);
-	});
+	return std::all_of(ifce.ip.begin(), ifce.ip.end(), [](const auto& ipv4) { return ((ipv4 & MASK_LOOPBACK) == IP_LOOPBACK); });
 }
 
 bool IpAddressChecker::isAddressExternalLocal(IPv4int addr) {
-	const bool isPublic = ((addr & MASK_CLASS_A) != IP_CLASS_A) && ((addr & MASK_CLASS_B) != IP_CLASS_B) && ((addr & MASK_CLASS_C) != IP_CLASS_C);
+	const bool isPublic =
+			((addr & MASK_CLASS_A) != IP_CLASS_A) && ((addr & MASK_CLASS_B) != IP_CLASS_B) && ((addr & MASK_CLASS_C) != IP_CLASS_C);
 
 	if (isPublic) {
 		return false;
@@ -212,4 +216,4 @@ bool IpAddressChecker::isAddressExternalLocal(IPv4int addr) {
 
 	return true;
 }
-} // namespace ebpfdiscovery
+} // namespace service

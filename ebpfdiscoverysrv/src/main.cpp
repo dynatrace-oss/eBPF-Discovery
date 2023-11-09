@@ -2,12 +2,12 @@
 #include "ebpfdiscovery/Discovery.h"
 #include "ebpfdiscovery/DiscoveryBpf.h"
 #include "ebpfdiscovery/DiscoveryBpfLoader.h"
-#include "ebpfdiscoveryproto/Translator.h"
 #include "logging/Logger.h"
 
+#include <boost/asio/steady_timer.hpp>
 #include <boost/program_options.hpp>
 
-#include <condition_variable>
+#include <atomic>
 #include <filesystem>
 #include <iostream>
 #include <memory>
@@ -19,17 +19,7 @@ namespace po = boost::program_options;
 using logging::Logger;
 using logging::LogLevel;
 
-enum class ProgramStatus {
-	Running,
-	UnixShutdownSignalReceived,
-} programStatus;
-
-std::condition_variable programStatusCV;
-std::mutex programStatusMutex;
-
-/*
- * CLI options
- */
+static std::atomic_flag programRunningFlag{ATOMIC_FLAG_INIT};
 
 static po::options_description getProgramOptions() {
 	po::options_description desc{"Options"};
@@ -49,49 +39,15 @@ static po::options_description getProgramOptions() {
 	return desc;
 }
 
-/*
- * Logging init
- */
-
 static void initLogging(logging::LogLevel logLevel, bool enableStdout, const std::filesystem::path& logDir) {
 	Logger::getInstance().init("eBPF-Discovery", enableStdout, logDir);
 	Logger::getInstance().setLevel(logLevel);
 	LOG_TRACE("Logging has been set up. (enableStdout: {}, logDir: `{}`)", enableStdout, logDir.string());
 }
 
-/*
- * Unix signals init
- */
-
-static sigset_t getSigset() {
-	sigset_t sigset;
-	sigfillset(&sigset);
-	return sigset;
+static void handleUnixShutdownSignal(int signal) {
+	programRunningFlag.clear();
 }
-
-static void runUnixSignalHandlerLoop() {
-	while (true) {
-		sigset_t sigset{getSigset()};
-		LOG_TRACE("Waiting for unix signals.");
-		const auto signo{sigwaitinfo(&sigset, nullptr)};
-		if (signo == -1) {
-			LOG_CRITICAL("Failed to wait for unix signals: {}", std::strerror(errno));
-			std::abort();
-		}
-		LOG_DEBUG("Received unix signal. (signo: {})", signo);
-		if (signo == SIGINT || signo == SIGPIPE || signo == SIGTERM) {
-			std::lock_guard<std::mutex> lock(programStatusMutex);
-			programStatus = ProgramStatus::UnixShutdownSignalReceived;
-			LOG_TRACE("Unix signal handler is notifying for shutdown.");
-			programStatusCV.notify_all();
-			break;
-		}
-	}
-}
-
-/*
- * Libbpf init
- */
 
 static int libbpfPrintFn(enum libbpf_print_level level, const char* format, va_list args) {
 	switch (level) {
@@ -112,20 +68,25 @@ static void initLibbpf() {
 	libbpf_set_print(libbpfPrintFn);
 }
 
-void servicesProvidingLoop(ebpfdiscovery::Discovery& discoveryInstance, std::chrono::seconds interval) {
-	std::unique_lock<std::mutex> lock(programStatusMutex);
-	while (programStatus == ProgramStatus::Running) {
-		if (auto services = discoveryInstance.popServices(); !services.empty()) {
-			auto servicesProto = proto::internalToProto(services);
-			LOG_DEBUG("Services list:\n{}\n", servicesProto.DebugString());
-			auto servicesJson = proto::protoToJson(servicesProto);
-			std::cout << servicesJson << std::endl;
+template <typename Duration>
+static void scheduleFunction(
+		boost::asio::io_context& ioContext, boost::asio::steady_timer& timer, Duration interval, std::function<void()> func) {
+	timer.expires_from_now(interval);
+	timer.async_wait([&ioContext, &timer, interval, func](const boost::system::error_code& err) {
+		if (err) {
+			return;
 		}
-		programStatusCV.wait_for(lock, interval);
-	}
+		func();
+		scheduleFunction(ioContext, timer, interval, func);
+	});
 }
 
 int main(int argc, char** argv) {
+	programRunningFlag.test_and_set();
+	std::signal(SIGINT, handleUnixShutdownSignal);
+	std::signal(SIGPIPE, handleUnixShutdownSignal);
+	std::signal(SIGTERM, handleUnixShutdownSignal);
+
 	po::options_description desc{getProgramOptions()};
 	po::variables_map vm;
 
@@ -159,16 +120,8 @@ int main(int argc, char** argv) {
 		return EXIT_FAILURE;
 	}
 
+	boost::asio::io_context ioContext;
 	LOG_DEBUG("Starting the program.");
-
-	{
-		LOG_TRACE("Setting up unix signals handling.");
-		sigset_t sigset = getSigset();
-		if (sigprocmask(SIG_BLOCK, &sigset, nullptr) == -1) {
-			LOG_CRITICAL("Failed to block unix signals: {}", std::strerror(errno));
-			return EXIT_FAILURE;
-		}
-	}
 
 	initLibbpf();
 	ebpfdiscovery::DiscoveryBpfLoader loader;
@@ -181,35 +134,34 @@ int main(int argc, char** argv) {
 
 	ebpfdiscovery::Discovery instance(loader.get());
 	try {
-		instance.start();
+		instance.init();
 	} catch (const std::runtime_error& e) {
-		LOG_CRITICAL("Couldn't start Discovery: {}", e.what());
+		LOG_CRITICAL("Couldn't initialize Discovery: {}", e.what());
 	}
 
-	if (!isLaunchTest) {
-		std::thread servicesProvider(servicesProvidingLoop, std::ref(instance), std::chrono::seconds(vm["interval"].as<int>()));
-		std::thread unixSignalThread(runUnixSignalHandlerLoop);
-		{
-			std::unique_lock<std::mutex> programStatusLock(programStatusMutex);
-			programStatusCV.wait(programStatusLock, []() { return programStatus != ProgramStatus::Running; });
-		}
-
-		LOG_TRACE("Waiting for unix signal thread to exit.");
-		if (unixSignalThread.joinable()) {
-			unixSignalThread.join();
-		}
-		LOG_TRACE("Waiting for services providing thread to exit.");
-		if (servicesProvider.joinable()) {
-			servicesProvider.join();
-		}
+	if (isLaunchTest) {
+		programRunningFlag.clear();
 	}
+
+	auto eventQueuePollInterval{std::chrono::milliseconds(250)};
+	auto fetchAndHandleTimer{boost::asio::steady_timer(ioContext, eventQueuePollInterval)};
+	scheduleFunction(ioContext, fetchAndHandleTimer, eventQueuePollInterval, [&instance]() {
+		auto ret{instance.fetchAndHandleEvents()};
+		if (ret != 0) {
+			LOG_CRITICAL("Failed to fetch and handle events: {}", std::strerror(-ret));
+			programRunningFlag.clear();
+		}
+	});
+
+	auto outputServicesToStdoutInterval{std::chrono::seconds(vm["interval"].as<int>())};
+	auto outputServicesToStdoutTimer{boost::asio::steady_timer(ioContext, outputServicesToStdoutInterval)};
+	scheduleFunction(ioContext, outputServicesToStdoutTimer, outputServicesToStdoutInterval, [&]() { instance.outputServicesToStdout(); });
+
+	while (programRunningFlag.test_and_set()) {
+		ioContext.run_one();
+	}
+	programRunningFlag.clear();
 
 	LOG_DEBUG("Exiting the program.");
-	instance.stop();
-
-	LOG_TRACE("Waiting for threads to exit.");
-	instance.wait();
-
-	LOG_TRACE("Finished running the program successfully.");
 	return EXIT_SUCCESS;
 }

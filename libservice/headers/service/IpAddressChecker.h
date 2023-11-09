@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
 #pragma once
-#include "ebpfdiscovery/NetlinkCalls.h"
+
+#include "NetlinkCalls.h"
+
 #include <initializer_list>
 #include <vector>
 
-namespace ebpfdiscovery {
+namespace service {
 
 using IPv4int = uint32_t;
 
@@ -27,6 +29,7 @@ class IpAddressChecker {
 	void addIpIfce(IpIfce&& ifce);
 	void markBridge(int idx);
 	void printInfo();
+
 protected:
 	void moveBridges();
 
@@ -36,4 +39,4 @@ public:
 	virtual bool isAddressExternalLocal(IPv4int addr);
 	bool readNetworks();
 };
-} // namespace ebpfdiscovery
+} // namespace service

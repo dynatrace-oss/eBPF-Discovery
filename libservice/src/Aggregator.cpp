@@ -1,41 +1,48 @@
+// SPDX-License-Identifier: Apache-2.0
 #include "service/Aggregator.h"
-#include "ebpfdiscovery/StringFunctions.h"
+
 #include "logging/Logger.h"
+#include "service/IpAddress.h"
+#include "service/IpAddressChecker.h"
 
 #include <arpa/inet.h>
 
 namespace service {
 
-Aggregator::Aggregator(ebpfdiscovery::IpAddressChecker& ipChecker) : ipChecker(ipChecker) {
-	ipChecker.readNetworks();
+static std::string getEndpoint(const std::string& host, const std::string& url) {
+	return host + url;
 }
 
-void Aggregator::updateServiceClientsNumber(Service& service, const DiscoverySessionMeta& meta) {
+static void incrementServiceClientsNumber(IpAddressChecker& ipChecker, Service& service, const DiscoverySessionMeta& meta) {
 	if (discoverySessionFlagsIsIPv4(meta.flags)) {
-		const auto v4Addr{inet_addr(ebpfdiscovery::ipv4ToString(meta.sourceIPData).c_str())};
+		const auto v4Addr{inet_addr(ipv4ToString(meta.sourceIPData).c_str())};
 		if (ipChecker.isAddressExternalLocal(v4Addr)) {
 			++service.externalClientsNumber;
 		} else {
 			++service.internalClientsNumber;
 		}
 	} else if (discoverySessionFlagsIsIPv6(meta.flags)) {
-		const auto v6Addr{inet_addr(ebpfdiscovery::ipv6ToString(meta.sourceIPData).c_str())};
+		const auto v6Addr{inet_addr(ipv6ToString(meta.sourceIPData).c_str())};
 		LOG_DEBUG("IPv6 not currently supported, request from src {} skipped", v6Addr);
 	} else {
 		++service.externalClientsNumber;
 	}
 }
 
-static std::string getEndpoint(const std::string& host, const std::string& url) {
-	return host + url;
-}
-
-Service Aggregator::toService(const httpparser::HttpRequest& request, const DiscoverySessionMeta& meta) {
+static Service toService(IpAddressChecker& ipChecker, const httpparser::HttpRequest& request, const DiscoverySessionMeta& meta) {
 	Service service;
 	service.pid = meta.pid;
 	service.endpoint = getEndpoint(request.host, request.url);
-	updateServiceClientsNumber(service, meta);
+	incrementServiceClientsNumber(ipChecker, service, meta);
 	return service;
+}
+
+Aggregator::Aggregator(IpAddressChecker& ipChecker) : ipChecker(ipChecker) {
+	ipChecker.readNetworks();
+}
+
+void Aggregator::clear() {
+	services.clear();
 }
 
 void Aggregator::newRequest(const httpparser::HttpRequest& request, const DiscoverySessionMeta& meta) {
@@ -44,27 +51,23 @@ void Aggregator::newRequest(const httpparser::HttpRequest& request, const Discov
 
 	const auto it{services.find(key)};
 	if (it != services.end()) {
-		updateServiceClientsNumber((*it).second, meta);
+		incrementServiceClientsNumber(ipChecker, it->second, meta);
 		return;
 	}
-	auto newService{toService(request, meta)};
+	auto newService{toService(ipChecker, request, meta)};
 
-	std::lock_guard<std::mutex> lock(servicesMutex);
 	services[key] = std::move(newService);
 }
 
-std::vector<Service> Aggregator::popServices() {
-	std::lock_guard<std::mutex> lock(servicesMutex);
+std::vector<std::reference_wrapper<Service>> Aggregator::collectServices() {
+	std::vector<std::reference_wrapper<Service>> servicesVec;
+	servicesVec.reserve(services.size());
 
-	std::vector<Service> ret;
-	ret.reserve(services.size());
-
-	for (auto s : services) {
-		ret.emplace_back(s.second);
+	for (auto& pair : services) {
+		servicesVec.push_back(pair.second);
 	}
 
-	services.clear();
-	return ret;
+	return servicesVec;
 }
 
 } // namespace service
