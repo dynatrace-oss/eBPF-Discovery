@@ -40,7 +40,6 @@ private:
 	using ServiceKey = std::pair<uint32_t, std::string>;
 
 	ebpfdiscovery::IpAddressChecker& ipChecker;
-	httpparser::XForwardedForValueParser xForwardedForValueParser;
 
 	std::unordered_map<ServiceKey, Service> services;
 	std::mutex servicesMutex;

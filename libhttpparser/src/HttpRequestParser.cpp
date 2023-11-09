@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "httpparser/HttpRequestParser.h"
-#include <iostream>
+
+#include <boost/algorithm/string.hpp>
+
+#include <optional>
 
 namespace httpparser {
 
@@ -45,24 +48,6 @@ inline static bool isValidHostHeaderValueChar(const char ch) {
 
 inline static bool isValidXForwardedForHeaderValueChar(const char ch) {
 	return std::isalnum(ch) || constants::VALID_X_FORWARDED_FOR_HEADER_VALUE_SPECIAL_CHARS.find(ch) != std::string_view::npos;
-}
-
-void XForwardedFor::clear() {
-	addresses.clear();
-}
-
-void XForwardedForValueParser::parse(std::string_view data) {
-	auto beg{0};
-	while (beg < data.length()) {
-		auto end{data.find_first_of(',', beg)};
-		auto const field{data.substr(beg, end - beg)};
-		result.addresses.push_back(std::string(field));
-		if (end == std::string_view::npos) {
-			return;
-		}
-		beg = end + 1;
-	}
-	return;
 }
 
 HttpRequest::HttpRequest() {
@@ -249,7 +234,12 @@ void HttpRequestParser::handleCharHeaderNewline(const char ch) {
 		return;
 	}
 
-	currentHeaderKey.clear();
+	if (isCurrentHeaderKeyXForwardedFor()) {
+		parseXForwardedFor(currentHeader.value);
+	}
+
+	currentHeader = {};
+
 	state = State::HEADER_KEY;
 }
 
@@ -269,8 +259,8 @@ void HttpRequestParser::handleCharHeaderKey(const char ch) {
 			return;
 		}
 
-		if (currentHeaderKey.size() < constants::X_FORWARDED_FOR.size()) {
-			currentHeaderKey.push_back(std::tolower(ch));
+		if (currentHeader.key.size() < constants::X_FORWARDED_FOR.size()) {
+			currentHeader.key.push_back(std::tolower(ch));
 		}
 
 		return;
@@ -281,8 +271,8 @@ void HttpRequestParser::handleCharHeaderKey(const char ch) {
 		return;
 	}
 
-	if (isCurrentHeaderKeyXForwardedFor() && !result.xForwardedFor.empty()) {
-		result.xForwardedFor.push_back(',');
+	if (isCurrentHeaderKeyXForwardedFor() && !currentHeader.value.empty()) {
+		currentHeader.value.push_back(',');
 	}
 
 	state = State::SPACE_BEFORE_HEADER_VALUE;
@@ -301,7 +291,7 @@ void HttpRequestParser::handleCharSpaceBeforeHeaderValue(const char ch) {
 	if (isCurrentHeaderKeyHost()) {
 		result.host.push_back(ch);
 	} else if (isCurrentHeaderKeyXForwardedFor()) {
-		result.xForwardedFor.push_back(ch);
+		currentHeader.value.push_back(ch);
 	}
 
 	state = State::HEADER_VALUE;
@@ -324,7 +314,7 @@ void HttpRequestParser::handleCharHeaderValue(const char ch) {
 			return;
 		}
 
-		result.xForwardedFor.push_back(ch);
+		currentHeader.value.push_back(ch);
 		return;
 	}
 
@@ -353,18 +343,43 @@ void HttpRequestParser::handleCharHeadersEnd(const char ch) {
 }
 
 inline bool HttpRequestParser::isCurrentHeaderKeyHost() {
-	return currentHeaderKey == constants::HOST_LOWER;
+	return currentHeader.key == constants::HOST_LOWER;
 }
 
 inline bool HttpRequestParser::isCurrentHeaderKeyXForwardedFor() {
-	return currentHeaderKey == constants::X_FORWARDED_FOR_LOWER;
+	return currentHeader.key == constants::X_FORWARDED_FOR_LOWER;
 }
 
 void HttpRequestParser::reset() {
 	state = State::METHOD;
-	currentHeaderKey.clear();
+	currentHeader = {};
 	length = 0;
 	result.clear();
+}
+
+static std::optional<std::string> getTextBetweenSquareBrackets(const std::string& input) {
+	if (const auto startPos{input.find('[')}; startPos != std::string::npos) {
+		if (const auto endPos{input.find(']', startPos)}; endPos != std::string::npos) {
+			return input.substr(startPos + 1, endPos - startPos - 1);
+		}
+	}
+	return std::nullopt;
+}
+
+void HttpRequestParser::parseXForwardedFor(const std::string& data) {
+	std::vector<std::string> addresses;
+	boost::split(addresses, data, boost::is_any_of(","), boost::token_compress_on);
+	for (auto& address : addresses) {
+		if (const auto ipv6Address{getTextBetweenSquareBrackets(address)}; ipv6Address) {
+			address = *ipv6Address;
+		} else if (const auto semicolonPos{address.find(':')}; semicolonPos != std::string::npos) {
+			address = address.substr(0, semicolonPos);
+		}
+
+		boost::trim(address);
+	}
+
+	std::copy(addresses.begin(), addresses.end(), std::back_inserter(result.xForwardedFor));
 }
 
 } // namespace httpparser

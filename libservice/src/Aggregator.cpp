@@ -13,13 +13,7 @@ Aggregator::Aggregator(ebpfdiscovery::IpAddressChecker& ipChecker) : ipChecker(i
 void Aggregator::updateServiceClientsNumber(Service& service, const httpparser::HttpRequest& request, const DiscoverySessionMeta& meta) {
 	std::string clientAddr;
 	if (!request.xForwardedFor.empty()) {
-		xForwardedForValueParser.parse(request.xForwardedFor);
-		if (xForwardedForValueParser.result.addresses.empty()) {
-			LOG_DEBUG("Malformed or empty X-Forwarded-For. (value: `{}`)", request.xForwardedFor);
-			return;
-		}
-		clientAddr = xForwardedForValueParser.result.addresses.front();
-		xForwardedForValueParser.result.clear();
+		clientAddr = request.xForwardedFor.front();
 	} else if (discoverySessionFlagsIsIPv4(meta.flags)) {
 		clientAddr = ebpfdiscovery::ipv4ToString(meta.sourceIPData);
 	} else if (discoverySessionFlagsIsIPv6(meta.flags)) {
