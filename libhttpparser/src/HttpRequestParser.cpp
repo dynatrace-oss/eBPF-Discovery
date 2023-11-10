@@ -358,12 +358,14 @@ void HttpRequestParser::reset() {
 }
 
 static std::optional<std::string> getTextBetweenSquareBrackets(const std::string& input) {
-	if (const auto startPos{input.find('[')}; startPos != std::string::npos) {
-		if (const auto endPos{input.find(']', startPos)}; endPos != std::string::npos) {
-			return input.substr(startPos + 1, endPos - startPos - 1);
-		}
+	const auto firstBracketPos{input.find('[')};
+	const auto lastBracketPos{input.rfind(']')};
+
+	if (firstBracketPos == std::string::npos || lastBracketPos == std::string::npos || lastBracketPos < firstBracketPos) {
+		return std::nullopt;
 	}
-	return std::nullopt;
+
+	return input.substr(firstBracketPos + 1, lastBracketPos - firstBracketPos - 1);
 }
 
 void HttpRequestParser::parseXForwardedFor(const std::string& data) {
@@ -372,7 +374,7 @@ void HttpRequestParser::parseXForwardedFor(const std::string& data) {
 	for (auto& address : addresses) {
 		if (const auto ipv6Address{getTextBetweenSquareBrackets(address)}; ipv6Address) {
 			address = *ipv6Address;
-		} else if (const auto semicolonPos{address.find(':')}; semicolonPos != std::string::npos) {
+		} else if (const auto semicolonPos{address.rfind(':')}; semicolonPos != std::string::npos) {
 			address = address.substr(0, semicolonPos);
 		}
 
