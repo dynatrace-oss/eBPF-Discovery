@@ -27,7 +27,7 @@ static void incrementServiceClientsNumber(IpAddressChecker& ipChecker, Service& 
 
 	in_addr_t clientAddrBinary;
 	if (inet_pton(AF_INET, clientAddr.c_str(), &clientAddrBinary) != 1) {
-		LOG_TRACE("Client address hasn't been parsed successfully");
+		LOG_TRACE("Cannot parse X-Forwarded-For client address: {}", clientAddr);
 		return;
 	}
 
