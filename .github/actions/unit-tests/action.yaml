@@ -1,5 +1,5 @@
 name: Test
-description: Run tests
+description: Run unit tests
 
 runs:
   using: composite
