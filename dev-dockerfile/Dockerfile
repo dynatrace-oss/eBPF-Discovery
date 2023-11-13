@@ -1,11 +1,11 @@
 FROM ubuntu:18.04
 
 RUN apt-get update -y && \
-    # for the new clang
-    apt-get install -y wget lsb-release gpg software-properties-common && \
-    # for preparing dependencies
+    # for add-apt-repository
+    apt-get install -y software-properties-common && \
+    # for version 9.x of gcc/g++
     add-apt-repository ppa:ubuntu-toolchain-r/test -y && \
-    apt-get install -y libelf-dev gcc-9 g++-9 python3-pip git && \
+    apt-get install -y wget lsb-release gpg libelf-dev gcc-9 g++-9 python3-pip git && \
     # update links to use version 9.x of gcc/g++
     update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 800 --slave /usr/bin/g++ g++ /usr/bin/g++-9 && \
     # install clang 12
