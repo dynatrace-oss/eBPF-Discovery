@@ -8,6 +8,15 @@
 
 using namespace service;
 
+namespace service {
+void PrintTo(const Service& service, std::ostream* os) {
+	*os << "(" << service.pid
+		<< ", " << service.endpoint
+		<< ", " << service.internalClientsNumber
+		<< ", " << service.externalClientsNumber << ")";
+}
+} // namespace service
+
 class IpAddressCheckerMock : public IpAddressChecker {
 public:
 	using IpAddressChecker::IpAddressChecker;
@@ -20,7 +29,7 @@ struct ServiceAggregatorTest : public testing::Test {
 		httpparser::HttpRequest request;
 		request.host = host;
 		request.url = url;
-		DiscoverySessionMeta meta;
+		DiscoverySessionMeta meta{};
 		if (flags) {
 			meta.flags |= *flags;
 		}
