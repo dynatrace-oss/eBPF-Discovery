@@ -1,10 +1,10 @@
 name: Set environment variables
+description: Set environment variables required for other actions
 
 inputs:
   build-type:
     description: Release or Debug
     required: true
-    type: string
 
 runs:
   using: composite
@@ -14,6 +14,9 @@ runs:
       run: |
         buildType=${{ inputs.build-type }}
         printf "BUILD_TYPE=%s\n" "${buildType}" >> $GITHUB_ENV
+        
+        printf "IMAGE_NAME=%s\n" "ebpf_discovery_image" >> $GITHUB_ENV
+        printf "CONTAINER_NAME=%s\n" "ebpf_discovery_container" >> $GITHUB_ENV
         
         newestVersion="$(git describe --tags --abbrev=0 --always)"
         if printf "%s" "${newestVersion}" | grep -qEv "[0-9]+\.[0-9]+\.[0-9]+"; then
