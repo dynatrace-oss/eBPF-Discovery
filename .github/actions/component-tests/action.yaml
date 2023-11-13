@@ -1,8 +1,12 @@
 name: Test
+description: Run component tests
 
 runs:
   using: composite
   steps:
+    - name: Install requirements
+      shell: bash
+      run: pip install -r "${{ env.TESTING_PATH }}/requirements.txt"
     - name: Component tests
       shell: bash
       run: |

@@ -1,8 +1,16 @@
 name: Build
+description: Build eBPF Discovery and its tests
 
 runs:
   using: composite
   steps:
     - name: Build
       shell: bash
-      run: cmake --build ${{ env.BUILD_PATH }}
+      run: >-
+        docker run -i --rm
+        -w ${{ github.workspace }}
+        --user=$(id -u):$(id -g)
+        -v /home/runner:/home/runner
+        -v /etc/passwd:/etc/passwd
+        ${{ env.IMAGE_NAME }}:latest
+        cmake --build ${{ env.BUILD_PATH }}

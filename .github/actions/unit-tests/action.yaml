@@ -1,8 +1,18 @@
 name: Test
+description: Run unit tests
 
 runs:
   using: composite
   steps:
     - name: Unit tests
       shell: bash
-      run: ctest --test-dir ${{ env.BUILD_PATH }}
+      run: >-
+        docker run -i --rm
+        -w ${{ github.workspace }}
+        --user=$(id -u):$(id -g)
+        -v /home/runner:/home/runner
+        -v /etc/passwd:/etc/passwd
+        ${{ env.IMAGE_NAME }}:latest
+        ctest --test-dir ${{ env.BUILD_PATH }}
+        --output-on-failure
+        
