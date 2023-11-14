@@ -6,9 +6,6 @@
 
 #include <algorithm>
 #include <numeric>
-#include <string>
-#include <string_view>
-#include <vector>
 
 using httpparser::HttpRequestParser;
 
@@ -28,7 +25,7 @@ struct HttpRequestTestData {
 	std::string url;
 	std::string protocol;
 	std::string host;
-	std::string xForwardedFor;
+	std::vector<std::string> xForwardedFor;
 	bool expectFinished;
 	size_t expectTotalBytesParsed;
 
@@ -38,7 +35,7 @@ struct HttpRequestTestData {
 			std::string url = "",
 			std::string protocol = "",
 			std::string host = "",
-			std::string xForwardedFor = "",
+			std::vector<std::string> xForwardedFor = {},
 			bool expectFinished = true,
 			std::optional<size_t> expectTotalBytesParsed_ = std::nullopt)
 			: requestChunks(std::move(requestChunks_)),
@@ -98,65 +95,65 @@ INSTANTIATE_TEST_CASE_P(
 		HttpRequestParserTest,
 		::testing::Values(
 				HttpRequestTestData{
-						{"GET /example HTTP/1.1\r\nHost: example.com\r\n\r\n"}, "GET", "/example", "HTTP/1.1", "example.com", ""},
+						{"GET /example HTTP/1.1\r\nHost: example.com\r\n\r\n"}, "GET", "/example", "HTTP/1.1", "example.com", {}},
 				HttpRequestTestData{
-						{"GET /example HTTP/1.1\r\nHOST: example.com\r\n\r\n"}, "GET", "/example", "HTTP/1.1", "example.com", ""},
+						{"GET /example HTTP/1.1\r\nHOST: example.com\r\n\r\n"}, "GET", "/example", "HTTP/1.1", "example.com", {}},
 				HttpRequestTestData{
-						{"POST /example HTTP/1.1\r\nHost: example.com\r\n\r\n"}, "POST", "/example", "HTTP/1.1", "example.com", ""},
+						{"POST /example HTTP/1.1\r\nHost: example.com\r\n\r\n"}, "POST", "/example", "HTTP/1.1", "example.com", {}},
 				HttpRequestTestData{
-						{"POST /example HTTP/1.1\r\nHOST: example.com\r\n\r\n"}, "POST", "/example", "HTTP/1.1", "example.com", ""},
+						{"POST /example HTTP/1.1\r\nHOST: example.com\r\n\r\n"}, "POST", "/example", "HTTP/1.1", "example.com", {}},
 				HttpRequestTestData{
-						{"GET /example HTTP/1.0\r\nHost: example.com\r\n\r\n"}, "GET", "/example", "HTTP/1.0", "example.com", ""},
+						{"GET /example HTTP/1.0\r\nHost: example.com\r\n\r\n"}, "GET", "/example", "HTTP/1.0", "example.com", {}},
 				HttpRequestTestData{
-						{"POST /example HTTP/1.0\r\nHost: example.com\r\n\r\n"}, "POST", "/example", "HTTP/1.0", "example.com", ""},
+						{"POST /example HTTP/1.0\r\nHost: example.com\r\n\r\n"}, "POST", "/example", "HTTP/1.0", "example.com", {}},
 				HttpRequestTestData{
-						{"GET /example HTTP/1.1\r\nHost: example.com\r\n\r"}, "GET", "/example", "HTTP/1.1", "example.com", "", false},
+						{"GET /example HTTP/1.1\r\nHost: example.com\r\n\r"}, "GET", "/example", "HTTP/1.1", "example.com", {}, false},
 				HttpRequestTestData{
 						{"GET /Hello%20World/index.html HTTP/1.1\r\nHost:  example.com\r\nx-forwarded-for:  127.0.0.1\r\n\r\n"},
 						"GET",
 						"/Hello%20World/index.html",
 						"HTTP/1.1",
 						"example.com",
-						"127.0.0.1"},
-				HttpRequestTestData{{"GET / HTTP/1.1\r\n\r\n"}, "GET", "/", "HTTP/1.1", "", ""},
+						{"127.0.0.1"}},
+				HttpRequestTestData{{"GET / HTTP/1.1\r\n\r\n"}, "GET", "/", "HTTP/1.1", "", {}},
 				HttpRequestTestData{
 						chunkString("GET /example HTTP/1.1\r\nHost: example.com\r\n\r\n", 8),
 						"GET",
 						"/example",
 						"HTTP/1.1",
 						"example.com",
-						""},
+						{}},
 				HttpRequestTestData{
 						chunkString("GET /example HTTP/1.1\r\nHost: example.com\r\nX-Forwarded-For: 0.0.0.0\r\n\r\n", 1),
 						"GET",
 						"/example",
 						"HTTP/1.1",
 						"example.com",
-						"0.0.0.0"},
+						{"0.0.0.0"}},
 				HttpRequestTestData{
 						{"POST /example/ HTTP/1.1\r\nHost: example.com\r\nUser-Agent: curl/7.81.0\r\nAccept: */*\r\nX-Forwarded-For: "
-						 "192.168.0.1, 10.0.0.1\r\n\r\n{\"name\":\"example\"}\r\n"},
+						 "192.168.0.1:8080, 10.0.0.1, [2001:0db8:85a3::8a2e:0370:7334]\r\n\r\n{\"name\":\"example\"}\r\n"},
 						"POST",
 						"/example/",
 						"HTTP/1.1",
 						"example.com",
-						"192.168.0.1, 10.0.0.1",
+						{"192.168.0.1", "10.0.0.1", "2001:0db8:85a3::8a2e:0370:7334"},
 						true,
-						124},
+						163},
 				HttpRequestTestData{
 						chunkString(
 								"GET /example/ HTTP/1.1\r\nHost: example.com\r\nX-Forwarded-For: 10.0.0.1\r\nUser-Agent: "
-								"curl/7.81.0\r\nAccept: */*\r\nx-forwarded-for: 127.0.0.1\r\n\r\n",
+								"curl/7.81.0\r\nAccept: */*\r\nx-forwarded-for: 127.0.0.1,[2001:0db8:85a3::8a2e:0370:7335]:1234\r\n\r\n",
 								2),
 						"GET",
 						"/example/",
 						"HTTP/1.1",
 						"example.com",
-						"10.0.0.1,127.0.0.1",
+						{"10.0.0.1", "127.0.0.1", "2001:0db8:85a3::8a2e:0370:7335"},
 				},
-				HttpRequestTestData{chunkString("GET / HTTP/1.1\r\n", 1), "GET", "/", "HTTP/1.1", "", "", false},
-				HttpRequestTestData{{"GET /"}, "GET", "/", "", "", "", false},
-				HttpRequestTestData{{"", ""}, "", "", "", "", "", false}));
+				HttpRequestTestData{chunkString("GET / HTTP/1.1\r\n", 1), "GET", "/", "HTTP/1.1", "", {}, false},
+				HttpRequestTestData{{"GET /"}, "GET", "/", "", "", {}, false},
+				HttpRequestTestData{{"", ""}, "", "", "", "", {}, false}));
 
 INSTANTIATE_TEST_CASE_P(
 		Default,
