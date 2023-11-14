@@ -1,26 +1,59 @@
 # eBPF Discovery
 
 eBPF Discovery is a tool for discovering HTTP endpoints on a given host based on incoming HTTP requests.
+Only Linux kernels of version 5.3.0 or above are supported.
 
-## Prerequisites
+**Output data**
 
+The output data model is defined in [protobuf](libebpfdiscoveryproto/ebpfdiscoveryproto/service.proto). Incoming HTTP requests are aggregated into services with unique PID and endpoint. Additionaly services have counters describing how many internal and external clients have connected to them.
+Discovered services are popped from the program in a specified time interval, serialized to JSON format and sent to the program's standard output, i.e.:
+```
+{"service":[{"pid":172613,"endpoint":"127.0.0.1:8000/","internalClientsNumber":1}]}
+```
+
+## Building
+
+**Prerequisites**
 * conan >= 1.56.0
 * cmake >= 3.22.3
 * libelf-dev
 * clang
 
-## Building
+**Build**
+
 ```
 cmake -DCMAKE_BUILD_TYPE=<build type> -DCMAKE_C_COMPILER=gcc '-DCMAKE_CXX_COMPILER=g++' -DBUILD_TESTS=ON -DBUILD_BPF_TESTS=ON -DPROJECT_VERSION=<version> -S . -B <build dir>
 cmake --build <build dir>
 ```
 `<version>` must be provided in the format major.minor.patch e.g. 1.2.3
 
-## Installation
+**Installation**
 
 ```
 DESTDIR=/ cmake --install <build dir> --prefix /usr/local
 ```
+
+## Usage
+
+To run eBPF Discovery, simply run:
+```
+./ebpfdiscoverysrv [OPTIONS]
+```
+
+**Command line arguments**
+
+Optional command line arguments can be set in place of the OPTIONS tag:
+
+|Option               |Description                                                                                                    |Default value                       |
+|---------------------|---------------------------------------------------------------------------------------------------------------|------------------------------------|
+| `--help, -h`        |display available options                                                                                      |false                               |
+|`--interval=VALUE`   |set the time inteval (in seconds) in which the discovered services are reported to the programs standard output|60 (seconds)                        |
+|`--log-dir=DIRECTORY`|set log files directory                                                                                        |eBPF Discovery binary root directory|
+|`--log-level=LEVEL`  |set logging level, where LEVEL={trace, debug, info, warning, error, critical, off}                             |error                               |
+|`--log-no-stdout`    |disable logging to stdout                                                                                      |false                               |
+|`--version`          |display program version                                                                                        |false                               |
+| `--test-launch`     |exit program after launch for testing purposes                                                                 |false                               |
+
 
 ## Help & Support
 
