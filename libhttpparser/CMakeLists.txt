@@ -4,7 +4,7 @@ set(TARGET httpparser)
 add_library(${TARGET} STATIC ${SOURCES})
 target_include_directories(${TARGET} PRIVATE src PUBLIC headers)
 
-target_link_libraries(${TARGET} ebpfdiscoveryshared)
+target_link_libraries(${TARGET} ebpfdiscoveryshared CONAN_PKG::boost)
 
 if(BUILD_TESTS)
 	list(APPEND TEST_SOURCES test/HttpRequestParserTest.cpp)
