@@ -16,8 +16,8 @@ Discovered services are popped from the program in a specified time interval, se
 **Prerequisites**
 * conan >= 1.56.0
 * cmake >= 3.22.3
+* clang >= 12
 * libelf-dev
-* clang
 
 **Build**
 
