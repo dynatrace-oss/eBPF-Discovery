@@ -5,7 +5,7 @@ Only Linux kernels of version 5.3.0 or above are supported.
 
 **Output data**
 
-The output data model is defined in [protobuf](libebpfdiscoveryproto/ebpfdiscoveryproto/service.proto). Incoming HTTP requests are aggregated into services with unique PID and endpoint. Additionaly services have counters describing how many internal and external clients have connected to them.
+The output data model is defined in [service.proto file](libebpfdiscoveryproto/ebpfdiscoveryproto/service.proto). Incoming HTTP requests are aggregated into services by unique PID and endpoint. Additionaly, services have counters describing how many internal and external clients have connected to them.
 Discovered services are popped from the program in a specified time interval, serialized to JSON format and sent to the program's standard output, i.e.:
 ```
 {"service":[{"pid":172613,"endpoint":"127.0.0.1:8000/","internalClientsNumber":1}]}
