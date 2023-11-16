@@ -41,7 +41,7 @@ To run eBPF Discovery, simply run:
 ```
 The program needs to be run either as superuser or with the following capabilities assigned:
 ```
-cap_dac_override, cap_sys_admin, cap_sys_resource+ep
+cap_dac_override,cap_sys_resource,cap_perfmon,cap_bpf=ep
 ```
 Please note that in order to run eBPF Discovery on a system it needs to have eBPF support enabled in the kernel.
 
