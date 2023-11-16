@@ -43,7 +43,7 @@ The program needs to be run either as superuser or with the following capabiliti
 ```
 cap_dac_override, cap_sys_admin, cap_sys_resource+ep
 ```
-Please note that in order run eBPF Discovery on a system it needs to have eBPF support enabled in the kernel.
+Please note that in order to run eBPF Discovery on a system it needs to have eBPF support enabled in the kernel.
 
 **Command line arguments**
 
