@@ -39,6 +39,11 @@ To run eBPF Discovery, simply run:
 ```
 ./ebpfdiscoverysrv [OPTIONS]
 ```
+The program needs to be run either as superuser or with the following capabilities assigned:
+```
+cap_dac_override, cap_sys_admin, cap_sys_resource+ep
+```
+Please note that in order run eBPF Discovery on a system it needs to have eBPF support enabled in the kernel.
 
 **Command line arguments**
 
@@ -46,13 +51,13 @@ Optional command line arguments can be set in place of the OPTIONS tag:
 
 |Option               |Description                                                                                                    |Default value                       |
 |---------------------|---------------------------------------------------------------------------------------------------------------|------------------------------------|
-| `--help, -h`        |display available options                                                                                      |false                               |
-|`--interval=VALUE`   |set the time inteval (in seconds) in which the discovered services are reported to the programs standard output|60 (seconds)                        |
-|`--log-dir=DIRECTORY`|set log files directory                                                                                        |eBPF Discovery binary root directory|
-|`--log-level=LEVEL`  |set logging level, where LEVEL={trace, debug, info, warning, error, critical, off}                             |error                               |
-|`--log-no-stdout`    |disable logging to stdout                                                                                      |false                               |
-|`--version`          |display program version                                                                                        |false                               |
-| `--test-launch`     |exit program after launch for testing purposes                                                                 |false                               |
+|`--help, -h`         |Display available options.                                                                                     |false                               |
+|`--interval=VALUE`   |Set the time inteval (in seconds) in which the discovered services are reported to the programs standard output|60 (seconds).                       |
+|`--log-dir=DIRECTORY`|Set log files directory.                                                                                       |eBPF Discovery binary root directory|
+|`--log-level=LEVEL`  |Set logging level, where LEVEL={trace, debug, info, warning, error, critical, off}.                            |error                               |
+|`--log-no-stdout`    |Disable logging to stdout.                                                                                     |false                               |
+|`--test-launch`      |Exit program after launch for testing purposes.                                                                |false                               |
+|`--version`          |Display program version.                                                                                       |false                               |
 
 
 ## Help & Support
