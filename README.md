@@ -90,3 +90,4 @@ See CONTRIBUTING.md for details on submitting changes.
 ## License
 
 eBPF Discovery is under Apache 2.0 license. See LICENSE for details.
+The BPF code in kernel space is under GPLv2 license.
