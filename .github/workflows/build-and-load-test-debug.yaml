@@ -1,0 +1,31 @@
+name: Build and load test Debug
+
+on:
+  schedule:
+    - cron: "0 9 * * *"
+
+jobs:
+  build-and-test-debug:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source code of the repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set environment variables
+        uses: ./.github/actions/set-environment-variables
+        with:
+          build-type: Debug
+
+      - name: Build docker image
+        uses: ./.github/actions/build-docker-image
+
+      - name: Configure
+        uses: ./.github/actions/configure
+
+      - name: Build
+        uses: ./.github/actions/build
+
+      - name: Load tests
+        uses: ./.github/actions/load-tests

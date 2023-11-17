@@ -1,15 +1,16 @@
 name: Test
-description: Run component tests
+description: Run load tests
 
 runs:
   using: composite
   steps:
     - name: Install requirements
       shell: bash
-      run: pip install -r "${{ env.COMPONENT_TESTING_PATH }}/component/requirements.txt"
-    - name: Component tests
+      run: pip install -r "${{ env.LOAD_TESTING_PATH }}/requirements.txt"
+    - name: Load tests
       shell: bash
       run: |
         discoveryBinPath="${{ env.BUILD_PATH }}/bin/ebpfdiscoverysrv"
         sudo setcap cap_dac_override,cap_sys_admin,cap_sys_resource+ep "${discoveryBinPath}"
-        pytest ${{ env.COMPONENT_TESTING_PATH }}/component -s -v --discovery_path="${discoveryBinPath}"
+        pytest ${{ env.LOAD_TESTING_PATH }} -s -v --discovery_path="${discoveryBinPath}"
+        

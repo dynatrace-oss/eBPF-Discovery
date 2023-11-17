@@ -64,3 +64,16 @@ def run_http_service(http_server_port):
     wait_until(lambda: is_responsive(url), timeout=10)
     yield url
     server.terminate()
+
+
+@pytest.fixture(scope="session")
+def run_fast_api_http_service(http_server_port):
+    ip_addr = "127.0.0.1"
+    url = "http://{}:{}".format(ip_addr, http_server_port)
+    workers = 12
+    print(sys.path)
+    args = (sys.executable, "-m", "uvicorn", "fast_api_server:app", "--host", ip_addr, "--port", str(http_server_port), "--workers", str(workers))
+    server = subprocess.Popen(args, cwd=os.environ.get("TESTING_PATH"))
+    wait_until(lambda: is_responsive(url), timeout=10)
+    yield url
+    server.terminate()

@@ -2,6 +2,7 @@ import json
 import logging
 import subprocess
 import time
+import random
 
 import requests
 
@@ -66,3 +67,17 @@ def discovered_service_has_clients(discovery: subprocess.Popen, url: str, local_
                             .format(service.get("externalClientsNumber", "0"), external_clients_number, url))
             return False
     return True
+
+def generate_random_url() -> str:
+    def generate_random_string(length) -> str:
+        letters = "abcdefghijklmnopqrstuvwxyz"
+        result_str = "".join(random.choice(letters) for _ in range(length))
+        return result_str
+
+    url_len = random.randint(2, 5)
+    url_name = generate_random_string(url_len)
+    return url_name
+
+
+def generate_random_ip() -> str:
+    return ".".join(str(random.randint(0, 255)) for _ in range(4))

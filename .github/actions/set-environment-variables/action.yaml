@@ -29,7 +29,10 @@ runs:
         
         printf "BUILD_PATH=%s\n" "${{ github.workspace }}/cmake-build-${buildType,,}" >> $GITHUB_ENV
         
-        printf "TESTING_PATH=%s\n" "${{ github.workspace }}/test" >> $GITHUB_ENV
+        testingPath="${{ github.workspace }}/test"
+        printf "TESTING_PATH=%s\n" "${testingPath}" >> $GITHUB_ENV
+        printf "COMPONENT_TESTING_PATH=%s\n" "${testingPath}/component" >> $GITHUB_ENV
+        printf "LOAD_TESTING_PATH=%s\n" "${testingPath}/load" >> $GITHUB_ENV
         
         printf "ARTIFACT_PATH=%s\n" "${{ github.workspace }}/artifact" >> $GITHUB_ENV
         
