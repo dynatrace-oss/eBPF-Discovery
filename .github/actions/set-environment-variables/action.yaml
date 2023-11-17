@@ -27,9 +27,15 @@ runs:
         newestVersionWithTimestamp="${newestVersion}"."$(date +%Y%m%d-%H%M%S)"
         printf "ARTIFACT_VERSION=%s\n" "${newestVersionWithTimestamp}" >> $GITHUB_ENV
         
-        printf "BUILD_PATH=%s\n" "${{ github.workspace }}/cmake-build-${buildType,,}" >> $GITHUB_ENV
+        buildPath="${{ github.workspace }}/cmake-build-${buildType,,}"
+        printf "BUILD_PATH=%s\n" "${buildPath}" >> $GITHUB_ENV
         
-        printf "TESTING_PATH=%s\n" "${{ github.workspace }}/test" >> $GITHUB_ENV
+        printf "DISCOVERY_BIN_PATH=%s\n" "${buildPath}/bin/ebpfdiscoverysrv" >> $GITHUB_ENV
+        
+        testingPath="${{ github.workspace }}/test"
+        printf "TESTING_PATH=%s\n" "${testingPath}" >> $GITHUB_ENV
+        printf "COMPONENT_TESTING_PATH=%s\n" "${testingPath}/component" >> $GITHUB_ENV
+        printf "LOAD_TESTING_PATH=%s\n" "${testingPath}/load" >> $GITHUB_ENV
         
         printf "ARTIFACT_PATH=%s\n" "${{ github.workspace }}/artifact" >> $GITHUB_ENV
         
