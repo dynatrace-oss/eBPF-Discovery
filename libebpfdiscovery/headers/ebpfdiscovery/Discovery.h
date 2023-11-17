@@ -24,16 +24,15 @@ using httpparser::HttpRequestParser;
 
 class Discovery {
 public:
-	Discovery(DiscoveryBpf discoveryBpf);
+	Discovery(DiscoveryBpfFds bpfFds);
 	Discovery(const Discovery&) = delete;
 	Discovery& operator=(const Discovery&) = delete;
-	Discovery(Discovery&&) = default;
-	Discovery& operator=(Discovery&&) = default;
 	~Discovery() = default;
+
+	void init();
 
 	int fetchAndHandleEvents();
 	void outputServicesToStdout();
-	void init();
 
 private:
 	using SavedSessionsCacheType = LRUCache<DiscoverySavedSessionKey, Session, DiscoverySavedSessionKeyHash>;
@@ -55,11 +54,8 @@ private:
 	int bpfDiscoveryResumeCollecting();
 	int bpfDiscoveryDeleteSession(const DiscoveryTrackedSessionKey& trackedSessionKey);
 
-	constexpr auto discoverySkel() const {
-		return discoveryBpf.skel;
-	}
+	DiscoveryBpfFds bpfFds;
 
-	DiscoveryBpf discoveryBpf;
 	SavedSessionsCacheType savedSessions;
 	service::NetlinkCalls netlinkCalls;
 	service::IpAddressChecker ipChecker{{}, netlinkCalls};

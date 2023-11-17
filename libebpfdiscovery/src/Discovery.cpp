@@ -6,6 +6,8 @@
 #include "logging/Logger.h"
 #include "service/IpAddress.h"
 
+#include <bpf/bpf.h>
+
 #include <algorithm>
 #include <arpa/inet.h>
 #include <chrono>
@@ -19,11 +21,11 @@
 
 namespace ebpfdiscovery {
 
-Discovery::Discovery(DiscoveryBpf discoveryBpf) : discoveryBpf(discoveryBpf), savedSessions(DISCOVERY_MAX_SESSIONS) {
+Discovery::Discovery(DiscoveryBpfFds bpfFds) : bpfFds(bpfFds), savedSessions(DISCOVERY_MAX_SESSIONS) {
 }
 
 void Discovery::init() {
-	if (int ret{bpfDiscoveryResumeCollecting()}; ret != 0) {
+	if (int ret{bpfDiscoveryResetConfig()}; ret != 0) {
 		throw std::runtime_error("Could not initialize BPF program configuration: " + std::to_string(ret));
 	}
 }
@@ -56,7 +58,7 @@ int Discovery::bpfDiscoveryFetchAndHandleEvents() {
 	DiscoveryEvent event;
 	int ret;
 	for (;;) {
-		ret = bpf_map__lookup_and_delete_elem(discoverySkel()->maps.eventsToUserspaceQueueMap, nullptr, 0, &event, sizeof(event), BPF_ANY);
+		ret = bpf_map_lookup_and_delete_elem(bpfFds.eventsToUserspaceQueueMap, nullptr, &event);
 		if (ret != 0) {
 			break;
 		}
@@ -82,14 +84,8 @@ void Discovery::handleNewEvent(DiscoveryEvent event) {
 
 void Discovery::handleNewDataEvent(DiscoveryEvent& event) {
 	DiscoverySavedBuffer savedBuffer;
-	auto lookup_result{bpf_map__lookup_elem(
-			discoverySkel()->maps.savedBuffersMap,
-			&event.dataKey,
-			sizeof(DiscoverySavedBufferKey),
-			&savedBuffer,
-			sizeof(savedBuffer),
-			BPF_ANY)};
-	if (lookup_result != 0) {
+	auto res{bpf_map_lookup_and_delete_elem(bpfFds.savedBuffersMap, &event.dataKey, &savedBuffer)};
+	if (res != 0) {
 		return;
 	}
 
@@ -98,8 +94,6 @@ void Discovery::handleNewDataEvent(DiscoveryEvent& event) {
 
 void Discovery::handleBufferLookupSuccess(DiscoverySavedBuffer& savedBuffer, DiscoveryEvent& event) {
 	std::string_view bufferView(savedBuffer.data, savedBuffer.length);
-	bpf_map__delete_elem(discoverySkel()->maps.savedBuffersMap, &event.dataKey, sizeof(DiscoverySavedBufferKey), BPF_ANY);
-
 	auto it{savedSessions.find(event.dataKey)};
 	if (it != savedSessions.end()) {
 		handleExistingSession(it, bufferView, event);
@@ -188,8 +182,7 @@ void Discovery::handleCloseEvent(DiscoveryEvent& event) {
 int Discovery::bpfDiscoveryResumeCollecting() {
 	static uint32_t zero{0};
 	DiscoveryGlobalState discoveryGlobalState{};
-	return bpf_map__update_elem(
-			discoverySkel()->maps.globalStateMap, &zero, sizeof(zero), &discoveryGlobalState, sizeof(discoveryGlobalState), BPF_EXIST);
+	return bpf_map_update_elem(bpfFds.globalStateMap, &zero, &discoveryGlobalState, BPF_EXIST);
 }
 
 int Discovery::bpfDiscoveryResetConfig() {
@@ -205,7 +198,7 @@ void Discovery::saveSession(const DiscoverySavedSessionKey& sessionKey, const Se
 }
 
 int Discovery::bpfDiscoveryDeleteSession(const DiscoveryTrackedSessionKey& trackedSessionKey) {
-	return bpf_map__delete_elem(discoverySkel()->maps.trackedSessionsMap, &trackedSessionKey, sizeof(trackedSessionKey), BPF_ANY);
+	return bpf_map_delete_elem(bpfFds.trackedSessionsMap, &trackedSessionKey);
 }
 
 } // namespace ebpfdiscovery
