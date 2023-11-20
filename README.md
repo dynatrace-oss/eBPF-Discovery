@@ -1,7 +1,7 @@
 # eBPF Discovery
 
 eBPF Discovery is a tool for discovering HTTP endpoints on a given host based on incoming HTTP requests.
-Only Linux kernels of version 5.3.0 or above are supported.
+Only Linux kernels of version 4.20 or above are supported.
 
 **Output data**
 
