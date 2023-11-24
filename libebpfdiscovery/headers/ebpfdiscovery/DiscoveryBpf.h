@@ -14,23 +14,17 @@ struct DiscoveryBpfFds {
 
 class DiscoveryBpf {
 public:
-	DiscoveryBpf();
+	DiscoveryBpf() = default;
 	DiscoveryBpf(const DiscoveryBpf&) = delete;
 	DiscoveryBpf& operator=(const DiscoveryBpf&) = delete;
-	~DiscoveryBpf();
 
-	bool isRunning() noexcept;
 	void load();
-	void unload() noexcept;
+	void unload();
 
 	DiscoveryBpfFds getFds();
 
 private:
-	void resetState() noexcept;
-
 	bool coreEnsured{false};
-	bool opened{false};
-	bool attached{false};
 	bpf_object_open_opts openOpts{0};
 
 	discovery_bpf* skel{nullptr};

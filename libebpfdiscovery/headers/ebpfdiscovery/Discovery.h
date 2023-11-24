@@ -24,10 +24,9 @@ using httpparser::HttpRequestParser;
 
 class Discovery {
 public:
-	Discovery(DiscoveryBpfFds bpfFds);
+	Discovery(const DiscoveryBpfFds& bpfFds);
 	Discovery(const Discovery&) = delete;
 	Discovery& operator=(const Discovery&) = delete;
-	~Discovery() = default;
 
 	void init();
 

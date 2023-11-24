@@ -21,21 +21,21 @@
 
 namespace ebpfdiscovery {
 
-Discovery::Discovery(DiscoveryBpfFds bpfFds) : bpfFds(bpfFds), savedSessions(DISCOVERY_MAX_SESSIONS) {
+Discovery::Discovery(const DiscoveryBpfFds& bpfFds) : bpfFds{bpfFds}, savedSessions{DISCOVERY_MAX_SESSIONS} {
 }
 
 void Discovery::init() {
-	if (int ret{bpfDiscoveryResetConfig()}; ret != 0) {
+	if (const auto ret{bpfDiscoveryResetConfig()}; ret != 0) {
 		throw std::runtime_error("Could not initialize BPF program configuration: " + std::to_string(ret));
 	}
 }
 
 int Discovery::fetchAndHandleEvents() {
-	if (auto ret{bpfDiscoveryResumeCollecting()}; ret != 0) {
+	if (const auto ret{bpfDiscoveryResumeCollecting()}; ret != 0) {
 		return ret;
 	}
 
-	if (auto ret{bpfDiscoveryFetchAndHandleEvents()}; ret != 0) {
+	if (const auto ret{bpfDiscoveryFetchAndHandleEvents()}; ret != 0) {
 		return ret;
 	}
 
@@ -84,7 +84,7 @@ void Discovery::handleNewEvent(DiscoveryEvent event) {
 
 void Discovery::handleNewDataEvent(DiscoveryEvent& event) {
 	DiscoverySavedBuffer savedBuffer;
-	auto res{bpf_map_lookup_and_delete_elem(bpfFds.savedBuffersMap, &event.dataKey, &savedBuffer)};
+	const auto res{bpf_map_lookup_and_delete_elem(bpfFds.savedBuffersMap, &event.dataKey, &savedBuffer)};
 	if (res != 0) {
 		return;
 	}
@@ -94,7 +94,7 @@ void Discovery::handleNewDataEvent(DiscoveryEvent& event) {
 
 void Discovery::handleBufferLookupSuccess(DiscoverySavedBuffer& savedBuffer, DiscoveryEvent& event) {
 	std::string_view bufferView(savedBuffer.data, savedBuffer.length);
-	auto it{savedSessions.find(event.dataKey)};
+	const auto it{savedSessions.find(event.dataKey)};
 	if (it != savedSessions.end()) {
 		handleExistingSession(it, bufferView, event);
 		return;

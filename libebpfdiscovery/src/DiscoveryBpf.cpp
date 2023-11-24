@@ -9,17 +9,6 @@ extern "C" {
 
 namespace ebpfdiscovery {
 
-DiscoveryBpf::DiscoveryBpf() {
-}
-
-DiscoveryBpf::~DiscoveryBpf() {
-	unload();
-}
-
-bool DiscoveryBpf::isRunning() noexcept {
-	return attached;
-}
-
 void DiscoveryBpf::load() {
 	LOG_DEBUG("Loading BPF program.");
 
@@ -37,7 +26,6 @@ void DiscoveryBpf::load() {
 	if (skel == nullptr) {
 		throw std::runtime_error("Failed to open BPF object.");
 	}
-	opened = true;
 
 	if (const auto res{discovery_bpf__load(skel)}) {
 		throw std::runtime_error("Failed to load BPF object: " + std::to_string(res));
@@ -46,11 +34,9 @@ void DiscoveryBpf::load() {
 	if (const auto res{discovery_bpf__attach(skel)}) {
 		throw std::runtime_error("Failed to attach BPF object: " + std::to_string(res));
 	}
-
-	attached = true;
 }
 
-void DiscoveryBpf::unload() noexcept {
+void DiscoveryBpf::unload() {
 	if (skel != nullptr) {
 		discovery_bpf__destroy(skel);
 		skel = nullptr;
@@ -58,28 +44,21 @@ void DiscoveryBpf::unload() noexcept {
 
 	if (coreEnsured) {
 		cleanup_core_btf(&openOpts);
+		coreEnsured = false;
 	}
-
-	resetState();
 }
 
 DiscoveryBpfFds DiscoveryBpf::getFds() {
-	if (!isRunning()) {
-		return DiscoveryBpfFds{};
+	if (skel == nullptr) {
+		return {};
 	}
 
-	return DiscoveryBpfFds{
+	return {
 			.globalStateMap = bpf_map__fd(skel->maps.globalStateMap),
 			.eventsToUserspaceQueueMap = bpf_map__fd(skel->maps.eventsToUserspaceQueueMap),
 			.savedBuffersMap = bpf_map__fd(skel->maps.savedBuffersMap),
 			.trackedSessionsMap = bpf_map__fd(skel->maps.trackedSessionsMap),
 	};
-}
-
-void DiscoveryBpf::resetState() noexcept {
-	coreEnsured = false;
-	opened = false;
-	attached = false;
 }
 
 } // namespace ebpfdiscovery
