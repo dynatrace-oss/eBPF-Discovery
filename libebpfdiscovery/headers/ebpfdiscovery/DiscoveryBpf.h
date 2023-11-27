@@ -5,16 +5,29 @@
 
 namespace ebpfdiscovery {
 
+struct DiscoveryBpfFds {
+	int globalStateMap;
+	int eventsToUserspaceQueueMap;
+	int savedBuffersMap;
+	int trackedSessionsMap;
+};
+
 class DiscoveryBpf {
 public:
-	DiscoveryBpf(discovery_bpf* skel);
-	DiscoveryBpf(const DiscoveryBpf&) = default;
-	DiscoveryBpf& operator=(const DiscoveryBpf&) = default;
-	DiscoveryBpf(DiscoveryBpf&&) = default;
-	DiscoveryBpf& operator=(DiscoveryBpf&&) = default;
-	~DiscoveryBpf() = default;
+	DiscoveryBpf() = default;
+	DiscoveryBpf(const DiscoveryBpf&) = delete;
+	DiscoveryBpf& operator=(const DiscoveryBpf&) = delete;
 
-	discovery_bpf* skel;
+	void load();
+	void unload();
+
+	DiscoveryBpfFds getFds();
+
+private:
+	bool coreEnsured{false};
+	bpf_object_open_opts openOpts{0};
+
+	discovery_bpf* skel{nullptr};
 };
 
 } // namespace ebpfdiscovery

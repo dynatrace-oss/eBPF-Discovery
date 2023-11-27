@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 #include "ebpfdiscovery/Discovery.h"
 #include "ebpfdiscovery/DiscoveryBpf.h"
-#include "ebpfdiscovery/DiscoveryBpfLoader.h"
 #include "logging/Logger.h"
 
 #include <boost/asio/steady_timer.hpp>
@@ -124,15 +123,16 @@ int main(int argc, char** argv) {
 	LOG_DEBUG("Starting the program.");
 
 	initLibbpf();
-	ebpfdiscovery::DiscoveryBpfLoader loader;
+	ebpfdiscovery::DiscoveryBpf discoveryBpf;
 	try {
-		loader.load();
+		discoveryBpf.load();
 	} catch (const std::runtime_error& e) {
 		LOG_CRITICAL("Couldn't load BPF program. ({})", e.what());
 		return EXIT_FAILURE;
 	}
 
-	ebpfdiscovery::Discovery instance(loader.get());
+	const auto bpfFds{discoveryBpf.getFds()};
+	ebpfdiscovery::Discovery instance(bpfFds);
 	try {
 		instance.init();
 	} catch (const std::runtime_error& e) {
@@ -163,5 +163,7 @@ int main(int argc, char** argv) {
 	programRunningFlag.clear();
 
 	LOG_DEBUG("Exiting the program.");
+	discoveryBpf.unload();
+
 	return EXIT_SUCCESS;
 }

@@ -3,7 +3,6 @@ list(
         SOURCES
         src/Discovery.cpp
         src/DiscoveryBpf.cpp
-        src/DiscoveryBpfLoader.cpp
         src/Session.cpp
 )
 set(TARGET ebpfdiscovery)
