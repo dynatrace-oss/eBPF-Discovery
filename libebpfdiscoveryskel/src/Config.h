@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: GPL-2.0
 #pragma once
 
+#include "vmlinux.h"
+
+#include <bpf/bpf_helpers.h>
+
 struct {
 	__uint(type, BPF_MAP_TYPE_ARRAY);
 	__type(key, __u32);

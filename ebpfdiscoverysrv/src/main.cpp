@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0
 #include "ebpfdiscovery/Discovery.h"
 #include "ebpfdiscovery/DiscoveryBpf.h"
+#include "ebpfdiscovery/DiscoveryBpfLogging.h"
 #include "logging/Logger.h"
 
 #include <boost/asio/steady_timer.hpp>
@@ -15,6 +16,7 @@
 #include <unistd.h>
 
 namespace po = boost::program_options;
+namespace bpflogging = ebpfdiscovery::bpflogging;
 using logging::Logger;
 using logging::LogLevel;
 
@@ -143,12 +145,19 @@ int main(int argc, char** argv) {
 		programRunningFlag.clear();
 	}
 
+	int logPerfBufFd{discoveryBpf.getLogPerfBufFd()};
+
+	perf_buffer* logBuf{bpflogging::init(logPerfBufFd)};
+	if (logBuf == nullptr) {
+		LOG_CRITICAL("Could not open perf buffer for Discovery BPF logging: {}.", std::strerror(-errno));
+	}
+
 	auto eventQueuePollInterval{std::chrono::milliseconds(250)};
 	auto fetchAndHandleTimer{boost::asio::steady_timer(ioContext, eventQueuePollInterval)};
 	scheduleFunction(ioContext, fetchAndHandleTimer, eventQueuePollInterval, [&instance]() {
 		auto ret{instance.fetchAndHandleEvents()};
 		if (ret != 0) {
-			LOG_CRITICAL("Failed to fetch and handle events: {}", std::strerror(-ret));
+			LOG_CRITICAL("Failed to fetch and handle Discovery BPF events: {}.", std::strerror(-ret));
 			programRunningFlag.clear();
 		}
 	});
@@ -157,6 +166,19 @@ int main(int argc, char** argv) {
 	auto outputServicesToStdoutTimer{boost::asio::steady_timer(ioContext, outputServicesToStdoutInterval)};
 	scheduleFunction(ioContext, outputServicesToStdoutTimer, outputServicesToStdoutInterval, [&]() { instance.outputServicesToStdout(); });
 
+	auto logBufFetchInterval{std::chrono::milliseconds(250)};
+	auto logBufFetchTimer{boost::asio::steady_timer(ioContext, logBufFetchInterval)};
+	if (logLevel <= logging::LogLevel::Debug) {
+		LOG_DEBUG("Handling of Discovery BPF logging is enabled.");
+		scheduleFunction(ioContext, logBufFetchTimer, logBufFetchInterval, [&]() {
+			auto ret{bpflogging::fetchAndLog(logBuf)};
+			if (ret != 0) {
+				LOG_CRITICAL("Failed to fetch and handle Discovery BPF logging: {}.", std::strerror(-ret));
+				programRunningFlag.clear();
+			}
+		});
+	}
+
 	while (programRunningFlag.test_and_set()) {
 		ioContext.run_one();
 	}
@@ -164,6 +186,7 @@ int main(int argc, char** argv) {
 
 	LOG_DEBUG("Exiting the program.");
 	discoveryBpf.unload();
+	bpflogging::stop(logBuf);
 
 	return EXIT_SUCCESS;
 }

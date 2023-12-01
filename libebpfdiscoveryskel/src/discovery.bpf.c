@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 
+#include "Log.h"
 #include "SyscallProbes.h"
 
 // vmlinux.h is required by bpf_helpers.h
