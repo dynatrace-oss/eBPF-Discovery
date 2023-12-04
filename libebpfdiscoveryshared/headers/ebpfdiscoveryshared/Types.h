@@ -204,7 +204,6 @@ struct DiscoveryGlobalState {
  * eBPF logs and program config
  */
 
-// Only debug log levels are supported
 enum DiscoveryLogLevel {
 	DISCOVERY_LOG_LEVEL_TRACE,
 	DISCOVERY_LOG_LEVEL_DEBUG,
