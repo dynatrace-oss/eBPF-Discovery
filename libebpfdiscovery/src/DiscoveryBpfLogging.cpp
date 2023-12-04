@@ -16,6 +16,8 @@ logging::LogLevel severityToLogLevel(const DiscoveryLogLevel severity) {
 		return logging::LogLevel::Trace;
 	case DISCOVERY_LOG_LEVEL_DEBUG:
 		return logging::LogLevel::Debug;
+	case DISCOVERY_LOG_LEVEL_OFF:
+		return logging::LogLevel::Off;
 	}
 	return logging::LogLevel::Off;
 }
