@@ -147,7 +147,7 @@ int main(int argc, char** argv) {
 
 	int logPerfBufFd{discoveryBpf.getLogPerfBufFd()};
 
-	perf_buffer* logBuf{bpflogging::init(logPerfBufFd)};
+	perf_buffer* logBuf{bpflogging::setup(logPerfBufFd)};
 	if (logBuf == nullptr) {
 		LOG_CRITICAL("Could not open perf buffer for Discovery BPF logging: {}.", std::strerror(-errno));
 	}
@@ -186,7 +186,7 @@ int main(int argc, char** argv) {
 
 	LOG_DEBUG("Exiting the program.");
 	discoveryBpf.unload();
-	bpflogging::stop(logBuf);
+	bpflogging::close(logBuf);
 
 	return EXIT_SUCCESS;
 }

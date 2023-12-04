@@ -58,16 +58,16 @@ static void handlePerfLogLostEvents(void* ctx, int cpu, __u64 lostEventsCount) {
 	LOG_DEBUG("{} BPF log events have been lost.", lostEventsCount);
 }
 
-perf_buffer* init(int logPerfBufFd) {
+perf_buffer* setup(int logPerfBufFd) {
 	return perf_buffer__new(logPerfBufFd, DISCOVERY_LOG_PERF_BUF_PAGES, handlePerfLogEvent, handlePerfLogLostEvents, nullptr, nullptr);
 }
 
-void stop(perf_buffer* logBuf) {
-	perf_buffer__free(logBuf);
+int fetchAndLog(perf_buffer* logBuf) {
+	return perf_buffer__consume(logBuf);
 }
 
-int fetchAndLog(perf_buffer* logBuf) {
-	perf_buffer__consume(logBuf);
+void close(perf_buffer* logBuf) {
+	perf_buffer__free(logBuf);
 }
 
 } // namespace ebpfdiscovery::bpflogging
