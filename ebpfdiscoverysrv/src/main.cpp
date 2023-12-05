@@ -145,7 +145,7 @@ int main(int argc, char** argv) {
 		programRunningFlag.clear();
 	}
 
-	int logPerfBufFd{discoveryBpf.getLogPerfBufFd()};
+	const int logPerfBufFd{discoveryBpf.getLogPerfBufFd()};
 
 	perf_buffer* logBuf{bpflogging::setup(logPerfBufFd)};
 	if (logBuf == nullptr) {
