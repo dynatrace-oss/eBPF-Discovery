@@ -8,8 +8,8 @@
 
 namespace ebpfdiscovery::bpflogging {
 
-perf_buffer* setup(int logPerfBufFd);
+perf_buffer* setupLogging(int logPerfBufFd);
 int fetchAndLog(perf_buffer* logBuf);
-void close(perf_buffer* logBuf);
+void closeLogging(perf_buffer* logBuf);
 
 } // namespace ebpfdiscovery::bpflogging
