@@ -3,7 +3,7 @@
 
 #include "logging/Logger.h"
 #include "service/IpAddress.h"
-#include "service/IpAddressChecker.h"
+#include "service/IpAddressNetlinkChecker.h"
 
 #include <arpa/inet.h>
 
@@ -13,7 +13,8 @@ static std::string getEndpoint(const std::string& host, const std::string& url) 
 	return host + url;
 }
 
-static void incrementServiceClientsNumber(IpAddressChecker& ipChecker, Service& service, const httpparser::HttpRequest& request, const DiscoverySessionMeta& meta) {
+static void incrementServiceClientsNumber(
+		const IpAddressChecker& ipChecker, Service& service, const httpparser::HttpRequest& request, const DiscoverySessionMeta& meta) {
 	std::string clientAddr;
 	if (!request.xForwardedFor.empty()) {
 		clientAddr = request.xForwardedFor.front();
@@ -38,7 +39,7 @@ static void incrementServiceClientsNumber(IpAddressChecker& ipChecker, Service& 
 	}
 }
 
-static Service toService(IpAddressChecker& ipChecker, const httpparser::HttpRequest& request, const DiscoverySessionMeta& meta) {
+static Service toService(const IpAddressChecker& ipChecker, const httpparser::HttpRequest& request, const DiscoverySessionMeta& meta) {
 	Service service;
 	service.pid = meta.pid;
 	service.endpoint = getEndpoint(request.host, request.url);
@@ -46,9 +47,7 @@ static Service toService(IpAddressChecker& ipChecker, const httpparser::HttpRequ
 	return service;
 }
 
-Aggregator::Aggregator(IpAddressChecker& ipChecker) : ipChecker(ipChecker) {
-	ipChecker.readNetworks();
-}
+Aggregator::Aggregator(const IpAddressChecker& ipChecker) : ipChecker{ipChecker} {}
 
 void Aggregator::clear() {
 	services.clear();

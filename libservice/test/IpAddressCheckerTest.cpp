@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
-#include "service/IpAddressChecker.h"
+#include "NetlinkCallsMock.h"
+#include "service/IpAddressNetlinkChecker.h"
 
 #include <arpa/inet.h>
 #include <gmock/gmock.h>
@@ -8,93 +9,244 @@
 using namespace service;
 using namespace ::testing;
 
-class NetlinkCallsMock : public NetlinkCalls {
+class IpAddressCheckerTest : public Test {
 public:
-	MOCK_METHOD(int, sendIpAddrRequest, (int fd, sockaddr_nl* dst, int domain), (const, override));
-	MOCK_METHOD(int, sendBridgesRequest, (int fd, sockaddr_nl* dst, int domain), (const, override));
-	MOCK_METHOD(int, receive, (int fd, sockaddr_nl* dst, void* buf, size_t len), (const, override));
+	NiceMock<NetlinkCallsMock> netlinkMock;
 };
 
-class IpAddressCheckerTest : public IpAddressChecker {
-protected:
-public:
-	using IpAddressChecker::IpAddressChecker;
-	IpAddressCheckerTest(std::initializer_list<IpIfce> config, const NetlinkCallsMock& mc) : IpAddressChecker(config, mc) {
-		moveBridges();
-	}
-};
+// 0.0.0.0/8
+TEST_F(IpAddressCheckerTest, Test0_0_0_0_8) {
+	IpAddressNetlinkChecker ipAddressNetlinkChecker{netlinkMock};
 
-TEST(TestAddressChecker, LocalBridgeIp) {
-	const NetlinkCallsMock netlinkMock;
-	IpAddressCheckerTest u(
-			{{{inet_addr("10.2.4.5")}, {}, 0x0000ffff, 0, true}, {{inet_addr("10.7.4.5")}, {}, 0x0000ffff, 0, false}}, netlinkMock);
-	EXPECT_FALSE(u.isAddressExternalLocal(inet_addr("10.2.6.5")));
+	// Range boundaries
+	EXPECT_FALSE(ipAddressNetlinkChecker.isAddressExternalLocal(inet_addr("0.0.0.0")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isAddressExternalLocal(inet_addr("0.255.255.255")));
+
+	// Middle of the range
+	EXPECT_FALSE(ipAddressNetlinkChecker.isAddressExternalLocal(inet_addr("0.54.189.245")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isAddressExternalLocal(inet_addr("0.128.0.1")));
 }
 
-TEST(TestAddressChecker, NoReadIfSendFailed) {
-	const NetlinkCallsMock netlinkMock;
-	EXPECT_CALL(netlinkMock, sendIpAddrRequest).WillOnce(Return(-1));
-	EXPECT_CALL(netlinkMock, sendBridgesRequest).WillOnce(Return(-1));
-	IpAddressCheckerTest u({}, netlinkMock);
-	u.readNetworks();
+// 10.0.0.0/8
+TEST_F(IpAddressCheckerTest, Test10_0_0_0_8) {
+	IpAddressNetlinkChecker ipAddressNetlinkChecker{netlinkMock};
+
+	// Range boundaries
+	EXPECT_FALSE(ipAddressNetlinkChecker.isAddressExternalLocal(inet_addr("10.0.0.0")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isAddressExternalLocal(inet_addr("10.255.255.255")));
+
+	// Middle of the range
+	EXPECT_FALSE(ipAddressNetlinkChecker.isAddressExternalLocal(inet_addr("10.54.189.245")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isAddressExternalLocal(inet_addr("10.128.0.1")));
 }
 
-TEST(TestAddressChecker, ReadAfterSuccessfullSend) {
-	const NetlinkCallsMock netlinkMock;
-	EXPECT_CALL(netlinkMock, sendIpAddrRequest).WillOnce(Return(1));
-	EXPECT_CALL(netlinkMock, sendBridgesRequest).WillOnce(Return(1));
-	EXPECT_CALL(netlinkMock, receive).Times(2).WillRepeatedly(Return(0));
-	IpAddressCheckerTest u({}, netlinkMock);
-	u.readNetworks();
+// 100.64.0.0/10
+TEST_F(IpAddressCheckerTest, Test100_64_0_0_10) {
+	IpAddressNetlinkChecker ipAddressNetlinkChecker{netlinkMock};
+
+	// Range boundaries
+	EXPECT_FALSE(ipAddressNetlinkChecker.isAddressExternalLocal(inet_addr("100.64.0.0")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isAddressExternalLocal(inet_addr("100.127.255.255")));
+
+	// Middle of the range
+	EXPECT_FALSE(ipAddressNetlinkChecker.isAddressExternalLocal(inet_addr("100.64.128.0")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isAddressExternalLocal(inet_addr("100.66.0.1")));
 }
 
-TEST(TestAddressChecker, ReadUntilGreaterThan0) {
-	const NetlinkCallsMock netlinkMock;
-	EXPECT_CALL(netlinkMock, sendIpAddrRequest).WillOnce(Return(1));
-	EXPECT_CALL(netlinkMock, sendBridgesRequest).WillOnce(Return(1));
-	EXPECT_CALL(netlinkMock, receive).WillOnce(Return(1)).WillOnce(Return(0)).WillOnce(Return(1)).WillOnce(Return(0));
-	IpAddressCheckerTest u({}, netlinkMock);
-	u.readNetworks();
+// 127.0.0.0/8
+TEST_F(IpAddressCheckerTest, Test127_0_0_0_8) {
+	IpAddressNetlinkChecker ipAddressNetlinkChecker{netlinkMock};
+
+	// Range boundaries
+	EXPECT_FALSE(ipAddressNetlinkChecker.isAddressExternalLocal(inet_addr("127.0.0.0")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isAddressExternalLocal(inet_addr("127.255.255.255")));
+
+	// Middle of the range
+	EXPECT_FALSE(ipAddressNetlinkChecker.isAddressExternalLocal(inet_addr("127.0.0.1")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isAddressExternalLocal(inet_addr("127.128.0.1")));
 }
 
-TEST(TestAddressChecker, NOTLocalBridgeIp) {
-	const NetlinkCallsMock netlinkMock;
-	IpAddressCheckerTest u({{{inet_addr("10.2.6.5")}, {}, 0x0000ffff, 0, true}}, netlinkMock);
-	EXPECT_TRUE(u.isAddressExternalLocal(inet_addr("10.3.34.2")));
+// 169.254.0.0/16
+TEST_F(IpAddressCheckerTest, Test169_254_0_0_16) {
+	IpAddressNetlinkChecker ipAddressNetlinkChecker{netlinkMock};
+
+	// Range boundaries
+	EXPECT_FALSE(ipAddressNetlinkChecker.isAddressExternalLocal(inet_addr("169.254.0.0")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isAddressExternalLocal(inet_addr("169.254.255.255")));
+
+	// Middle of the range
+	EXPECT_FALSE(ipAddressNetlinkChecker.isAddressExternalLocal(inet_addr("169.254.128.0")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isAddressExternalLocal(inet_addr("169.254.192.1")));
 }
 
-TEST(TestAddressChecker, LocalIfceIpSrc) {
-	const NetlinkCallsMock netlinkMock;
-	IpAddressCheckerTest u({{{inet_addr("10.2.6.5")}, {}, 0x0000ffff, 0, false}}, netlinkMock);
-	EXPECT_FALSE(u.isAddressExternalLocal(inet_addr("10.2.6.5")));
+// 172.16.0.0/12
+TEST_F(IpAddressCheckerTest, Test172_16_0_0_12) {
+	IpAddressNetlinkChecker ipAddressNetlinkChecker{netlinkMock};
+
+	// Range boundaries
+	EXPECT_FALSE(ipAddressNetlinkChecker.isAddressExternalLocal(inet_addr("172.16.0.0")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isAddressExternalLocal(inet_addr("172.31.255.255")));
+
+	// Middle of the range
+	EXPECT_FALSE(ipAddressNetlinkChecker.isAddressExternalLocal(inet_addr("172.20.0.0")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isAddressExternalLocal(inet_addr("172.24.0.1")));
 }
 
-TEST(TestAddressChecker, SimpleClassATest) {
-	NetlinkCalls calls;
-	IpAddressCheckerTest u(calls);
-	EXPECT_TRUE(u.isAddressExternalLocal(inet_addr("192.168.1.2")));
+// 192.0.0.0/24
+TEST_F(IpAddressCheckerTest, Test192_0_0_0_24) {
+	IpAddressNetlinkChecker ipAddressNetlinkChecker{netlinkMock};
+
+	// Range boundaries
+	EXPECT_FALSE(ipAddressNetlinkChecker.isAddressExternalLocal(inet_addr("192.0.0.0")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isAddressExternalLocal(inet_addr("192.0.0.255")));
+
+	// Middle of the range
+	EXPECT_FALSE(ipAddressNetlinkChecker.isAddressExternalLocal(inet_addr("192.0.0.128")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isAddressExternalLocal(inet_addr("192.0.0.1")));
 }
 
-TEST(TestAddressChecker, SimpleClassBTest) {
-	NetlinkCalls calls;
-	IpAddressCheckerTest u(calls);
-	EXPECT_TRUE(u.isAddressExternalLocal(inet_addr("172.20.21.2")));
+// 192.0.2.0/24
+TEST_F(IpAddressCheckerTest, Test192_0_2_0_24) {
+	IpAddressNetlinkChecker ipAddressNetlinkChecker{netlinkMock};
+
+	// Range boundaries
+	EXPECT_FALSE(ipAddressNetlinkChecker.isAddressExternalLocal(inet_addr("192.0.2.0")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isAddressExternalLocal(inet_addr("192.0.2.255")));
+
+	// Middle of the range
+	EXPECT_FALSE(ipAddressNetlinkChecker.isAddressExternalLocal(inet_addr("192.0.2.128")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isAddressExternalLocal(inet_addr("192.0.2.1")));
 }
 
-TEST(TestAddressChecker, SimpleClassCtest) {
-	NetlinkCalls calls;
-	IpAddressCheckerTest u(calls);
-	EXPECT_TRUE(u.isAddressExternalLocal(inet_addr("10.2.4.5")));
+// 192.88.99.0/24
+TEST_F(IpAddressCheckerTest, Test192_88_99_0_24) {
+	IpAddressNetlinkChecker ipAddressNetlinkChecker{netlinkMock};
+
+	// Range boundaries
+	EXPECT_FALSE(ipAddressNetlinkChecker.isAddressExternalLocal(inet_addr("192.88.99.0")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isAddressExternalLocal(inet_addr("192.88.99.255")));
+
+	// Middle of the range
+	EXPECT_FALSE(ipAddressNetlinkChecker.isAddressExternalLocal(inet_addr("192.88.99.128")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isAddressExternalLocal(inet_addr("192.88.99.1")));
 }
 
-TEST(TestAddressChecker, SimpleLinkLocal) {
-	NetlinkCalls calls;
-	IpAddressCheckerTest u(calls);
-	EXPECT_FALSE(u.isAddressExternalLocal(inet_addr("169.254.76.6")));
+// 192.168.0.0/
+TEST_F(IpAddressCheckerTest, Test192_168_0_0_16) {
+	IpAddressNetlinkChecker ipAddressNetlinkChecker{netlinkMock};
+
+	// Range boundaries
+	EXPECT_FALSE(ipAddressNetlinkChecker.isAddressExternalLocal(inet_addr("192.168.0.0")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isAddressExternalLocal(inet_addr("192.168.255.255")));
+
+	// Middle of the range
+	EXPECT_FALSE(ipAddressNetlinkChecker.isAddressExternalLocal(inet_addr("192.168.128.0")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isAddressExternalLocal(inet_addr("192.168.192.1")));
 }
 
-TEST(TestAddressChecker, SimplePublicIp) {
-	NetlinkCalls calls;
-	IpAddressCheckerTest u(calls);
-	EXPECT_FALSE(u.isAddressExternalLocal(inet_addr("170.254.76.6")));
+// 198.18.0.0/15
+TEST_F(IpAddressCheckerTest, Test198_18_0_0_15) {
+	IpAddressNetlinkChecker ipAddressNetlinkChecker{netlinkMock};
+
+	// Range boundaries
+	EXPECT_FALSE(ipAddressNetlinkChecker.isAddressExternalLocal(inet_addr("198.18.0.0")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isAddressExternalLocal(inet_addr("198.19.255.255")));
+
+	// Middle of the range
+	EXPECT_FALSE(ipAddressNetlinkChecker.isAddressExternalLocal(inet_addr("198.18.128.0")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isAddressExternalLocal(inet_addr("198.18.192.1")));
+}
+
+// 198.51.100.0/24
+TEST_F(IpAddressCheckerTest, Test198_51_100_0_24) {
+	IpAddressNetlinkChecker ipAddressNetlinkChecker{netlinkMock};
+
+	// Range boundaries
+	EXPECT_FALSE(ipAddressNetlinkChecker.isAddressExternalLocal(inet_addr("198.51.100.0")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isAddressExternalLocal(inet_addr("198.51.100.255")));
+
+	// Middle of the range
+	EXPECT_FALSE(ipAddressNetlinkChecker.isAddressExternalLocal(inet_addr("198.51.100.128")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isAddressExternalLocal(inet_addr("198.51.100.1")));
+}
+
+// 203.0.113.0/24
+TEST_F(IpAddressCheckerTest, Test203_0_113_0_24) {
+	IpAddressNetlinkChecker ipAddressNetlinkChecker{netlinkMock};
+
+	// Range boundaries
+	EXPECT_FALSE(ipAddressNetlinkChecker.isAddressExternalLocal(inet_addr("203.0.113.0")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isAddressExternalLocal(inet_addr("203.0.113.255")));
+
+	// Middle of the range
+	EXPECT_FALSE(ipAddressNetlinkChecker.isAddressExternalLocal(inet_addr("203.0.113.128")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isAddressExternalLocal(inet_addr("203.0.113.1")));
+}
+
+// 224.0.0.0/4
+TEST_F(IpAddressCheckerTest, Test224_0_0_0_4) {
+	IpAddressNetlinkChecker ipAddressNetlinkChecker{netlinkMock};
+
+	// Range boundaries
+	EXPECT_FALSE(ipAddressNetlinkChecker.isAddressExternalLocal(inet_addr("224.0.0.0")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isAddressExternalLocal(inet_addr("239.255.255.255")));
+
+	// Middle of the range
+	EXPECT_FALSE(ipAddressNetlinkChecker.isAddressExternalLocal(inet_addr("225.128.0.0")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isAddressExternalLocal(inet_addr("230.0.0.1")));
+}
+
+// 233.252.0.0/24
+TEST_F(IpAddressCheckerTest, Test233_252_0_0_24) {
+	IpAddressNetlinkChecker ipAddressNetlinkChecker{netlinkMock};
+
+	// Range boundaries
+	EXPECT_FALSE(ipAddressNetlinkChecker.isAddressExternalLocal(inet_addr("233.252.0.0")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isAddressExternalLocal(inet_addr("233.252.0.255")));
+
+	// Middle of the range
+	EXPECT_FALSE(ipAddressNetlinkChecker.isAddressExternalLocal(inet_addr("233.252.0.128")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isAddressExternalLocal(inet_addr("233.252.0.1")));
+}
+
+// 240.0.0.0/4
+TEST_F(IpAddressCheckerTest, Test240_0_0_0_4) {
+	IpAddressNetlinkChecker ipAddressNetlinkChecker{netlinkMock};
+
+	// Range boundaries
+	EXPECT_FALSE(ipAddressNetlinkChecker.isAddressExternalLocal(inet_addr("240.0.0.0")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isAddressExternalLocal(inet_addr("255.255.255.254")));
+
+	// Middle of the range
+	EXPECT_FALSE(ipAddressNetlinkChecker.isAddressExternalLocal(inet_addr("241.128.0.0")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isAddressExternalLocal(inet_addr("248.0.0.1")));
+}
+
+// 255.255.255.255/32
+TEST_F(IpAddressCheckerTest, Test255_255_255_255_32) {
+	IpAddressNetlinkChecker ipAddressNetlinkChecker{netlinkMock};
+
+	EXPECT_FALSE(ipAddressNetlinkChecker.isAddressExternalLocal(inet_addr("255.255.255.255")));
+}
+
+TEST_F(IpAddressCheckerTest, LocalBridgeIp) {
+	EXPECT_CALL(netlinkMock, collectIpInterfaces).WillOnce(Return(IpInterfaces{
+			{0, IpIfce{{inet_addr("142.15.4.0")}, {}, 0x0000ffff}}
+	}));
+	EXPECT_CALL(netlinkMock, collectBridgeIndices).WillOnce(Return(BridgeIndices{0}));
+
+	IpAddressNetlinkChecker ipAddressNetlinkChecker{netlinkMock};
+
+	EXPECT_FALSE(ipAddressNetlinkChecker.isAddressExternalLocal(inet_addr("142.15.6.5")));
+}
+
+TEST_F(IpAddressCheckerTest, LocalIfceIpSrc) {
+	EXPECT_CALL(netlinkMock, collectIpInterfaces).WillOnce(Return(IpInterfaces{
+			{0, IpIfce{{inet_addr("115.89.3.7")}, {}, 0x0000ffff}},
+	}));
+	EXPECT_CALL(netlinkMock, collectBridgeIndices).WillOnce(Return(BridgeIndices{}));
+
+	IpAddressNetlinkChecker ipAddressNetlinkChecker{netlinkMock};
+
+	EXPECT_FALSE(ipAddressNetlinkChecker.isAddressExternalLocal(inet_addr("115.89.3.7")));
 }

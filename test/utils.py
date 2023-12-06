@@ -4,6 +4,7 @@ import subprocess
 import time
 
 import requests
+from pyroute2 import IPRoute
 
 
 def send_http_requests(url: str, requests_num: int, x_forwarded_for: str | None = None):
@@ -49,16 +50,16 @@ def get_discovered_service_json(discovery: subprocess.Popen, url: str) -> dict |
     return None
 
 
-def discovered_service_has_clients(discovery: subprocess.Popen, url: str, local_clients_number: int,
+def discovered_service_has_clients(discovery: subprocess.Popen, url: str, internal_clients_number: int,
                                    external_clients_number: int) -> bool:
     service = get_discovered_service_json(discovery, url)
     if not service:
         logging.warning("No discovered service for endpoint {}".format(url))
         return False
-    if local_clients_number:
-        if service.get("internalClientsNumber", 0) != local_clients_number:
+    if internal_clients_number:
+        if service.get("internalClientsNumber", 0) != internal_clients_number:
             logging.warning("Internal clients number mismatch ({}!={}) for endpoint {}"
-                            .format(service.get("internalClientsNumber", "0"), local_clients_number, url))
+                            .format(service.get("internalClientsNumber", "0"), internal_clients_number, url))
             return False
     if external_clients_number:
         if service.get("externalClientsNumber", 0) != external_clients_number:
@@ -66,3 +67,27 @@ def discovered_service_has_clients(discovery: subprocess.Popen, url: str, local_
                             .format(service.get("externalClientsNumber", "0"), external_clients_number, url))
             return False
     return True
+
+
+def create_network_interface(type, name, ip_address, mask):
+    with IPRoute() as ipr:
+        try:
+            ipr.link('add', ifname=name, kind=type)
+            ipr.link('set', index=ipr.link_lookup(ifname=name)[0], state='up')
+            ipr.addr('add', index=ipr.link_lookup(ifname=name)[0], address=ip_address, prefixlen=mask)
+            logging.info(f"Network interface {name} created")
+        except Exception as e:
+            logging.error(f"Error deleting network interface {name}: {e}")
+
+
+def delete_network_interface(name):
+    with IPRoute() as ipr:
+        try:
+            ipr.flush_addr(index=ipr.link_lookup(ifname=name)[0])
+            ipr.link('set', index=ipr.link_lookup(ifname=name)[0], state='down')
+            ipr.link('del', index=ipr.link_lookup(ifname=name)[0])
+            logging.info(f"Bridge {name} deleted")
+        except Exception as e:
+            logging.error(f"Error deleting network interface {name}: {e}")
+
+
