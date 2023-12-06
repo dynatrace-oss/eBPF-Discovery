@@ -82,6 +82,25 @@ static void scheduleFunction(
 	});
 }
 
+template <typename Duration>
+static void setupBpfLogging(
+		logging::LogLevel logLevel,
+		boost::asio::io_context& ioContext,
+		boost::asio::steady_timer& logBufFetchTimer,
+		Duration logBufFetchInterval,
+		perf_buffer* logBuf) {
+	if (logLevel <= logging::LogLevel::Debug) {
+		LOG_DEBUG("Handling of Discovery BPF logging is enabled.");
+		scheduleFunction(ioContext, logBufFetchTimer, logBufFetchInterval, [&]() {
+			auto ret{bpflogging::fetchAndLog(logBuf)};
+			if (ret != 0) {
+				LOG_CRITICAL("Failed to fetch and handle Discovery BPF logging: {}.", std::strerror(-ret));
+				programRunningFlag.clear();
+			}
+		});
+	}
+}
+
 int main(int argc, char** argv) {
 	programRunningFlag.test_and_set();
 	std::signal(SIGINT, handleUnixShutdownSignal);
@@ -168,16 +187,7 @@ int main(int argc, char** argv) {
 
 	auto logBufFetchInterval{std::chrono::milliseconds(250)};
 	auto logBufFetchTimer{boost::asio::steady_timer(ioContext, logBufFetchInterval)};
-	if (logLevel <= logging::LogLevel::Debug) {
-		LOG_DEBUG("Handling of Discovery BPF logging is enabled.");
-		scheduleFunction(ioContext, logBufFetchTimer, logBufFetchInterval, [&]() {
-			auto ret{bpflogging::fetchAndLog(logBuf)};
-			if (ret != 0) {
-				LOG_CRITICAL("Failed to fetch and handle Discovery BPF logging: {}.", std::strerror(-ret));
-				programRunningFlag.clear();
-			}
-		});
-	}
+	setupBpfLogging(logLevel, ioContext, logBufFetchTimer, logBufFetchInterval, logBuf);
 
 	while (programRunningFlag.test_and_set()) {
 		ioContext.run_one();
