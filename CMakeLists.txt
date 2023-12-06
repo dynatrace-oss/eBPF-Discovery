@@ -64,7 +64,7 @@ else ()
 	include(conan.cmake)
 	conan_cmake_run(CONANFILE conanfile.txt
 			BASIC_SETUP CMAKE_TARGETS UPDATE NO_OUTPUT_DIRS
-			BUILD never
+			BUILD missing
 	)
 endif ()
 
