@@ -22,6 +22,7 @@ public:
 	void unload();
 
 	DiscoveryBpfFds getFds();
+	int getLogPerfBufFd();
 
 private:
 	bool coreEnsured{false};

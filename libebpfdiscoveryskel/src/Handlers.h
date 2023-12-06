@@ -2,8 +2,8 @@
 #pragma once
 
 #include "DataFunctions.h"
+#include "DebugPrint.h"
 #include "GlobalData.h"
-#include "Log.h"
 #include "Pid.h"
 #include "SysTypes.h"
 #include "TrackedSession.h"
@@ -17,7 +17,10 @@
 #include <bpf/bpf_tracing.h>
 
 __attribute__((always_inline)) inline static void handleAcceptIPv4Session(
-		const struct DiscoveryTrackedSessionKey trackedSessionKey, const struct AcceptArgs* acceptArgsPtr, int addrlen) {
+		struct pt_regs* ctx,
+		const struct DiscoveryTrackedSessionKey trackedSessionKey,
+		const struct AcceptArgs* acceptArgsPtr,
+		int addrlen) {
 	if (acceptArgsPtr->addrSize < sizeof(struct sockaddr_in) || addrlen != sizeof(struct sockaddr_in)) {
 		return;
 	}
@@ -34,7 +37,10 @@ __attribute__((always_inline)) inline static void handleAcceptIPv4Session(
 }
 
 __attribute__((always_inline)) inline static void handleAcceptIPv6Session(
-		const struct DiscoveryTrackedSessionKey trackedSessionKey, const struct AcceptArgs* acceptArgsPtr, int addrlen) {
+		struct pt_regs* ctx,
+		const struct DiscoveryTrackedSessionKey trackedSessionKey,
+		const struct AcceptArgs* acceptArgsPtr,
+		int addrlen) {
 	if (acceptArgsPtr->addrSize < sizeof(struct sockaddr_in6) || addrlen != sizeof(struct sockaddr_in6)) {
 		return;
 	}
@@ -50,7 +56,7 @@ __attribute__((always_inline)) inline static void handleAcceptIPv6Session(
 	bpf_map_update_elem(&trackedSessionsMap, &trackedSessionKey, &session, BPF_ANY);
 }
 
-__attribute__((always_inline)) inline static void handleAccept(struct AcceptArgs* acceptArgsPtr, int fd) {
+__attribute__((always_inline)) inline static void handleAccept(struct pt_regs* ctx, struct AcceptArgs* acceptArgsPtr, int fd) {
 	// Size of returned sockaddr struct
 	int addrlen = 0;
 	bpf_probe_read(&addrlen, sizeof(addrlen), (acceptArgsPtr->addrlen));
@@ -71,19 +77,19 @@ __attribute__((always_inline)) inline static void handleAccept(struct AcceptArgs
 
 	switch (saFamily) {
 	case AF_INET:
-		handleAcceptIPv4Session(trackedSessionKey, acceptArgsPtr, addrlen);
+		handleAcceptIPv4Session(ctx, trackedSessionKey, acceptArgsPtr, addrlen);
 		break;
 	case AF_INET6:
-		handleAcceptIPv6Session(trackedSessionKey, acceptArgsPtr, addrlen);
+		handleAcceptIPv6Session(ctx, trackedSessionKey, acceptArgsPtr, addrlen);
 		break;
 	}
 }
 
 __attribute__((always_inline)) inline static int sessionFillIPv4(
-		struct DiscoveryTrackedSessionKey* sessionKeyPtr, struct DiscoverySession* sessionPtr) {
+		struct pt_regs* ctx, struct DiscoveryTrackedSessionKey* sessionKeyPtr, struct DiscoverySession* sessionPtr) {
 	struct sockaddr_in* sockipPtr = (struct sockaddr_in*)bpf_map_lookup_elem(&trackedSessionSockIPv4Map, sessionKeyPtr);
 	if (sockipPtr == NULL) {
-		DEBUG_PRINTLN("No IPv4 of tracked session. (id: %d)", sessionPtr->id);
+		LOG_DEBUG(ctx, "No IPv4 of tracked session. (id: `%d`)", sessionPtr->id);
 		return 1;
 	}
 
@@ -93,10 +99,10 @@ __attribute__((always_inline)) inline static int sessionFillIPv4(
 }
 
 __attribute__((always_inline)) inline static int sessionFillIPv6(
-		struct DiscoveryTrackedSessionKey* sessionKeyPtr, struct DiscoverySession* sessionPtr) {
+		struct pt_regs* ctx, struct DiscoveryTrackedSessionKey* sessionKeyPtr, struct DiscoverySession* sessionPtr) {
 	struct sockaddr_in6* sockipPtr = (struct sockaddr_in6*)bpf_map_lookup_elem(&trackedSessionSockIPv6Map, sessionKeyPtr);
 	if (sockipPtr == NULL) {
-		DEBUG_PRINTLN("No IPv6 of tracked session. (id: %d)", sessionPtr->id);
+		LOG_DEBUG(ctx, "No IPv6 of tracked session. (id: `%d`)", sessionPtr->id);
 		return 1;
 	}
 
@@ -106,17 +112,18 @@ __attribute__((always_inline)) inline static int sessionFillIPv6(
 }
 
 __attribute__((always_inline)) inline static int sessionFillIP(
-		struct DiscoveryTrackedSessionKey* sessionKeyPtr, struct DiscoverySession* sessionPtr) {
+		struct pt_regs* ctx, struct DiscoveryTrackedSessionKey* sessionKeyPtr, struct DiscoverySession* sessionPtr) {
 	if (discoverySessionFlagsIsIPv4(sessionPtr->meta.flags)) {
-		return sessionFillIPv4(sessionKeyPtr, sessionPtr);
+		return sessionFillIPv4(ctx, sessionKeyPtr, sessionPtr);
 	} else if (discoverySessionFlagsIsIPv6(sessionPtr->meta.flags)) {
-		return sessionFillIPv6(sessionKeyPtr, sessionPtr);
+		return sessionFillIPv6(ctx, sessionKeyPtr, sessionPtr);
 	}
 
 	return -1;
 }
 
 __attribute__((always_inline)) inline static void handleRead(
+		struct pt_regs* ctx,
 		struct DiscoveryGlobalState* globalStatePtr,
 		struct DiscoveryAllSessionState* allSessionStatePtr,
 		struct ReadArgs* readArgsPtr,
@@ -140,10 +147,10 @@ __attribute__((always_inline)) inline static void handleRead(
 	if (sessionPtr->bufferCount == 0) {
 		if (!dataProbeIsBeginningOfHttpRequest(readArgsPtr->buf, bytesCount)) {
 			deleteTrackedSession((struct DiscoveryTrackedSessionKey*)&event.dataKey, sessionPtr);
-			DEBUG_PRINTLN(
-					"Received data from session. Ignoring the session, as it doesn't look like an HTTP request. (pid: `%d`, fd: `%d`, "
-					"bytes_count: `%d`)",
-					event.dataKey.pid,
+			LOG_TRACE(
+					ctx,
+					"Received data from session. Ignoring the session, as it doesn't look like an HTTP request. (fd: `%d`, bytes_count: "
+					"`%d`)",
 					event.dataKey.fd,
 					bytesCount);
 			return;
@@ -152,7 +159,7 @@ __attribute__((always_inline)) inline static void handleRead(
 		sessionPtr->id = allSessionStatePtr->sessionCounter;
 		sessionPtr->meta.pid = event.dataKey.pid;
 		allSessionStatePtr->sessionCounter++;
-		sessionFillIP((struct DiscoveryTrackedSessionKey*)&event.dataKey, sessionPtr);
+		sessionFillIP(ctx, (struct DiscoveryTrackedSessionKey*)&event.dataKey, sessionPtr);
 	} else {
 		event.dataKey.bufferSeq = sessionPtr->bufferCount;
 	}
@@ -176,7 +183,7 @@ __attribute__((always_inline)) inline static void handleRead(
 		bpf_map_update_elem(&savedBuffersMap, &event.dataKey, savedBufferPtr, BPF_ANY);
 	}
 
-	pushEventToUserspace(globalStatePtr, &event);
+	pushEventToUserspace(ctx, globalStatePtr, &event);
 
 	if (discoveryEventFlagsIsNoMoreData(event.flags)) {
 		deleteTrackedSession((struct DiscoveryTrackedSessionKey*)&event.dataKey, sessionPtr);
@@ -187,7 +194,7 @@ __attribute__((always_inline)) inline static void handleRead(
 }
 
 __attribute__((always_inline)) inline static void handleClose(
-		struct DiscoveryGlobalState* globalStatePtr, struct DiscoveryAllSessionState* allSessionStatePtr, int fd) {
+		struct pt_regs* ctx, struct DiscoveryGlobalState* globalStatePtr, struct DiscoveryAllSessionState* allSessionStatePtr, int fd) {
 	struct DiscoveryTrackedSessionKey trackedSessionKey = {};
 	trackedSessionKey.pid = pidTgidToPid(bpf_get_current_pid_tgid());
 
@@ -202,5 +209,5 @@ __attribute__((always_inline)) inline static void handleClose(
 	deleteTrackedSession(&trackedSessionKey, sessionPtr);
 
 	struct DiscoveryEvent event = {.flags = DISCOVERY_EVENT_FLAGS_CLOSE};
-	pushEventToUserspace(globalStatePtr, &event);
+	pushEventToUserspace(ctx, globalStatePtr, &event);
 }

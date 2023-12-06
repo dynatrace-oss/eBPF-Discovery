@@ -36,7 +36,7 @@ struct {
  * Syscall handlers
  */
 
-__attribute__((always_inline)) inline static int handleSysAcceptEntry(struct sockaddr* addr, socklen_t* addrlen) {
+__attribute__((always_inline)) inline static int handleSysAcceptEntry(struct pt_regs* ctx, struct sockaddr* addr, socklen_t* addrlen) {
 	if (addr == NULL || addrlen == NULL) {
 		// We expect that for TCP/IP connections the addr argument is not null.
 		return 0;
@@ -69,7 +69,7 @@ __attribute__((always_inline)) inline static int handleSysAcceptEntry(struct soc
 	return 0;
 }
 
-__attribute__((always_inline)) inline static int handleSysAcceptExit(int fd) {
+__attribute__((always_inline)) inline static int handleSysAcceptExit(struct pt_regs* ctx, int fd) {
 	struct DiscoveryGlobalState* globalStatePtr = getGlobalState();
 	if (globalStatePtr == NULL || globalStatePtr->isCollectingDisabled) {
 		return 0;
@@ -93,13 +93,13 @@ __attribute__((always_inline)) inline static int handleSysAcceptExit(int fd) {
 		return 0;
 	}
 
-	handleAccept(acceptArgsPtr, fd);
+	handleAccept(ctx, acceptArgsPtr, fd);
 
 	bpf_map_delete_elem(&runningAcceptArgsMap, &pidTgid);
 	return 0;
 }
 
-__attribute__((always_inline)) inline static int handleSysReadEntry(int fd, char* buf) {
+__attribute__((always_inline)) inline static int handleSysReadEntry(struct pt_regs* ctx, int fd, char* buf) {
 	if (buf == NULL) {
 		return 0;
 	}
@@ -134,7 +134,7 @@ __attribute__((always_inline)) inline static int handleSysReadEntry(int fd, char
 	return 0;
 }
 
-__attribute__((always_inline)) inline static int handleSysReadExit(ssize_t bytesCount) {
+__attribute__((always_inline)) inline static int handleSysReadExit(struct pt_regs* ctx, ssize_t bytesCount) {
 	struct DiscoveryGlobalState* globalStatePtr = getGlobalState();
 	if (globalStatePtr == NULL || globalStatePtr->isCollectingDisabled) {
 		return 0;
@@ -153,13 +153,13 @@ __attribute__((always_inline)) inline static int handleSysReadExit(ssize_t bytes
 		return 0;
 	}
 
-	handleRead(globalStatePtr, allSessionStatePtr, readArgsPtr, bytesCount);
+	handleRead(ctx, globalStatePtr, allSessionStatePtr, readArgsPtr, bytesCount);
 	bpf_map_delete_elem(&runningReadArgsMap, &pidTgid);
 
 	return 0;
 }
 
-__attribute__((always_inline)) inline static int handleSysCloseEntry(int fd) {
+__attribute__((always_inline)) inline static int handleSysCloseEntry(struct pt_regs* ctx, int fd) {
 	struct DiscoveryGlobalState* globalStatePtr = getGlobalState();
 	if (globalStatePtr == NULL || globalStatePtr->isCollectingDisabled) {
 		return 0;
@@ -170,27 +170,27 @@ __attribute__((always_inline)) inline static int handleSysCloseEntry(int fd) {
 		return 0;
 	};
 
-	handleClose(globalStatePtr, allSessionStatePtr, fd);
+	handleClose(ctx, globalStatePtr, allSessionStatePtr, fd);
 	return 0;
 }
 
-__attribute__((always_inline)) inline static int handleSysRecvEntry(int fd, char* buf, int flags) {
+__attribute__((always_inline)) inline static int handleSysRecvEntry(struct pt_regs* ctx, int fd, char* buf, int flags) {
 	if (flags & MSG_PEEK) {
 		return 0;
 	}
 
 	if (flags & MSG_TRUNC || flags & MSG_OOB) {
 		// We drop handling the session when these flags are used
-		handleSysCloseEntry(fd);
+		handleSysCloseEntry(ctx, fd);
 		return 0;
 	}
 
-	handleSysReadEntry(fd, buf);
+	handleSysReadEntry(ctx, fd, buf);
 	return 0;
 }
 
-__attribute__((always_inline)) inline static int handleSysRecvExit(ssize_t bytesCount) {
-	return handleSysReadExit(bytesCount);
+__attribute__((always_inline)) inline static int handleSysRecvExit(struct pt_regs* ctx, ssize_t bytesCount) {
+	return handleSysReadExit(ctx, bytesCount);
 }
 
 /*
@@ -199,55 +199,55 @@ __attribute__((always_inline)) inline static int handleSysRecvExit(ssize_t bytes
 
 SEC("kprobe/" SYS_PREFIX "sys_accept")
 int BPF_KPROBE_SYSCALL(kprobeSysAccept, int sockfd, struct sockaddr* addr, socklen_t* addrlen) {
-	return handleSysAcceptEntry(addr, addrlen);
+	return handleSysAcceptEntry(ctx, addr, addrlen);
 }
 
 SEC("kretprobe/" SYS_PREFIX "sys_accept")
 int BPF_KRETPROBE(kretprobeSysAccept, int fd) {
-	return handleSysAcceptExit(fd);
+	return handleSysAcceptExit(ctx, fd);
 }
 
 SEC("kprobe/" SYS_PREFIX "sys_accept4")
 int BPF_KPROBE_SYSCALL(kprobeSysAccept4, int sockfd, struct sockaddr* addr, socklen_t* addrlen, int flags) {
-	return handleSysAcceptEntry(addr, addrlen);
+	return handleSysAcceptEntry(ctx, addr, addrlen);
 }
 
 SEC("kretprobe/" SYS_PREFIX "sys_accept4")
 int BPF_KRETPROBE(kretprobeSysAccept4, int fd) {
-	return handleSysAcceptExit(fd);
+	return handleSysAcceptExit(ctx, fd);
 }
 
 SEC("kprobe/" SYS_PREFIX "sys_read")
 int BPF_KPROBE_SYSCALL(kprobeSysRead, int fd, void* buf, size_t count) {
-	return handleSysReadEntry(fd, (char*)buf);
+	return handleSysReadEntry(ctx, fd, (char*)buf);
 }
 
 SEC("kretprobe/" SYS_PREFIX "sys_read")
 int BPF_KRETPROBE(kretprobeSysRead, ssize_t bytesCount) {
-	return handleSysReadExit(bytesCount);
+	return handleSysReadExit(ctx, bytesCount);
 }
 
 SEC("kprobe/" SYS_PREFIX "sys_recv")
 int BPF_KPROBE_SYSCALL(kprobeSysRecv, int fd, void* buf, size_t len, int flags) {
-	return handleSysRecvEntry(fd, (char*)buf, flags);
+	return handleSysRecvEntry(ctx, fd, (char*)buf, flags);
 }
 
 SEC("kretprobe/" SYS_PREFIX "sys_recv")
 int BPF_KRETPROBE(kretprobeSysRecv, ssize_t bytesCount) {
-	return handleSysRecvExit(bytesCount);
+	return handleSysRecvExit(ctx, bytesCount);
 }
 
 SEC("kprobe/" SYS_PREFIX "sys_recvfrom")
 int BPF_KPROBE_SYSCALL(kprobeSysRecvfrom, int fd, void* buf, size_t len, int flags, struct sockaddr* src_addr, socklen_t* addrlen) {
-	return handleSysRecvEntry(fd, (char*)buf, flags);
+	return handleSysRecvEntry(ctx, fd, (char*)buf, flags);
 }
 
 SEC("kretprobe/" SYS_PREFIX "sys_recvfrom")
 int BPF_KRETPROBE(kretprobeSysRecvfrom, ssize_t bytesCount) {
-	return handleSysRecvExit(bytesCount);
+	return handleSysRecvExit(ctx, bytesCount);
 }
 
 SEC("kprobe/" SYS_PREFIX "sys_close")
 int BPF_KPROBE_SYSCALL(kprobeSysClose, int fd) {
-	return handleSysCloseEntry(fd);
+	return handleSysCloseEntry(ctx, fd);
 }
