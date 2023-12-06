@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0
 #pragma once
 
-#include "Log.h"
+#include "DebugPrint.h"
 #include "ebpfdiscoveryshared/Constants.h"
 #include "ebpfdiscoveryshared/Types.h"
 
@@ -21,8 +21,9 @@ __attribute__((always_inline)) inline static struct DiscoveryGlobalState* getGlo
 	return (struct DiscoveryGlobalState*)bpf_map_lookup_elem(&globalStateMap, &zero);
 }
 
-__attribute__((always_inline)) inline static void disableDiscoveryCollecting(struct DiscoveryGlobalState* discoveryGlobalStatePtr) {
-	DEBUG_PRINTLN("Discovery disabled.");
+__attribute__((always_inline)) inline static void disableDiscoveryCollecting(
+		struct pt_regs* ctx, struct DiscoveryGlobalState* discoveryGlobalStatePtr) {
+	LOG_DEBUG(ctx, "Discovery collecting of data has been disabled.")
 	discoveryGlobalStatePtr->isCollectingDisabled = true;
 }
 
@@ -68,14 +69,13 @@ struct {
 } eventsToUserspaceQueueMap SEC(".maps");
 
 __attribute__((always_inline)) inline static int pushEventToUserspace(
-		struct DiscoveryGlobalState* globalStatePtr, struct DiscoveryEvent* eventPtr) {
+		struct pt_regs* ctx, struct DiscoveryGlobalState* globalStatePtr, struct DiscoveryEvent* eventPtr) {
 	int result = bpf_map_push_elem(&eventsToUserspaceQueueMap, eventPtr, BPF_ANY);
 	if (result != 0) {
-		DEBUG_PRINTLN("Couldn't push a shared event. (pid: `%d`, fd: `%d`)", eventPtr->dataKey.pid, eventPtr->dataKey.fd);
-		disableDiscoveryCollecting(globalStatePtr);
+		LOG_DEBUG(ctx, "Couldn't push the shared event. (fd: `%d`)", eventPtr->dataKey.fd);
+		disableDiscoveryCollecting(ctx, globalStatePtr);
 		return result;
 	}
 
-	DEBUG_PRINTLN("Queued a shared event. (pid: `%d`, fd: `%d`)", eventPtr->dataKey.pid, eventPtr->dataKey.fd);
 	return result;
 }

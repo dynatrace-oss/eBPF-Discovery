@@ -49,16 +49,16 @@ void DiscoveryBpf::unload() {
 }
 
 DiscoveryBpfFds DiscoveryBpf::getFds() {
-	if (skel == nullptr) {
-		return {};
-	}
-
 	return {
 			.globalStateMap = bpf_map__fd(skel->maps.globalStateMap),
 			.eventsToUserspaceQueueMap = bpf_map__fd(skel->maps.eventsToUserspaceQueueMap),
 			.savedBuffersMap = bpf_map__fd(skel->maps.savedBuffersMap),
 			.trackedSessionsMap = bpf_map__fd(skel->maps.trackedSessionsMap),
 	};
+}
+
+int DiscoveryBpf::getLogPerfBufFd() {
+	return bpf_map__fd(skel->maps.logEventsPerfMap);
 }
 
 } // namespace ebpfdiscovery
