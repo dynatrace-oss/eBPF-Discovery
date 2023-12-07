@@ -10,9 +10,9 @@ class HttpServerRequestUser(FastHttpUser):
 
     @task
     def random_request(self) -> None:
-        urls = ["dummy1", "dummy2", "dummy3", "dummy4", "dummy5"]
+        endpoints = ["dummy1", "dummy2", "dummy3", "dummy4", "dummy5"]
         ip = ".".join(str(random.randint(0, 255)) for _ in range(4))
-        self.client.get(f"/{random.choice(urls)}", headers={"X-Forwarded-For": ip})
+        self.client.get(f"/{random.choice(endpoints)}", headers={"X-Forwarded-For": ip})
 
 
 def test_load(run_ebpf_discovery, run_fast_api_http_service) -> None:
