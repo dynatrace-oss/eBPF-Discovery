@@ -1,8 +1,8 @@
 import gevent
+import random
+
 from locust import FastHttpUser, task, constant_throughput
 from locust.env import Environment
-
-from utils import generate_random_url, generate_random_ip
 
 
 class HttpServerRequestUser(FastHttpUser):
@@ -10,7 +10,9 @@ class HttpServerRequestUser(FastHttpUser):
 
     @task
     def random_request(self) -> None:
-        self.client.get(f"/{generate_random_url()}", headers={"X-Forwarded-For": generate_random_ip()})
+        urls = ["dummy1", "dummy2", "dummy3", "dummy4", "dummy5"]
+        ip = ".".join(str(random.randint(0, 255)) for _ in range(4))
+        self.client.get(f"/{random.choice(urls)}", headers={"X-Forwarded-For": ip})
 
 
 def test_load(run_ebpf_discovery, run_fast_api_http_service) -> None:
