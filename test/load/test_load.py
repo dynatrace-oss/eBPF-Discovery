@@ -1,21 +1,12 @@
-import time
-from typing import Optional, Tuple
-
-from locust import FastHttpUser, LoadTestShape, task, between
+import gevent
+from locust import FastHttpUser, task, constant_throughput
 from locust.env import Environment
 
 from utils import generate_random_url, generate_random_ip
 
 
-class StepLoadShape(LoadTestShape):
-    def tick(self) -> Optional[Tuple[int, int]]:
-        users = 2000
-        spawn_rate = 200
-        return users, spawn_rate
-
-
 class HttpServerRequestUser(FastHttpUser):
-    wait_time = between(0.5, 2)
+    wait_time = constant_throughput(50)
 
     @task
     def random_request(self) -> None:
@@ -23,8 +14,8 @@ class HttpServerRequestUser(FastHttpUser):
 
 
 def test_load(run_ebpf_discovery, run_fast_api_http_service) -> None:
-    env = Environment(user_classes=[HttpServerRequestUser], shape_class=StepLoadShape(), host=run_fast_api_http_service)
-    env.create_local_runner()
-    env.runner.start_shape()
-    time.sleep(1800)
-    env.runner.quit()
+    env = Environment(user_classes=[HttpServerRequestUser], host=run_fast_api_http_service)
+    runner = env.create_local_runner()
+    env.runner.start(2000, spawn_rate=200)
+    gevent.spawn_later(1800, lambda: runner.quit())
+    env.runner.greenlet.join()
