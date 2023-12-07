@@ -1,8 +1,8 @@
-import gevent
 import random
 
 from locust import FastHttpUser, task, constant_throughput
 from locust.env import Environment
+import gevent
 
 
 class HttpServerRequestUser(FastHttpUser):

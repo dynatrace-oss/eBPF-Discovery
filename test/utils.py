@@ -2,7 +2,6 @@ import json
 import logging
 import subprocess
 import time
-import random
 
 import requests
 
