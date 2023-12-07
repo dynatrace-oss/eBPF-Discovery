@@ -5,7 +5,7 @@ on:
     - cron: "0 0 * * *"
 
 jobs:
-  build-and-test-debug:
+  build-and-load-test-debug:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout source code of the repository
