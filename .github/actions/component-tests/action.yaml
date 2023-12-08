@@ -6,7 +6,10 @@ runs:
   steps:
     - name: Install requirements
       shell: bash
-      run: pip install -r "${{ env.COMPONENT_TESTING_PATH }}/requirements.txt"
+      run: |
+        python -m venv testvenv
+        source testvenv/bin/activate
+        pip install -r "${{ env.COMPONENT_TESTING_PATH }}/requirements.txt"
     - name: Component tests
       shell: bash
       run: sudo pytest ${{ env.TESTING_PATH }} -s -v --discovery_path="${{ env.DISCOVERY_BIN_PATH }}"
