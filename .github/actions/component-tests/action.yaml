@@ -6,10 +6,9 @@ runs:
   steps:
     - name: Install requirements
       shell: bash
-      run: pip install -r "${{ env.TESTING_PATH }}/requirements.txt"
+      run: pip install -r "${{ env.COMPONENT_TESTING_PATH }}/requirements.txt"
     - name: Component tests
       shell: bash
       run: |
-        discoveryBinPath="${{ env.BUILD_PATH }}/bin/ebpfdiscoverysrv"
-        sudo setcap cap_dac_override,cap_sys_admin,cap_sys_resource+ep "${discoveryBinPath}"
-        pytest ${{ env.TESTING_PATH }} -s -v --discovery_path="${discoveryBinPath}"
+        sudo setcap cap_dac_override,cap_sys_admin,cap_sys_resource+ep "${{ env.DISCOVERY_BIN_PATH }}"
+        pytest ${{ env.COMPONENT_TESTING_PATH }} -s -v --discovery_path="${{ env.DISCOVERY_BIN_PATH }}"

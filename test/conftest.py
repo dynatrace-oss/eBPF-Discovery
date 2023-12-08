@@ -15,6 +15,7 @@ logging.basicConfig(level=logging.INFO)
 def pytest_addoption(parser):
     parser.addoption("--discovery_path", action="store", help="Path to eBPF Discovery binary")
     parser.addoption("--http_server_port", action="store", help="Port on which to run http server", default=9000)
+    parser.addoption("--load-tests-execution-time", action="store", help="Load tests execution time in seconds", default=1800)
 
 
 @pytest.fixture(scope="session")
@@ -28,6 +29,12 @@ def discovery_path(pytestconfig):
 def http_server_port(pytestconfig):
     port = pytestconfig.getoption("http_server_port")
     return port
+
+
+@pytest.fixture
+def load_tests_execution_time(pytestconfig):
+    load_tests_execution_time = pytestconfig.getoption("--load-tests-execution-time")
+    return int(load_tests_execution_time)
 
 
 @pytest.fixture(scope="session")
@@ -61,6 +68,18 @@ def run_http_service(http_server_port):
     url = "http://{}:{}".format(ip_addr, http_server_port)
     args = (sys.executable, "-m", "http.server", "--bind", ip_addr, str(http_server_port))
     server = subprocess.Popen(args)
+    wait_until(lambda: is_responsive(url), timeout=10)
+    yield url
+    server.terminate()
+
+
+@pytest.fixture(scope="session")
+def run_fast_api_http_service(http_server_port):
+    ip_addr = "127.0.0.1"
+    url = "http://{}:{}".format(ip_addr, http_server_port)
+    workers = "12"
+    args = (sys.executable, "-m", "uvicorn", "fast_api_server:app", "--host", ip_addr, "--port", str(http_server_port), "--workers", workers)
+    server = subprocess.Popen(args, cwd=os.environ.get("TESTING_PATH"))
     wait_until(lambda: is_responsive(url), timeout=10)
     yield url
     server.terminate()
