@@ -15,6 +15,7 @@ logging.basicConfig(level=logging.INFO)
 def pytest_addoption(parser):
     parser.addoption("--discovery_path", action="store", help="Path to eBPF Discovery binary")
     parser.addoption("--http_server_port", action="store", help="Port on which to run http server", default=9000)
+    parser.addoption("--load-tests-execution-time", action="store", help="Load tests execution time in seconds", default=1800)
 
 
 @pytest.fixture(scope="session")
@@ -28,6 +29,12 @@ def discovery_path(pytestconfig):
 def http_server_port(pytestconfig):
     port = pytestconfig.getoption("http_server_port")
     return port
+
+
+@pytest.fixture
+def load_tests_execution_time(pytestconfig):
+    load_tests_execution_time = pytestconfig.getoption("--load-tests-execution-time")
+    return int(load_tests_execution_time)
 
 
 @pytest.fixture(scope="session")

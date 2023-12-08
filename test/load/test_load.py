@@ -15,9 +15,9 @@ class HttpServerRequestUser(FastHttpUser):
         self.client.get(f"/{random.choice(endpoints)}", headers={"X-Forwarded-For": ip})
 
 
-def test_load(run_ebpf_discovery, run_fast_api_http_service) -> None:
+def test_load(run_ebpf_discovery, run_fast_api_http_service, load_tests_execution_time) -> None:
     env = Environment(user_classes=[HttpServerRequestUser], host=run_fast_api_http_service)
     runner = env.create_local_runner()
     env.runner.start(5, spawn_rate=5)
-    gevent.spawn_later(1800, lambda: runner.quit())
+    gevent.spawn_later(load_tests_execution_time, lambda: runner.quit())
     env.runner.greenlet.join()
