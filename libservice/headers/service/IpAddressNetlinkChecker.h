@@ -12,9 +12,9 @@ public:
 
 	bool isAddressExternalLocal(IPv4int addr) const override;
 private:
-	bool readNetworks();
+	void readNetworks();
 
-	void printInfo();
+	void printNetworkInterfacesInfo();
 
 	bool isLocalBridge(int index) const {
 		if (const auto it{isLocalBridgeMap.find(index)}; it != isLocalBridgeMap.end()) {
