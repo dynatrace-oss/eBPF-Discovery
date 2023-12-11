@@ -7,7 +7,7 @@ from time import sleep
 
 import pytest
 
-from utils import is_responsive, wait_until
+from utils import is_responsive, wait_until, create_network_interface, delete_network_interface
 
 logging.basicConfig(level=logging.INFO)
 
@@ -18,14 +18,14 @@ def pytest_addoption(parser):
     parser.addoption("--load-tests-execution-time", action="store", help="Load tests execution time in seconds", default=1800)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def discovery_path(pytestconfig):
     discovery_path = pytestconfig.getoption("discovery_path")
     assert discovery_path, "Path to eBPF discovery needs to be provided via --discovery_path"
     return discovery_path
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def http_server_port(pytestconfig):
     port = pytestconfig.getoption("http_server_port")
     return port
@@ -37,7 +37,18 @@ def load_tests_execution_time(pytestconfig):
     return int(load_tests_execution_time)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope='function')
+def network_interfaces(request):
+    for interface in request.param:
+        type, name, ip_address, mask = interface
+        create_network_interface(type, name, ip_address, mask)
+    yield request.param
+    for interface in request.param:
+        type, name, ip_address, mask = interface
+        delete_network_interface(name)
+
+
+@pytest.fixture(scope="function")
 def run_ebpf_discovery(discovery_path):
     discovery_root_dir = os.path.dirname(os.path.realpath(discovery_path))
     args = (discovery_path, "--interval", "2", "--log-no-stdout", "--log-dir", discovery_root_dir,
@@ -62,7 +73,7 @@ def run_ebpf_discovery(discovery_path):
             logging.info("File: {}\nContent:\n{}".format(file, content))
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def run_http_service(http_server_port):
     ip_addr = "127.0.0.1"
     url = "http://{}:{}".format(ip_addr, http_server_port)
@@ -73,7 +84,7 @@ def run_http_service(http_server_port):
     server.terminate()
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def run_fast_api_http_service(http_server_port):
     ip_addr = "127.0.0.1"
     url = "http://{}:{}".format(ip_addr, http_server_port)

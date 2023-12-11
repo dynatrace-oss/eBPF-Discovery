@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "service/Aggregator.h"
 
-#include "service/IpAddressChecker.h"
+#include "service/IpAddressNetlinkChecker.h"
 
 #include <algorithm>
 #include <gmock/gmock.h>
@@ -19,8 +19,7 @@ void PrintTo(const Service& service, std::ostream* os) {
 
 class IpAddressCheckerMock : public IpAddressChecker {
 public:
-	using IpAddressChecker::IpAddressChecker;
-	MOCK_METHOD(bool, isAddressExternalLocal, (IPv4int), (override));
+	MOCK_METHOD(bool, isAddressExternalLocal, (IPv4int), (const));
 };
 
 struct ServiceAggregatorTest : public testing::Test {
@@ -38,7 +37,7 @@ struct ServiceAggregatorTest : public testing::Test {
 	}
 
 	const NetlinkCalls netlink;
-	IpAddressCheckerMock ipCheckerMock{netlink};
+	IpAddressCheckerMock ipCheckerMock;
 	Aggregator aggregator{ipCheckerMock};
 };
 
