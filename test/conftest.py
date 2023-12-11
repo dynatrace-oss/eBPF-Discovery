@@ -66,11 +66,11 @@ def run_ebpf_discovery(discovery_path):
     log_files = glob.glob(discovery_root_dir + '/*.log')
     assert log_files != [], "eBPF Discovery didn't produce any log files"
 
-    # logging.info("eBPF Discovery produced logs:")
-    # for file in log_files:
-    #     with open(file, 'r') as f:
-    #         content = f.read()
-    #         logging.info("File: {}\nContent:\n{}".format(file, content))
+    logging.info("eBPF Discovery produced logs:")
+    for file in log_files:
+        with open(file, 'r') as f:
+            content = f.read()
+            logging.info("File: {}\nContent:\n{}".format(file, content))
 
 
 @pytest.fixture(scope="function")
@@ -94,21 +94,3 @@ def run_fast_api_http_service(http_server_port):
     wait_until(lambda: is_responsive(url), timeout=10)
     yield url
     server.terminate()
-
-import pytest
-
-# Define a parametrized fixture
-
-
-    # Your teardown code here, if needed
-
-# # Use the parametrized fixture in a test function
-# def test_using_parametrized_fixture(my_parametrized_fixture):
-#     print(f"\nTest using parametrized fixture with value: {my_parametrized_fixture}")
-#     assert my_parametrized_fixture > 0
-#
-# # Parametrize the test function directly and provide values for the fixture
-# @pytest.mark.parametrize("my_parametrized_fixture", [1, 2, 3])
-# def test_using_parametrized_fixture_with_values(my_parametrized_fixture):
-#     print(f"\nTest using parametrized fixture with value: {my_parametrized_fixture}")
-#     assert my_parametrized_fixture > 0

@@ -12,4 +12,4 @@ runs:
         pip install -r "${{ env.COMPONENT_TESTING_PATH }}/requirements.txt"
     - name: Component tests
       shell: bash
-      run: sudo pytest ${{ env.TESTING_PATH }} -s -v --discovery_path="${{ env.DISCOVERY_BIN_PATH }}"
+      run: sudo testvenv/bin/pytest ${{ env.COMPONENT_TESTING_PATH }} -s -v --discovery_path="${{ env.DISCOVERY_BIN_PATH }}"
