@@ -5,7 +5,6 @@
 #include "Service.h"
 #include "ebpfdiscoveryshared/Types.h"
 #include "httpparser/HttpRequestParser.h"
-#include "service/IpAddressChecker.h"
 
 #include <atomic>
 #include <cstdint>
@@ -31,14 +30,14 @@ private:
 	using ServiceStorage = std::unordered_map<ServiceKey, Service>;
 
 public:
-	Aggregator(service::IpAddressChecker& ipChecker);
+	Aggregator(const service::IpAddressChecker& ipChecker);
 
 	void clear();
 	void newRequest(const httpparser::HttpRequest& request, const DiscoverySessionMeta& meta);
 	std::vector<std::reference_wrapper<Service>> collectServices();
 
 private:
-	IpAddressChecker& ipChecker;
+	const IpAddressChecker& ipChecker;
 	ServiceStorage services;
 };
 

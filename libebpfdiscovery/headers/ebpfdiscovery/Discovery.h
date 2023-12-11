@@ -7,7 +7,7 @@
 #include "ebpfdiscoveryshared/Types.h"
 #include "httpparser/HttpRequestParser.h"
 #include "service/Aggregator.h"
-#include "service/IpAddressChecker.h"
+#include "service/IpAddressNetlinkChecker.h"
 
 #include <atomic>
 #include <chrono>
@@ -57,7 +57,7 @@ private:
 
 	SavedSessionsCacheType savedSessions;
 	service::NetlinkCalls netlinkCalls;
-	service::IpAddressChecker ipChecker{{}, netlinkCalls};
+	service::IpAddressNetlinkChecker ipChecker{netlinkCalls};
 	service::Aggregator serviceAggregator{ipChecker};
 };
 

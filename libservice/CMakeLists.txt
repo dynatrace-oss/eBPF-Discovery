@@ -1,11 +1,10 @@
-list(
-    APPEND
-    SOURCES
-    src/Aggregator.cpp
-    src/IpAddress.cpp
-    src/IpAddressChecker.cpp
-    src/NetlinkCalls.cpp
-)
+list(APPEND SOURCES
+        src/Aggregator.cpp
+        src/IpAddress.cpp
+        src/IpAddressNetlinkChecker.cpp
+        src/NetlinkCalls.cpp
+        src/NetlinkSocket.cpp)
+
 set(TARGET service)
 
 add_library(${TARGET} STATIC ${SOURCES})
@@ -22,7 +21,10 @@ target_link_libraries(
 )
 
 if (BUILD_TESTS)
-    list(APPEND TEST_SOURCES test/AggregatorTest.cpp test/IpAddressCheckerTest.cpp test/IpAddressTest.cpp)
+    list(APPEND TEST_SOURCES
+            test/AggregatorTest.cpp
+            test/IpAddressCheckerTest.cpp
+            test/IpAddressTest.cpp)
     set(TEST_TARGET test${TARGET})
 
     add_executable(${TEST_TARGET} ${TEST_SOURCES})
