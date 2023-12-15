@@ -41,7 +41,7 @@ static po::options_description getProgramOptions() {
 }
 
 static void initLogging(logging::LogLevel logLevel, bool enableStdout, const std::filesystem::path& logDir) {
-	Logger::getInstance().init("eBPF-Discovery", enableStdout, logDir);
+	Logger::getInstance().init( enableStdout, logDir);
 	Logger::getInstance().setLevel(logLevel);
 	LOG_TRACE("Logging has been set up. (enableStdout: {}, logDir: `{}`)", enableStdout, logDir.string());
 }

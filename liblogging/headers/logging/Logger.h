@@ -27,24 +27,19 @@ enum LogLevel {
 std::istream& operator>>(std::istream& in, LogLevel& level);
 
 class Logger {
-private:
-	static constexpr std::size_t max_size = 102400;
-	static constexpr std::size_t max_files = 3;
-
 public:
-	Logger();
-	~Logger() = default;
 	Logger(const Logger&) = delete;
 	Logger& operator=(const Logger&) = delete;
 
 	static Logger& getInstance();
 
-	void init(std::string name, bool logToStdout = true, std::filesystem::path logDir = {});
+	void init(bool logToStdout = true, std::filesystem::path logDir = {});
 	void setLevel(enum LogLevel level);
 
 	template <typename... Args>
 	void log(enum LogLevel level, const char* fmt, const Args&... args) {
 		spdLogger.log(static_cast<spdlog::level::level_enum>(level), fmt, args...);
+		spdLogger.flush_on(static_cast<spdlog::level::level_enum>(level));
 	}
 
 	void vlogf(enum LogLevel level, const char* format, va_list args);
@@ -52,64 +47,81 @@ public:
 	template <typename... Args>
 	void trace(const char* fmt, const Args&... args) {
 		spdLogger.trace(fmt, args...);
+		spdLogger.flush_on(spdlog::level::trace);
 	}
 
 	template <typename... Args>
 	void debug(const char* fmt, const Args&... args) {
 		spdLogger.debug(fmt, args...);
+		spdLogger.flush_on(spdlog::level::debug);
 	}
 
 	template <typename... Args>
 	void info(const char* fmt, const Args&... args) {
 		spdLogger.info(fmt, args...);
+		spdLogger.flush_on(spdlog::level::info);
 	}
 
 	template <typename... Args>
 	void warn(const char* fmt, const Args&... args) {
 		spdLogger.warn(fmt, args...);
+		spdLogger.flush_on(spdlog::level::warn);
 	}
 
 	template <typename... Args>
 	void error(const char* fmt, const Args&... args) {
 		spdLogger.error(fmt, args...);
+		spdLogger.flush_on(spdlog::level::err);
 	}
 
 	template <typename... Args>
 	void critical(const char* fmt, const Args&... args) {
 		spdLogger.critical(fmt, args...);
+		spdLogger.flush_on(spdlog::level::critical);
 	}
 
 	template <typename... Args>
 	void trace(const char* str) {
 		spdLogger.trace(str);
+		spdLogger.flush_on(spdlog::level::trace);
 	}
 
 	template <typename... Args>
 	void debug(const char* str) {
 		spdLogger.debug(str);
+		spdLogger.flush_on(spdlog::level::debug);
 	}
 
 	template <typename... Args>
 	void info(const char* str) {
 		spdLogger.info(str);
+		spdLogger.flush_on(spdlog::level::info);
 	}
 
 	template <typename... Args>
 	void warn(const char* str) {
 		spdLogger.warn(str);
+		spdLogger.flush_on(spdlog::level::warn);
 	}
 
 	template <typename... Args>
 	void error(const char* str) {
 		spdLogger.error(str);
+		spdLogger.flush_on(spdlog::level::err);
 	}
 
 	template <typename... Args>
 	void critical(const char* str) {
 		spdLogger.critical(str);
+		spdLogger.flush_on(spdlog::level::critical);
 	}
 
 private:
+	static constexpr std::size_t MAX_FILE_SIZE_IN_BYTES{1024 * 1024};
+	static constexpr std::size_t MAX_FILES{100};
+
+	Logger();
+
 	void loggerSetDefaults();
 	void setLogger(spdlog::logger logger);
 

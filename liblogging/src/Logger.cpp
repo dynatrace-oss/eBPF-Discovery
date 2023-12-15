@@ -56,7 +56,7 @@ void Logger::setLevel(enum LogLevel level) {
 	spdLogger.set_level(static_cast<spdlog::level::level_enum>(level));
 }
 
-void Logger::init(std::string name, bool logToStdout, std::filesystem::path logDir) {
+void Logger::init(bool logToStdout, std::filesystem::path logDir) {
 	namespace fs = std::filesystem;
 
 	std::vector<spdlog::sink_ptr> sinks;
@@ -77,11 +77,11 @@ void Logger::init(std::string name, bool logToStdout, std::filesystem::path logD
 			throw std::runtime_error("Couldn't access log directory for reading and writing");
 		}
 
-		fs::path logFile{logDir / (name + ".log")};
-		sinks.push_back(std::make_shared<spdlog::sinks::rotating_file_sink_mt>(logFile, max_size, max_files));
+		const fs::path logFile{logDir / ("ebpf_discovery_" + std::to_string(getpid()) + ".log")};
+		sinks.push_back(std::make_shared<spdlog::sinks::rotating_file_sink_mt>(logFile, MAX_FILE_SIZE_IN_BYTES, MAX_FILES));
 	}
 
-	setLogger(spdlog::logger(name, sinks.begin(), sinks.end()));
+	setLogger(spdlog::logger("ebpfdiscovery", sinks.begin(), sinks.end()));
 }
 
 void Logger::vlogf(enum LogLevel level, const char* format, va_list args) {
