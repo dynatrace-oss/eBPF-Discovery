@@ -40,7 +40,7 @@ void IpAddressNetlinkChecker::printNetworkInterfacesInfo() {
 	}
 }
 
-bool IpAddressNetlinkChecker::isAddressExternalLocal(IPv4int addr) const {
+bool IpAddressNetlinkChecker::isV4AddressExternal(IPv4int addr) const {
 	// Special-Purpose IP Address Registries (https://datatracker.ietf.org/doc/html/rfc6890)
 	static const struct {
 		uint32_t network;
@@ -98,4 +98,32 @@ bool IpAddressNetlinkChecker::isAddressExternalLocal(IPv4int addr) const {
 
 	return true;
 }
+
+static bool isIPv4MappedIPv6(const in6_addr& addr) {
+	if (!std::all_of(addr.s6_addr, addr.s6_addr + 9, [](auto byte) { return byte == 0; })) {
+		return false;
+	}
+	return (addr.s6_addr[10] == 0xFF && addr.s6_addr[11] == 0xFF);
+}
+
+static std::optional<IPv4int> getMappedIPv4Addr(const in6_addr& addr) {
+	if (!isIPv4MappedIPv6(addr)) {
+		return std::nullopt;
+	}
+	std::string ipv4String{fmt::format("{}.{}.{}.{}", addr.s6_addr[12], addr.s6_addr[13], addr.s6_addr[14], addr.s6_addr[15])};
+	IPv4int ipv4Binary;
+	if (inet_pton(AF_INET, ipv4String.c_str(), &ipv4Binary) != 1) {
+		throw std::runtime_error("Invalid IPv4 address: " + ipv4String);
+	}
+	return ipv4Binary;
+}
+
+bool IpAddressNetlinkChecker::isV6AddressExternal(const in6_addr& addr) const {
+	if (auto mappedV4Addr = getMappedIPv4Addr(addr); mappedV4Addr) {
+		return isV4AddressExternal(*mappedV4Addr);
+	} else {
+		throw std::runtime_error("IPv6 only supported for IPv4 mapped addresses");
+	}
+}
+
 } // namespace service

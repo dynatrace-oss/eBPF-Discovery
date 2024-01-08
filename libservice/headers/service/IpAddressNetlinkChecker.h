@@ -10,7 +10,10 @@ class IpAddressNetlinkChecker : public IpAddressChecker {
 public:
 	explicit IpAddressNetlinkChecker(const NetlinkCalls& calls);
 
-	bool isAddressExternalLocal(IPv4int addr) const override;
+	bool isV4AddressExternal(IPv4int addr) const override;
+
+	bool isV6AddressExternal(const in6_addr& addr) const override;
+
 private:
 	void readNetworks();
 

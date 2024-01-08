@@ -13,6 +13,26 @@ static std::string getEndpoint(const std::string& host, const std::string& url) 
 	return host + url;
 }
 
+static bool isIpv4ClientExternal(const IpAddressChecker& ipChecker, const std::string& addr) {
+	in_addr_t clientAddrBinary;
+	if (inet_pton(AF_INET, addr.c_str(), &clientAddrBinary) != 1) {
+		throw std::runtime_error("Cannot parse X-Forwarded-For client address: {}" + addr);
+	}
+	return ipChecker.isV4AddressExternal(clientAddrBinary);
+}
+
+static bool isIpv6ClientExternal(const IpAddressChecker& ipChecker, const std::string& addr) {
+	in6_addr clientAddrBinary{};
+	if (inet_pton(AF_INET6, addr.c_str(), &clientAddrBinary) != 1) {
+		throw std::runtime_error("Cannot parse IPv6 client address: {}" + addr);
+	}
+	return ipChecker.isV6AddressExternal(clientAddrBinary);
+}
+
+static bool isClientExternal(const IpAddressChecker& ipChecker, const std::string& addr, bool isIpV6) {
+	return isIpV6 ? isIpv6ClientExternal(ipChecker, addr) : isIpv4ClientExternal(ipChecker, addr);
+}
+
 static void incrementServiceClientsNumber(
 		const IpAddressChecker& ipChecker, Service& service, const httpparser::HttpRequest& request, const DiscoverySessionMeta& meta) {
 	std::string clientAddr;
@@ -21,21 +41,19 @@ static void incrementServiceClientsNumber(
 	} else if (discoverySessionFlagsIsIPv4(meta.flags)) {
 		clientAddr = ipv4ToString(meta.sourceIPData);
 	} else if (discoverySessionFlagsIsIPv6(meta.flags)) {
-		const auto v6Addr{inet_addr(ipv6ToString(meta.sourceIPData).c_str())};
-		LOG_DEBUG("IPv6 not currently supported, request from src {} skipped", v6Addr);
-		return;
+		clientAddr = ipv6ToString(meta.sourceIPData);
 	}
 
-	in_addr_t clientAddrBinary;
-	if (inet_pton(AF_INET, clientAddr.c_str(), &clientAddrBinary) != 1) {
-		LOG_TRACE("Cannot parse X-Forwarded-For client address: {}", clientAddr);
-		return;
+	try {
+		if(isClientExternal(ipChecker, clientAddr, discoverySessionFlagsIsIPv6(meta.flags))) {
+			++service.externalClientsNumber;
+		} else {
+			++service.internalClientsNumber;
+		}
 	}
-
-	if (ipChecker.isAddressExternalLocal(clientAddrBinary)) {
-		++service.externalClientsNumber;
-	} else {
-		++service.internalClientsNumber;
+	catch (const std::runtime_error& e) {
+		LOG_TRACE(e.what());
+		return;
 	}
 }
 
@@ -47,7 +65,8 @@ static Service toService(const IpAddressChecker& ipChecker, const httpparser::Ht
 	return service;
 }
 
-Aggregator::Aggregator(const IpAddressChecker& ipChecker) : ipChecker{ipChecker} {}
+Aggregator::Aggregator(const IpAddressChecker& ipChecker) : ipChecker{ipChecker} {
+}
 
 void Aggregator::clear() {
 	services.clear();
