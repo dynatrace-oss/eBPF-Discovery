@@ -39,3 +39,8 @@ struct ReadArgs {
 	__u32 fd;
 	char* buf;
 };
+
+struct ReadvArgs {
+	__u32 fd;
+	struct iovec iov;
+};

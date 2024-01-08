@@ -159,6 +159,39 @@ __attribute__((always_inline)) inline static int handleSysReadExit(struct pt_reg
 	return 0;
 }
 
+__attribute__((always_inline)) inline static int handleSysReadvEntry(struct pt_regs* ctx, int fd, const struct iovec *iov, int iovcnt) {
+	struct DiscoveryGlobalState* globalStatePtr = getGlobalState();
+	if (globalStatePtr == NULL || globalStatePtr->isCollectingDisabled) {
+		return 0;
+	}
+
+	struct DiscoveryAllSessionState* allSessionStatePtr = getAllSessionState();
+	if (allSessionStatePtr == NULL) {
+		return 0;
+	};
+
+	__u64 pidTgid = bpf_get_current_pid_tgid();
+
+	struct DiscoveryTrackedSessionKey trackedSessionKey = {};
+	trackedSessionKey.pid = pidTgidToPid(pidTgid);
+	trackedSessionKey.fd = fd;
+
+	if (bpf_map_lookup_elem(&trackedSessionsMap, &trackedSessionKey) == NULL) {
+		// If the read call is not part of a being handled session, stop handling the syscall
+		return 0;
+	}
+
+	for (int i = 0; i < iovcnt; ++i) {
+		struct ReadvArgs readvArgs = {
+				.fd = trackedSessionKey.fd,
+				.iov = &iov[i],
+		};
+		bpf_map_update_elem(&runningReadArgsMap, &pidTgid, &readvArgs, BPF_ANY);
+	}
+
+	return 0;
+}
+
 __attribute__((always_inline)) inline static int handleSysCloseEntry(struct pt_regs* ctx, int fd) {
 	struct DiscoveryGlobalState* globalStatePtr = getGlobalState();
 	if (globalStatePtr == NULL || globalStatePtr->isCollectingDisabled) {
@@ -225,6 +258,11 @@ int BPF_KPROBE_SYSCALL(kprobeSysRead, int fd, void* buf, size_t count) {
 SEC("kretprobe/" SYS_PREFIX "sys_read")
 int BPF_KRETPROBE(kretprobeSysRead, ssize_t bytesCount) {
 	return handleSysReadExit(ctx, bytesCount);
+}
+
+SEC("kprobe/" SYS_PREFIX "sys_readv")
+int BPF_KPROBE_SYSCALL(kprobeSysReadv, int fd, const struct iovec *iov, int iovcnt) {
+	return handleSysReadvEntry(ctx, fd, iov, iovcnt);
 }
 
 SEC("kprobe/" SYS_PREFIX "sys_recv")
