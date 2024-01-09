@@ -32,10 +32,6 @@ struct {
 	__uint(max_entries, DISCOVERY_MAX_SESSIONS);
 } runningReadArgsMap SEC(".maps");
 
-/*
- * Syscall handlers
- */
-
 __attribute__((always_inline)) inline static int handleSysAcceptEntry(struct pt_regs* ctx, struct sockaddr* addr, socklen_t* addrlen) {
 	if (addr == NULL || addrlen == NULL) {
 		// We expect that for TCP/IP connections the addr argument is not null.
