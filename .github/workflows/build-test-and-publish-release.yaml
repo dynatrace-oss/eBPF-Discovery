@@ -46,7 +46,7 @@ jobs:
       - name: Move protobuf model to artifact directory
         run: mv ${{ env.BUILD_PATH }}/libebpfdiscoveryproto/ebpfdiscoveryproto ${{ env.ARTIFACT_PATH }}/ebpfdiscoveryproto
 
-      - name: Move binaries to artifact directory
+      - name: Move binaries to artifact director
         run: mv ${{ env.BUILD_PATH }}/bin ${{ env.ARTIFACT_PATH }}/bin
 
       - name: Remove test binaries from artifact directory
