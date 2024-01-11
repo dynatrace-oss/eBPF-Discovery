@@ -45,13 +45,12 @@ static void incrementServiceClientsNumber(
 	}
 
 	try {
-		if(isClientExternal(ipChecker, clientAddr, discoverySessionFlagsIsIPv6(meta.flags))) {
+		if (isClientExternal(ipChecker, clientAddr, discoverySessionFlagsIsIPv6(meta.flags))) {
 			++service.externalClientsNumber;
 		} else {
 			++service.internalClientsNumber;
 		}
-	}
-	catch (const std::runtime_error& e) {
+	} catch (const std::runtime_error& e) {
 		LOG_TRACE(e.what());
 		return;
 	}

@@ -6,6 +6,7 @@
 #include <arpa/inet.h>
 #include <boost/algorithm/string/join.hpp>
 #include <boost/range/adaptor/transformed.hpp>
+#include <iostream>
 
 namespace service {
 
@@ -110,11 +111,8 @@ static std::optional<IPv4int> getMappedIPv4Addr(const in6_addr& addr) {
 	if (!isIPv4MappedIPv6(addr)) {
 		return std::nullopt;
 	}
-	std::string ipv4String{fmt::format("{}.{}.{}.{}", addr.s6_addr[12], addr.s6_addr[13], addr.s6_addr[14], addr.s6_addr[15])};
-	IPv4int ipv4Binary;
-	if (inet_pton(AF_INET, ipv4String.c_str(), &ipv4Binary) != 1) {
-		throw std::runtime_error("Invalid IPv4 address: " + ipv4String);
-	}
+	uint32_t ipv4Binary = (static_cast<uint32_t>(addr.s6_addr[15]) << 24) | (static_cast<uint32_t>(addr.s6_addr[14]) << 16) |
+						  (static_cast<uint32_t>(addr.s6_addr[13]) << 8) | static_cast<uint32_t>(addr.s6_addr[12]);
 	return ipv4Binary;
 }
 

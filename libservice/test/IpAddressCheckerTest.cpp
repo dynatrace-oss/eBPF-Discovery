@@ -261,7 +261,7 @@ TEST_F(IpAddressCheckerTest, TestMapped) {
 	IpAddressNetlinkChecker ipAddressNetlinkChecker{netlinkMock};
 
 	// mapped IPv4
-	EXPECT_FALSE(ipAddressNetlinkChecker.isV6AddressExternal(getV6AddrBinary("::FFFF:192.168.1.1")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV6AddressExternal(getV6AddrBinary("::FFFF:192.168.0.5")));
 
 	// regular IPv6 addr
 	EXPECT_THROW(
