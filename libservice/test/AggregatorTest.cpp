@@ -10,16 +10,15 @@ using namespace service;
 
 namespace service {
 void PrintTo(const Service& service, std::ostream* os) {
-	*os << "(" << service.pid
-		<< ", " << service.endpoint
-		<< ", " << service.internalClientsNumber
-		<< ", " << service.externalClientsNumber << ")";
+	*os << "(" << service.pid << ", " << service.endpoint << ", " << service.internalClientsNumber << ", " << service.externalClientsNumber
+		<< ")";
 }
 } // namespace service
 
 class IpAddressCheckerMock : public IpAddressChecker {
 public:
-	MOCK_METHOD(bool, isAddressExternalLocal, (IPv4int), (const));
+	MOCK_METHOD(bool, isV4AddressExternal, (IPv4int), (const));
+	MOCK_METHOD(bool, isV6AddressExternal, (const in6_addr&), (const));
 };
 
 struct ServiceAggregatorTest : public testing::Test {
@@ -46,7 +45,7 @@ TEST_F(ServiceAggregatorTest, aggregate) {
 	// Service 1
 	{
 		const auto [request, meta]{makeRequest(100, "host", "/url", DISCOVERY_SESSION_FLAGS_IPV4)};
-		EXPECT_CALL(ipCheckerMock, isAddressExternalLocal).WillOnce(testing::Return(true));
+		EXPECT_CALL(ipCheckerMock, isV4AddressExternal).WillOnce(testing::Return(true));
 		aggregator.newRequest(request, meta);
 	}
 	{
@@ -56,23 +55,23 @@ TEST_F(ServiceAggregatorTest, aggregate) {
 	// Service 2
 	{
 		auto [request, meta]{makeRequest(100, "host", "/url2", DISCOVERY_SESSION_FLAGS_IPV4)};
-		EXPECT_CALL(ipCheckerMock, isAddressExternalLocal).WillOnce(testing::Return(false));
+		EXPECT_CALL(ipCheckerMock, isV4AddressExternal).WillOnce(testing::Return(false));
 		aggregator.newRequest(request, meta);
 	}
 	// Service 3
 	{
 		auto [request, meta]{makeRequest(200, "host", "/url2", DISCOVERY_SESSION_FLAGS_IPV4)};
-		EXPECT_CALL(ipCheckerMock, isAddressExternalLocal).WillOnce(testing::Return(true));
+		EXPECT_CALL(ipCheckerMock, isV4AddressExternal).WillOnce(testing::Return(true));
 		aggregator.newRequest(request, meta);
 	}
 	{
 		auto [request, meta]{makeRequest(200, "host", "/url2", DISCOVERY_SESSION_FLAGS_IPV4)};
-		EXPECT_CALL(ipCheckerMock, isAddressExternalLocal).WillOnce(testing::Return(false));
+		EXPECT_CALL(ipCheckerMock, isV4AddressExternal).WillOnce(testing::Return(false));
 		aggregator.newRequest(request, meta);
 	}
 	{
 		auto [request, meta]{makeRequest(200, "host", "/url2", DISCOVERY_SESSION_FLAGS_IPV4)};
-		EXPECT_CALL(ipCheckerMock, isAddressExternalLocal).WillOnce(testing::Return(true));
+		EXPECT_CALL(ipCheckerMock, isV4AddressExternal).WillOnce(testing::Return(true));
 		aggregator.newRequest(request, meta);
 	}
 
