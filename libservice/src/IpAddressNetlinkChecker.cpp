@@ -119,9 +119,8 @@ static std::optional<IPv4int> getMappedIPv4Addr(const in6_addr& addr) {
 bool IpAddressNetlinkChecker::isV6AddressExternal(const in6_addr& addr) const {
 	if (auto mappedV4Addr = getMappedIPv4Addr(addr); mappedV4Addr) {
 		return isV4AddressExternal(*mappedV4Addr);
-	} else {
-		throw std::runtime_error("IPv6 only supported for IPv4 mapped addresses");
 	}
+	throw std::runtime_error("IPv6 is only supported for IPv4 mapped addresses");
 }
 
 } // namespace service

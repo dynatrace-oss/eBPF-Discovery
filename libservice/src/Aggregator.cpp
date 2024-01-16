@@ -16,7 +16,7 @@ static std::string getEndpoint(const std::string& host, const std::string& url) 
 static bool isIpv4ClientExternal(const IpAddressChecker& ipChecker, const std::string& addr) {
 	in_addr_t clientAddrBinary;
 	if (inet_pton(AF_INET, addr.c_str(), &clientAddrBinary) != 1) {
-		throw std::runtime_error("Cannot parse X-Forwarded-For client address: {}" + addr);
+		throw std::runtime_error("Cannot parse IPv4 client address: {}" + addr);
 	}
 	return ipChecker.isV4AddressExternal(clientAddrBinary);
 }
