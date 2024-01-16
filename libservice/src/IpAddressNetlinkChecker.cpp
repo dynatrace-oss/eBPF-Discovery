@@ -100,7 +100,7 @@ bool IpAddressNetlinkChecker::isV4AddressExternal(IPv4int addr) const {
 	return true;
 }
 
-static bool isIPv4MappedIPv6(const in6_addr& addr) {
+static bool ipv6AddressContainsMappedIpv4Address(const in6_addr& addr) {
 	if (!std::all_of(addr.s6_addr, addr.s6_addr + 9, [](auto byte) { return byte == 0; })) {
 		return false;
 	}
@@ -108,7 +108,7 @@ static bool isIPv4MappedIPv6(const in6_addr& addr) {
 }
 
 static std::optional<IPv4int> getMappedIPv4Addr(const in6_addr& addr) {
-	if (!isIPv4MappedIPv6(addr)) {
+	if (!ipv6AddressContainsMappedIpv4Address(addr)) {
 		return std::nullopt;
 	}
 	uint32_t ipv4Binary = (static_cast<uint32_t>(addr.s6_addr[15]) << 24) | (static_cast<uint32_t>(addr.s6_addr[14]) << 16) |
