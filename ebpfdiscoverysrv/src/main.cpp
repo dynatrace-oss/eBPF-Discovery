@@ -91,7 +91,7 @@ static void setupBpfLogging(
 		perf_buffer* logBuf) {
 	if (logLevel <= logging::LogLevel::Debug) {
 		LOG_DEBUG("Handling of Discovery BPF logging is enabled.");
-		scheduleFunction(ioContext, logBufFetchTimer, logBufFetchInterval, [&]() {
+		scheduleFunction(ioContext, logBufFetchTimer, logBufFetchInterval, [logBuf]() {
 			auto ret{bpflogging::fetchAndLog(logBuf)};
 			if (ret != 0) {
 				LOG_CRITICAL("Failed to fetch and handle Discovery BPF logging: {}.", std::strerror(-ret));
