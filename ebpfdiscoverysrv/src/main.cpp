@@ -71,9 +71,9 @@ static void initLibbpf() {
 
 template <typename Duration>
 static void scheduleFunction(
-		boost::asio::io_context& ioContext, boost::asio::steady_timer& timer, const Duration& interval, const std::function<void()>& func) {
+		boost::asio::io_context& ioContext, boost::asio::steady_timer& timer, const Duration interval, const std::function<void()> func) {
 	timer.expires_from_now(interval);
-	timer.async_wait([&ioContext, &timer, &interval, &func](const boost::system::error_code& err) {
+	timer.async_wait([&ioContext, &timer, interval, func](const boost::system::error_code& err) {
 		if (err) {
 			return;
 		}
