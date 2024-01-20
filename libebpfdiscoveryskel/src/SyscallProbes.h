@@ -3,10 +3,10 @@
 
 #include "GlobalData.h"
 #include "Handlers.h"
-#include "SysPrefixMacro.h"
 #include "SysTypes.h"
 #include "TrackedSession.h"
 #include "ebpfdiscoveryshared/Constants.h"
+#include "ebpfdiscoveryshared/SysPrefixMacro.h"
 
 #include "vmlinux.h"
 
@@ -153,7 +153,7 @@ __attribute__((always_inline)) inline static int handleSysReadExit(struct pt_reg
 		return 0;
 	}
 
-	handleRead(ctx, globalStatePtr, allSessionStatePtr, readArgsPtr, bytesCount);
+	handleRead(ctx, globalStatePtr, allSessionStatePtr, readArgsPtr, bytesCount, 0);
 	bpf_map_delete_elem(&runningReadArgsMap, &pidTgid);
 
 	return 0;

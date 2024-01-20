@@ -3,7 +3,7 @@
 
 #include "Constants.h"
 
-#ifdef TARGET_BPF
+#ifdef __TARGET_BPF
 #	include "vmlinux.h"
 #else
 #	include <linux/types.h>

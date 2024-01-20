@@ -9,24 +9,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 # set(CMAKE_VERBOSE_MAKEFILE TRUE)
 set(CMAKE_CXX_EXTENSIONS FALSE)
 
-# Set BpfObject input parameters -- note this is usually not necessary unless
-# you're in a highly vendored environment
-if (${CMAKE_SYSTEM_PROCESSOR} MATCHES "x86_64")
-    set(ARCH "x86")
-elseif (${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm")
-    set(ARCH "arm")
-elseif (${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64")
-    set(ARCH "arm64")
-elseif (${CMAKE_SYSTEM_PROCESSOR} MATCHES "ppc64le")
-    set(ARCH "powerpc")
-elseif (${CMAKE_SYSTEM_PROCESSOR} MATCHES "mips")
-    set(ARCH "mips")
-elseif (${CMAKE_SYSTEM_PROCESSOR} MATCHES "riscv64")
-    set(ARCH "riscv")
-elseif (${CMAKE_SYSTEM_PROCESSOR} MATCHES "loongarch64")
-    set(ARCH "loongarch")
-endif ()
-
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
@@ -48,7 +30,26 @@ project(
         ${_project_name} VERSION "${PROJECT_VERSION}" LANGUAGES C CXX
 )
 
-set(BPF_C_FLAGS ${BPF_C_FLAGS} -DTARGET_BPF)
+if (${CMAKE_SYSTEM_PROCESSOR} MATCHES "x86_64")
+    set(ARCH "x86")
+elseif (${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm")
+    set(ARCH "arm")
+elseif (${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64")
+    set(ARCH "arm64")
+elseif (${CMAKE_SYSTEM_PROCESSOR} MATCHES "ppc64le")
+    set(ARCH "powerpc")
+elseif (${CMAKE_SYSTEM_PROCESSOR} MATCHES "mips")
+    set(ARCH "mips")
+elseif (${CMAKE_SYSTEM_PROCESSOR} MATCHES "riscv64")
+    set(ARCH "riscv")
+elseif (${CMAKE_SYSTEM_PROCESSOR} MATCHES "loongarch64")
+    set(ARCH "loongarch")
+endif ()
+
+set(COMMON_C_FLAGS ${COMMON_C_FLAGS} -D__TARGET_ARCH_${ARCH})
+add_compile_options(${COMMON_C_FLAGS})
+
+set(BPF_C_FLAGS ${BPF_C_FLAGS} ${COMMON_C_FLAGS} -D__TARGET_BPF)
 
 # Set DEBUG macro in debug build and add additional warnings
 set(EXTRA_DEBUG_FLAGS -DDEBUG -Wall -Wextra -Wno-unused-parameter -Wno-unused-value -Wno-missing-field-initializers)

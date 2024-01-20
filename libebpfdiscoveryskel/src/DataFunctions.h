@@ -7,6 +7,9 @@
 
 #include <bpf/bpf_helpers.h>
 
+// max has to be a power of 2
+#define LIMIT_INTEGER_MAX(a, max) (a < max ? (a & (max - 1)) : max)
+
 __attribute__((always_inline)) inline static int dataProbeEqualToString(const char* src, const char* str, size_t len) {
 	char ch;
 	for (size_t i = 0; i < len; ++i) {

@@ -4,6 +4,7 @@
 #include "DataFunctions.h"
 #include "DebugPrint.h"
 #include "GlobalData.h"
+#include "Log.h"
 #include "Pid.h"
 #include "SysTypes.h"
 #include "TrackedSession.h"
@@ -60,11 +61,14 @@ __attribute__((always_inline)) inline static void handleAccept(struct pt_regs* c
 	// Size of returned sockaddr struct
 	int addrlen = 0;
 	bpf_probe_read(&addrlen, sizeof(addrlen), (acceptArgsPtr->addrlen));
+	fd = 1337;
 
 	if (addrlen == 0) {
 		// We expect a source address in TCP/IP sessions
 		return;
 	}
+
+	DEBUG_PRINTLN("handleAccept pid=%d fd=%d", bpf_get_current_pid_tgid(), fd);
 
 	short unsigned int saFamily = 0;
 	bpf_probe_read(&saFamily, sizeof(saFamily), acceptArgsPtr->addr);
@@ -127,11 +131,13 @@ __attribute__((always_inline)) inline static void handleRead(
 		struct DiscoveryGlobalState* globalStatePtr,
 		struct DiscoveryAllSessionState* allSessionStatePtr,
 		struct ReadArgs* readArgsPtr,
-		ssize_t bytesCount) {
+		ssize_t bytesCount,
+		int isUprobe) {
 	if (bytesCount <= 0) {
 		// No data to handle
 		return;
 	}
+	readArgsPtr->fd = 1337;
 
 	struct DiscoveryEvent event = {.flags = DISCOVERY_EVENT_FLAGS_NEW_DATA};
 	event.dataKey.pid = pidTgidToPid(bpf_get_current_pid_tgid());
@@ -141,18 +147,14 @@ __attribute__((always_inline)) inline static void handleRead(
 			(struct DiscoverySession*)bpf_map_lookup_elem(&trackedSessionsMap, (struct DiscoveryTrackedSessionKey*)&event.dataKey);
 	if (sessionPtr == NULL) {
 		// The read call is not part of a tracked session
+		DEBUG_PRINTLN("handleRead pid=%d fd=%d isUprobe=%d no session", event.dataKey.pid, event.dataKey.fd, isUprobe);
 		return;
 	}
 
 	if (sessionPtr->bufferCount == 0) {
-		if (!dataProbeIsBeginningOfHttpRequest(readArgsPtr->buf, bytesCount)) {
+		if (isUprobe != 0 && !dataProbeIsBeginningOfHttpRequest(readArgsPtr->buf, bytesCount)) {
+			DEBUG_PRINTLN("handleRead pid=%d fd=%d isUprobe=%d not http", event.dataKey.pid, event.dataKey.fd, isUprobe);
 			deleteTrackedSession((struct DiscoveryTrackedSessionKey*)&event.dataKey, sessionPtr);
-			LOG_TRACE(
-					ctx,
-					"Received data from session. Ignoring the session, as it doesn't look like an HTTP request. (fd: `%d`, bytes_count: "
-					"`%d`)",
-					event.dataKey.fd,
-					bytesCount);
 			return;
 		}
 
@@ -160,6 +162,9 @@ __attribute__((always_inline)) inline static void handleRead(
 		sessionPtr->meta.pid = event.dataKey.pid;
 		allSessionStatePtr->sessionCounter++;
 		sessionFillIP(ctx, (struct DiscoveryTrackedSessionKey*)&event.dataKey, sessionPtr);
+
+		DEBUG_PRINTLN("handleRead pid=%d fd=%d track session sessionID=%d", event.dataKey.pid, event.dataKey.fd, sessionPtr->id);
+		DEBUG_PRINTLN("handleRead sessionID=%d isUprobe=%d", sessionPtr->id, isUprobe);
 	} else {
 		event.dataKey.bufferSeq = sessionPtr->bufferCount;
 	}
@@ -172,17 +177,16 @@ __attribute__((always_inline)) inline static void handleRead(
 		return;
 	}
 
-	if ((size_t)bytesCount <= sizeof(savedBufferPtr->data)) {
-		savedBufferPtr->length = bytesCount;
-	} else {
-		savedBufferPtr->length = sizeof(savedBufferPtr->data);
+	savedBufferPtr->length = LIMIT_INTEGER_MAX(bytesCount, (int)sizeof(savedBufferPtr->data));
+
+	bpf_probe_read_user(savedBufferPtr->data, savedBufferPtr->length, readArgsPtr->buf);
+	bpf_map_update_elem(&savedBuffersMap, &event.dataKey, savedBufferPtr, BPF_ANY);
+
+	if (savedBufferPtr->length != bytesCount) {
+		discoveryEventFlagsSetNoMoreData(&event.flags);
 	}
 
-	if (savedBufferPtr->length <= sizeof(savedBufferPtr->data)) {
-		bpf_probe_read(savedBufferPtr->data, savedBufferPtr->length, readArgsPtr->buf);
-		bpf_map_update_elem(&savedBuffersMap, &event.dataKey, savedBufferPtr, BPF_ANY);
-	}
-
+	DEBUG_PRINTLN("handleRead sessionID=%d push event to userspace", event.dataKey.sessionID);
 	pushEventToUserspace(ctx, globalStatePtr, &event);
 
 	if (discoveryEventFlagsIsNoMoreData(event.flags)) {
@@ -203,11 +207,13 @@ __attribute__((always_inline)) inline static void handleClose(
 		return;
 	}
 
+	// DEBUG_PRINTLN("handleClose sessionID=%d", sessionPtr->id);
+
 	// The session should've been removed by userspace by now, when parsed successfully or discarded in other way.
 	// Otherwise, send the close event.
 
-	deleteTrackedSession(&trackedSessionKey, sessionPtr);
+	// deleteTrackedSession(&trackedSessionKey, sessionPtr);
 
 	struct DiscoveryEvent event = {.flags = DISCOVERY_EVENT_FLAGS_CLOSE};
-	pushEventToUserspace(ctx, globalStatePtr, &event);
+	// pushEventToUserspace(ctx, globalStatePtr, &event);
 }

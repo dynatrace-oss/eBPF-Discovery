@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0
 #pragma once
 
-#define DISCOVERY_BUFFER_MAX_DATA_SIZE 10240 // 10 KiB
+// Buffer size should be a power of 2 to keep arithmetic operations correct
+#define DISCOVERY_BUFFER_MAX_DATA_SIZE 8192 // 8 KiB
 #define DISCOVERY_MAX_SESSIONS 8192
 #define DISCOVERY_EVENT_QUEUE_SIZE 512
 

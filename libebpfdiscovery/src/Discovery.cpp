@@ -7,6 +7,7 @@
 #include "service/IpAddress.h"
 
 #include <bpf/bpf.h>
+#include <fmt/core.h>
 
 #include <algorithm>
 #include <arpa/inet.h>
@@ -26,7 +27,7 @@ Discovery::Discovery(const DiscoveryBpfFds& bpfFds) : bpfFds{bpfFds}, savedSessi
 
 void Discovery::init() {
 	if (const auto ret{bpfDiscoveryResetConfig()}; ret != 0) {
-		throw std::runtime_error("Could not initialize BPF program configuration: " + std::to_string(ret));
+		throw std::runtime_error(fmt::format("Could not initialize BPF program configuration: {}", strerror(-ret)));
 	}
 }
 
@@ -86,6 +87,7 @@ void Discovery::handleNewDataEvent(DiscoveryEvent& event) {
 	DiscoverySavedBuffer savedBuffer;
 	const auto res{bpf_map_lookup_and_delete_elem(bpfFds.savedBuffersMap, &event.dataKey, &savedBuffer)};
 	if (res != 0) {
+		LOG_TRACE("No saved buffer for data event");
 		return;
 	}
 
@@ -124,7 +126,9 @@ void Discovery::handleNewSession(std::string_view& bufferView, DiscoveryEvent& e
 	Session session;
 	session.parser.parse(std::move(bufferView));
 	if (session.parser.isInvalidState()) {
-		bpfDiscoveryDeleteSession(event.dataKey);
+		if (event.dataKey.bufferSeq > 1) {
+			bpfDiscoveryDeleteSession(event.dataKey);
+		}
 		return;
 	}
 
