@@ -70,15 +70,14 @@ static void initLibbpf() {
 }
 
 template <typename Duration>
-static void scheduleFunction(
-		boost::asio::io_context& ioContext, boost::asio::steady_timer& timer, Duration interval, std::function<void()> func) {
+static void scheduleFunction(boost::asio::steady_timer& timer, const Duration& interval, std::function<void()> func) {
 	timer.expires_from_now(interval);
-	timer.async_wait([&ioContext, &timer, interval, func](const boost::system::error_code& err) {
+	timer.async_wait([&timer, &interval, func](const boost::system::error_code& err) {
 		if (err) {
 			return;
 		}
 		func();
-		scheduleFunction(ioContext, timer, interval, func);
+		scheduleFunction(timer, interval, func);
 	});
 }
 
@@ -91,7 +90,7 @@ static void setupBpfLogging(
 		perf_buffer* logBuf) {
 	if (logLevel <= logging::LogLevel::Debug) {
 		LOG_DEBUG("Handling of Discovery BPF logging is enabled.");
-		scheduleFunction(ioContext, logBufFetchTimer, logBufFetchInterval, [&]() {
+		scheduleFunction(logBufFetchTimer, logBufFetchInterval, [logBuf]() {
 			auto ret{bpflogging::fetchAndLog(logBuf)};
 			if (ret != 0) {
 				LOG_CRITICAL("Failed to fetch and handle Discovery BPF logging: {}.", std::strerror(-ret));
@@ -173,7 +172,7 @@ int main(int argc, char** argv) {
 
 	auto eventQueuePollInterval{std::chrono::milliseconds(250)};
 	auto fetchAndHandleTimer{boost::asio::steady_timer(ioContext, eventQueuePollInterval)};
-	scheduleFunction(ioContext, fetchAndHandleTimer, eventQueuePollInterval, [&instance]() {
+	scheduleFunction(fetchAndHandleTimer, eventQueuePollInterval, [&instance]() {
 		auto ret{instance.fetchAndHandleEvents()};
 		if (ret != 0) {
 			LOG_CRITICAL("Failed to fetch and handle Discovery BPF events: {}.", std::strerror(-ret));
@@ -183,7 +182,7 @@ int main(int argc, char** argv) {
 
 	auto outputServicesToStdoutInterval{std::chrono::seconds(vm["interval"].as<int>())};
 	auto outputServicesToStdoutTimer{boost::asio::steady_timer(ioContext, outputServicesToStdoutInterval)};
-	scheduleFunction(ioContext, outputServicesToStdoutTimer, outputServicesToStdoutInterval, [&]() { instance.outputServicesToStdout(); });
+	scheduleFunction(outputServicesToStdoutTimer, outputServicesToStdoutInterval, [&]() { instance.outputServicesToStdout(); });
 
 	auto logBufFetchInterval{std::chrono::milliseconds(250)};
 	auto logBufFetchTimer{boost::asio::steady_timer(ioContext, logBufFetchInterval)};
