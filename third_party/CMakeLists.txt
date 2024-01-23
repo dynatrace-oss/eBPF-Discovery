@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(thirdparty)
+project(third_party)
 set(THIRDPARTY_MAKE_JOBS_COUNT "1" CACHE STRING "Number of jobs to use when compiling thirdparty submodules")
 
 include(ExternalProject)

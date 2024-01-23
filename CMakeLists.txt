@@ -104,16 +104,16 @@ if (BUILD_TESTS OR BUILD_BPF_TESTS)
     add_custom_target(run-tests COMMAND ${CMAKE_CTEST_COMMAND} -T Test --no-compress-output --output-on-failure USES_TERMINAL)
 endif ()
 
-add_subdirectory(thirdparty)
+add_subdirectory(third_party)
 execute_process(
-        COMMAND ${CMAKE_COMMAND} -DTHIRDPARTY_MAKE_JOBS_COUNT=${THIRDPARTY_MAKE_JOBS_COUNT} ${PROJECT_SOURCE_DIR}/thirdparty
-        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/thirdparty
+        COMMAND ${CMAKE_COMMAND} -DTHIRDPARTY_MAKE_JOBS_COUNT=${THIRDPARTY_MAKE_JOBS_COUNT} ${PROJECT_SOURCE_DIR}/third_party
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/third_party
 )
-execute_process(COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR}/thirdparty)
+execute_process(COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR}/third_party)
 
-set(BPFOBJECT_BPFTOOL_EXE ${CMAKE_BINARY_DIR}/thirdparty/bpftool/bootstrap/bpftool)
-set(LIBBPF_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/thirdparty/libbpf)
-set(LIBBPF_LIBRARIES ${CMAKE_BINARY_DIR}/thirdparty/libbpf/libbpf.a)
+set(BPFOBJECT_BPFTOOL_EXE ${CMAKE_BINARY_DIR}/third_party/bpftool/bootstrap/bpftool)
+set(LIBBPF_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/third_party/libbpf)
+set(LIBBPF_LIBRARIES ${CMAKE_BINARY_DIR}/third_party/libbpf/libbpf.a)
 
 add_subdirectory(libbpfload)
 add_subdirectory(libebpfdiscovery)
