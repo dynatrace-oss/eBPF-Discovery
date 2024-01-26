@@ -5,37 +5,60 @@ set(THIRDPARTY_MAKE_JOBS_COUNT "1" CACHE STRING "Number of jobs to use when comp
 include(ExternalProject)
 find_package(Git REQUIRED)
 
+# bftool
+
 if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/bpftool/src/Makefile OR NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/bpftool/libbpf/src/Makefile)
 	execute_process(
 		COMMAND ${GIT_EXECUTABLE} submodule update --init --recursive -- ./bpftool
 		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} COMMAND_ERROR_IS_FATAL ANY
 	)
 endif()
-ExternalProject_Add(
-	bpftool
-	PREFIX bpftool
-	SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/bpftool/src
-	CONFIGURE_COMMAND ""
-	BUILD_COMMAND make -j${THIRDPARTY_MAKE_JOBS_COUNT} bootstrap OUTPUT=${CMAKE_BINARY_DIR}/bpftool/
-	BUILD_IN_SOURCE TRUE
-	INSTALL_COMMAND ""
-	STEP_TARGETS build
+
+file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/bpftool)
+
+execute_process(
+		COMMAND make -j${THIRDPARTY_MAKE_JOBS_COUNT} bootstrap OUTPUT=${CMAKE_BINARY_DIR}/bpftool/
+		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bpftool/src
 )
+
+set(TARGET_BPFTOOL bpftool)
+add_executable(${TARGET_BPFTOOL} IMPORTED GLOBAL)
+set_property(TARGET ${TARGET_BPFTOOL} PROPERTY IMPORTED_LOCATION ${CMAKE_BINARY_DIR}/bpftool/bootstrap/bpftool)
+
+
+# libbpf
+
 if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/libbpf/src/Makefile)
 	execute_process(
 		COMMAND ${GIT_EXECUTABLE} submodule update --init --recursive -- ./libbpf
 		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} COMMAND_ERROR_IS_FATAL ANY
 	)
 endif()
-ExternalProject_Add(
-	libbpf
-	PREFIX libbpf
-	SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/libbpf/src
-	CONFIGURE_COMMAND ""
-	BUILD_COMMAND
-		make -j${THIRDPARTY_MAKE_JOBS_COUNT} BUILD_STATIC_ONLY=1 OBJDIR=${CMAKE_BINARY_DIR}/libbpf/libbpf DESTDIR=${CMAKE_BINARY_DIR}/libbpf
-		INCLUDEDIR= LIBDIR= UAPIDIR= install install_uapi_headers
-	BUILD_IN_SOURCE TRUE
-	INSTALL_COMMAND ""
-	STEP_TARGETS build
+
+file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/libbpf)
+
+execute_process(
+		COMMAND
+			make -j${THIRDPARTY_MAKE_JOBS_COUNT} BUILD_STATIC_ONLY=1 OBJDIR=${CMAKE_BINARY_DIR}/libbpf/libbpf DESTDIR=${CMAKE_BINARY_DIR}/libbpf
+			INCLUDEDIR= LIBDIR= UAPIDIR= install install_uapi_headers
+		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/libbpf/src
 )
+
+set(TARGET_LIBBPF libbpf)
+add_library(${TARGET_LIBBPF} STATIC IMPORTED GLOBAL)
+set_property(TARGET ${TARGET_LIBBPF} PROPERTY IMPORTED_LOCATION ${CMAKE_BINARY_DIR}/libbpf/libbpf.a)
+target_include_directories(${TARGET_LIBBPF} INTERFACE ${CMAKE_BINARY_DIR}/libbpf)
+
+
+# bcc/libpf-tools
+
+list(APPEND SOURCES_BCC_LIBBPF_TOOLS
+	bcc/libbpf-tools/btf_helpers.c
+	bcc/libbpf-tools/trace_helpers.c
+	bcc/libbpf-tools/uprobe_helpers.c
+)
+
+set(TARGET_BCC_LIBBPF_TOOLS libpf-tools)
+add_library(${TARGET_BCC_LIBBPF_TOOLS} STATIC ${SOURCES_BCC_LIBBPF_TOOLS})
+target_include_directories(${TARGET_BCC_LIBBPF_TOOLS} PUBLIC libbpf-tools)
+target_link_libraries(${TARGET_BCC_LIBBPF_TOOLS} PRIVATE libbpf)

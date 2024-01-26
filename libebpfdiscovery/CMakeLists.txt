@@ -14,7 +14,7 @@ target_include_directories(${TARGET} PRIVATE src PUBLIC headers)
 
 target_link_libraries(${TARGET}
         PUBLIC
-            bpfload
+            libpf-tools
             ebpfdiscoveryproto
             ebpfdiscoveryshared
             ebpfdiscoveryskel

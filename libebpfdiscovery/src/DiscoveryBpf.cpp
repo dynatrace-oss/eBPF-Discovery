@@ -4,7 +4,7 @@
 #include "logging/Logger.h"
 
 extern "C" {
-#include "bpfload/btf_helpers.h"
+#include "../../third_party/bcc/libbpf-tools/btf_helpers.h"
 }
 
 namespace ebpfdiscovery {

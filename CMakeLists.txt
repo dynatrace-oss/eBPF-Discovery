@@ -105,17 +105,6 @@ if (BUILD_TESTS OR BUILD_BPF_TESTS)
 endif ()
 
 add_subdirectory(third_party)
-execute_process(
-        COMMAND ${CMAKE_COMMAND} -DTHIRDPARTY_MAKE_JOBS_COUNT=${THIRDPARTY_MAKE_JOBS_COUNT} ${PROJECT_SOURCE_DIR}/third_party
-        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/third_party
-)
-execute_process(COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR}/third_party)
-
-set(BPFOBJECT_BPFTOOL_EXE ${CMAKE_BINARY_DIR}/third_party/bpftool/bootstrap/bpftool)
-set(LIBBPF_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/third_party/libbpf)
-set(LIBBPF_LIBRARIES ${CMAKE_BINARY_DIR}/third_party/libbpf/libbpf.a)
-
-add_subdirectory(libbpfload)
 add_subdirectory(libebpfdiscovery)
 add_subdirectory(libebpfdiscoveryproto)
 add_subdirectory(libebpfdiscoveryshared)
