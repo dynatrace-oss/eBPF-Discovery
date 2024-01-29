@@ -16,7 +16,7 @@ static std::string getEndpoint(const std::string& host, const std::string& url) 
 static bool isIpv4ClientExternal(const IpAddressChecker& ipChecker, const std::string& addr) {
 	in_addr_t clientAddrBinary;
 	if (inet_pton(AF_INET, addr.c_str(), &clientAddrBinary) != 1) {
-		throw std::runtime_error("Can't parse IPv4 client address: " + addr);
+		return true;
 	}
 	return ipChecker.isV4AddressExternal(clientAddrBinary);
 }
@@ -24,9 +24,14 @@ static bool isIpv4ClientExternal(const IpAddressChecker& ipChecker, const std::s
 static bool isIpv6ClientExternal(const IpAddressChecker& ipChecker, const std::string& addr) {
 	in6_addr clientAddrBinary{};
 	if (inet_pton(AF_INET6, addr.c_str(), &clientAddrBinary) != 1) {
-		throw std::runtime_error("Can't parse IPv6 client address: " + addr);
+		return true;
 	}
 	return ipChecker.isV6AddressExternal(clientAddrBinary);
+}
+
+static bool isClientExternal(const IpAddressChecker& ipChecker, const std::string& addr) {
+	bool isPossiblyIpv6{addr.find(':') != std::string::npos};
+	return isPossiblyIpv6 ? isIpv6ClientExternal(ipChecker, addr) : isIpv4ClientExternal(ipChecker, addr);
 }
 
 static bool isClientExternal(const IpAddressChecker& ipChecker, const std::string& addr, bool isIpV6) {
@@ -35,17 +40,19 @@ static bool isClientExternal(const IpAddressChecker& ipChecker, const std::strin
 
 static void incrementServiceClientsNumber(
 		const IpAddressChecker& ipChecker, Service& service, const httpparser::HttpRequest& request, const DiscoverySessionMeta& meta) {
-	std::string clientAddr;
+	bool isExternal{false};
 	if (!request.xForwardedFor.empty()) {
-		clientAddr = request.xForwardedFor.front();
+		isExternal = isClientExternal(ipChecker, request.xForwardedFor.front());
 	} else if (discoverySessionFlagsIsIPv4(meta.flags)) {
-		clientAddr = ipv4ToString(meta.sourceIPData);
+		isExternal = isClientExternal(ipChecker, ipv4ToString(meta.sourceIPData), false);
 	} else if (discoverySessionFlagsIsIPv6(meta.flags)) {
-		clientAddr = ipv6ToString(meta.sourceIPData);
+		isExternal = isClientExternal(ipChecker, ipv6ToString(meta.sourceIPData), true);
+	} else {
+		return;
 	}
 
 	try {
-		if (isClientExternal(ipChecker, clientAddr, discoverySessionFlagsIsIPv6(meta.flags))) {
+		if (isExternal) {
 			++service.externalClientsNumber;
 		} else {
 			++service.internalClientsNumber;
