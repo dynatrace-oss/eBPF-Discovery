@@ -1,7 +1,6 @@
 set(TARGET ebpfdiscoveryskel)
 
 set(BPF_C_FLAGS ${BPF_C_FLAGS} -I${CMAKE_CURRENT_SOURCE_DIR}/src -I${PROJECT_SOURCE_DIR}/libebpfdiscoveryshared/headers)
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 get_target_property(LIBBPF_LIBRARIES libbpf IMPORTED_LOCATION)
 get_target_property(LIBBPF_INCLUDE_DIRS libbpf INTERFACE_INCLUDE_DIRECTORIES)
