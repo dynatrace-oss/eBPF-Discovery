@@ -16,7 +16,7 @@ static std::string getEndpoint(const std::string& host, const std::string& url) 
 static bool isIpv4ClientExternal(const IpAddressChecker& ipChecker, const std::string& addr) {
 	in_addr_t clientAddrBinary;
 	if (inet_pton(AF_INET, addr.c_str(), &clientAddrBinary) != 1) {
-		throw std::runtime_error("Cannot parse IPv4 client address: {}" + addr);
+		throw std::runtime_error("Can't parse IPv4 client address: " + addr);
 	}
 	return ipChecker.isV4AddressExternal(clientAddrBinary);
 }
@@ -24,7 +24,7 @@ static bool isIpv4ClientExternal(const IpAddressChecker& ipChecker, const std::s
 static bool isIpv6ClientExternal(const IpAddressChecker& ipChecker, const std::string& addr) {
 	in6_addr clientAddrBinary{};
 	if (inet_pton(AF_INET6, addr.c_str(), &clientAddrBinary) != 1) {
-		throw std::runtime_error("Cannot parse IPv6 client address: {}" + addr);
+		throw std::runtime_error("Can't parse IPv6 client address: " + addr);
 	}
 	return ipChecker.isV6AddressExternal(clientAddrBinary);
 }
