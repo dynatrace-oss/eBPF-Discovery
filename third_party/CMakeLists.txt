@@ -5,14 +5,15 @@ set(THIRDPARTY_MAKE_JOBS_COUNT "1" CACHE STRING "Number of jobs to use when comp
 include(ExternalProject)
 find_package(Git REQUIRED)
 
-# bftool
-
 if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/bpftool/src/Makefile OR NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/bpftool/libbpf/src/Makefile)
 	execute_process(
-		COMMAND ${GIT_EXECUTABLE} submodule update --init --recursive -- ./bpftool
-		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} COMMAND_ERROR_IS_FATAL ANY
+			COMMAND ${GIT_EXECUTABLE} submodule update --init --recursive -- ./bpftool
+			WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} COMMAND_ERROR_IS_FATAL ANY
 	)
 endif()
+
+
+# bftool
 
 file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/bpftool)
 
@@ -28,20 +29,13 @@ set_property(TARGET ${TARGET_BPFTOOL} PROPERTY IMPORTED_LOCATION ${CMAKE_BINARY_
 
 # libbpf
 
-if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/libbpf/src/Makefile)
-	execute_process(
-		COMMAND ${GIT_EXECUTABLE} submodule update --init --recursive -- ./libbpf
-		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} COMMAND_ERROR_IS_FATAL ANY
-	)
-endif()
-
 file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/libbpf)
 
 execute_process(
 		COMMAND
 			make -j${THIRDPARTY_MAKE_JOBS_COUNT} BUILD_STATIC_ONLY=1 OBJDIR=${CMAKE_BINARY_DIR}/libbpf/libbpf DESTDIR=${CMAKE_BINARY_DIR}/libbpf
 			INCLUDEDIR= LIBDIR= UAPIDIR= install install_uapi_headers
-		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/libbpf/src
+		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bpftool/libbpf/src
 )
 
 set(TARGET_LIBBPF libbpf)
