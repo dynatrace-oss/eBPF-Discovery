@@ -14,6 +14,9 @@
 #include <bpf/bpf_helpers.h>
 #include <bpf/bpf_tracing.h>
 
+// This keeps instruction count below BPF's limit of 4096 per probe.
+#define LOOP_LIMIT 42
+
 /*
  * Maps for storing syscall arguments to pass them from kprobes to kretprobes.
  */
@@ -181,7 +184,7 @@ __attribute__((always_inline)) inline static int handleSysReadvEntry(struct pt_r
 		return 0;
 	}
 
-	for (int i = 0; i < iovcnt; ++i) {
+	for (int i = 0; i < LOOP_LIMIT && i < iovcnt; ++i) {
 		struct ReadvArgs readvArgs = {
 				.fd = trackedSessionKey.fd,
 				.iov = &iov[i],
