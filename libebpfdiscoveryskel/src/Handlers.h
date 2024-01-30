@@ -198,7 +198,7 @@ __attribute__((always_inline)) inline static void handleReadv(
 		struct pt_regs* ctx,
 		struct DiscoveryGlobalState* globalStatePtr,
 		struct DiscoveryAllSessionState* allSessionStatePtr,
-		struct ReadArgs* readArgsPtr,
+		struct ReadvArgs* readvArgsPtr,
 		ssize_t bytesCount) {
 	if (bytesCount <= 0) {
 		// No data to handle
@@ -207,7 +207,7 @@ __attribute__((always_inline)) inline static void handleReadv(
 
 	struct DiscoveryEvent event = {.flags = DISCOVERY_EVENT_FLAGS_NEW_DATA};
 	event.dataKey.pid = pidTgidToPid(bpf_get_current_pid_tgid());
-	event.dataKey.fd = readArgsPtr->fd;
+	event.dataKey.fd = readvArgsPtr->fd;
 
 	struct DiscoverySession* sessionPtr =
 			(struct DiscoverySession*)bpf_map_lookup_elem(&trackedSessionsMap, (struct DiscoveryTrackedSessionKey*)&event.dataKey);
@@ -217,7 +217,7 @@ __attribute__((always_inline)) inline static void handleReadv(
 	}
 
 	if (sessionPtr->bufferCount == 0) {
-		if (!dataProbeIsBeginningOfHttpRequest(readArgsPtr->buf, bytesCount)) {
+		if (!dataProbeIsBeginningOfHttpRequest(readvArgsPtr->buf, bytesCount)) {
 			deleteTrackedSession((struct DiscoveryTrackedSessionKey*)&event.dataKey, sessionPtr);
 			LOG_TRACE(
 					ctx,

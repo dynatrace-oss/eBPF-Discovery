@@ -219,6 +219,9 @@ __attribute__((always_inline)) inline static int handleSysReadvExit(struct pt_re
 
 	// Get arguments of currently handled syscall
 	struct ReadvArgs* readvArgsPtr = (struct ReadvArgs*)bpf_map_lookup_elem(&runningReadvArgsMap, &pidTgid);
+	// array of ReadvArgs
+	// for x in [ReadvArgs]:
+	// handleRead(x)
 	if (readvArgsPtr == NULL) {
 		return 0;
 	}
