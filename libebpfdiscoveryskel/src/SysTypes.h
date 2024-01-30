@@ -42,5 +42,5 @@ struct ReadArgs {
 
 struct ReadvArgs {
 	__u32 fd;
-	struct iovec iov;
+	struct iovec iov{};
 };
