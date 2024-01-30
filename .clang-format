@@ -1,6 +1,3 @@
-# Visual Studio & VSCode on Windows only comes with version 6.0.0, so that's what we stick with.
-# https://releases.llvm.org/6.0.0/tools/clang/docs/ClangFormatStyleOptions.html
-
 BasedOnStyle: LLVM
 IndentWidth: 4
 Language: Cpp
