@@ -35,6 +35,13 @@ struct {
 	__uint(max_entries, DISCOVERY_MAX_SESSIONS);
 } runningReadArgsMap SEC(".maps");
 
+struct {
+	__uint(type, BPF_MAP_TYPE_HASH);
+	__type(key, __u64); // pid_tgid
+	__type(value, struct ReadvArgs);
+	__uint(max_entries, DISCOVERY_MAX_SESSIONS);
+} runningReadvArgsMap SEC(".maps");
+
 /*
  * Syscall handlers
  */
@@ -184,13 +191,40 @@ __attribute__((always_inline)) inline static int handleSysReadvEntry(struct pt_r
 		return 0;
 	}
 
+	// TODO: I'm not sure if total_size limitation should be used; if so, where should be total_count declared (globally?)
 	for (int i = 0; i < LOOP_LIMIT && i < iovcnt; ++i) {
+		// TODO: I'm not sure if this is initialized properly
 		struct ReadvArgs readvArgs = {
 				.fd = trackedSessionKey.fd,
 				.iov = &iov[i],
 		};
-		bpf_map_update_elem(&runningReadArgsMap, &pidTgid, &readvArgs, BPF_ANY);
+		bpf_map_update_elem(&runningReadvArgsMap, &pidTgid, &readvArgs, BPF_ANY);
 	}
+
+	return 0;
+}
+
+__attribute__((always_inline)) inline static int handleSysReadvExit(struct pt_regs* ctx, ssize_t bytesCount) {
+	struct DiscoveryGlobalState* globalStatePtr = getGlobalState();
+	if (globalStatePtr == NULL || globalStatePtr->isCollectingDisabled) {
+		return 0;
+	}
+
+	struct DiscoveryAllSessionState* allSessionStatePtr = getAllSessionState();
+	if (allSessionStatePtr == NULL) {
+		return 0;
+	};
+
+	__u64 pidTgid = bpf_get_current_pid_tgid();
+
+	// Get arguments of currently handled syscall
+	struct ReadvArgs* readvArgsPtr = (struct ReadvArgs*)bpf_map_lookup_elem(&runningReadvArgsMap, &pidTgid);
+	if (readvArgsPtr == NULL) {
+		return 0;
+	}
+
+	handleReadv(ctx, globalStatePtr, allSessionStatePtr, readvArgsPtr, bytesCount);
+	bpf_map_delete_elem(&runningReadvArgsMap, &pidTgid);
 
 	return 0;
 }
@@ -266,6 +300,11 @@ int BPF_KRETPROBE(kretprobeSysRead, ssize_t bytesCount) {
 SEC("kprobe/" SYS_PREFIX "sys_readv")
 int BPF_KPROBE_SYSCALL(kprobeSysReadv, int fd, const struct iovec *iov, int iovcnt) {
 	return handleSysReadvEntry(ctx, fd, iov, iovcnt);
+}
+
+SEC("kretprobe/" SYS_PREFIX "sys_readv")
+int BPF_KRETPROBE(kretprobeSysReadv, ssize_t bytesCount) {
+	return handleSysReadvExit(ctx, bytesCount);
 }
 
 SEC("kprobe/" SYS_PREFIX "sys_recv")

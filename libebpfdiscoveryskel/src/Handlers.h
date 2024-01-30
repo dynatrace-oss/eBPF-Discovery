@@ -193,6 +193,79 @@ __attribute__((always_inline)) inline static void handleRead(
 	sessionPtr->bufferCount++;
 }
 
+// TODO: this is a copied handleRead function; adapt it to readv
+__attribute__((always_inline)) inline static void handleReadv(
+		struct pt_regs* ctx,
+		struct DiscoveryGlobalState* globalStatePtr,
+		struct DiscoveryAllSessionState* allSessionStatePtr,
+		struct ReadArgs* readArgsPtr,
+		ssize_t bytesCount) {
+	if (bytesCount <= 0) {
+		// No data to handle
+		return;
+	}
+
+	struct DiscoveryEvent event = {.flags = DISCOVERY_EVENT_FLAGS_NEW_DATA};
+	event.dataKey.pid = pidTgidToPid(bpf_get_current_pid_tgid());
+	event.dataKey.fd = readArgsPtr->fd;
+
+	struct DiscoverySession* sessionPtr =
+			(struct DiscoverySession*)bpf_map_lookup_elem(&trackedSessionsMap, (struct DiscoveryTrackedSessionKey*)&event.dataKey);
+	if (sessionPtr == NULL) {
+		// The read call is not part of a tracked session
+		return;
+	}
+
+	if (sessionPtr->bufferCount == 0) {
+		if (!dataProbeIsBeginningOfHttpRequest(readArgsPtr->buf, bytesCount)) {
+			deleteTrackedSession((struct DiscoveryTrackedSessionKey*)&event.dataKey, sessionPtr);
+			LOG_TRACE(
+					ctx,
+					"Received data from session. Ignoring the session, as it doesn't look like an HTTP request. (fd: `%d`, bytes_count: "
+					"`%d`)",
+					event.dataKey.fd,
+					bytesCount);
+			return;
+		}
+
+		sessionPtr->id = allSessionStatePtr->sessionCounter;
+		sessionPtr->meta.pid = event.dataKey.pid;
+		allSessionStatePtr->sessionCounter++;
+		sessionFillIP(ctx, (struct DiscoveryTrackedSessionKey*)&event.dataKey, sessionPtr);
+	} else {
+		event.dataKey.bufferSeq = sessionPtr->bufferCount;
+	}
+
+	event.dataKey.sessionID = sessionPtr->id;
+	event.sessionMeta = sessionPtr->meta;
+
+	struct DiscoverySavedBuffer* savedBufferPtr = newSavedBuffer();
+	if (savedBufferPtr == NULL) {
+		return;
+	}
+
+	if ((size_t)bytesCount <= sizeof(savedBufferPtr->data)) {
+		savedBufferPtr->length = bytesCount;
+	} else {
+		savedBufferPtr->length = sizeof(savedBufferPtr->data);
+	}
+
+	if (savedBufferPtr->length <= sizeof(savedBufferPtr->data)) {
+		bpf_probe_read(savedBufferPtr->data, savedBufferPtr->length, readArgsPtr->buf);
+		bpf_map_update_elem(&savedBuffersMap, &event.dataKey, savedBufferPtr, BPF_ANY);
+	}
+
+	pushEventToUserspace(ctx, globalStatePtr, &event);
+
+	if (discoveryEventFlagsIsNoMoreData(event.flags)) {
+		deleteTrackedSession((struct DiscoveryTrackedSessionKey*)&event.dataKey, sessionPtr);
+		return;
+	}
+
+	sessionPtr->bufferCount++;
+}
+
+
 __attribute__((always_inline)) inline static void handleClose(
 		struct pt_regs* ctx, struct DiscoveryGlobalState* globalStatePtr, struct DiscoveryAllSessionState* allSessionStatePtr, int fd) {
 	struct DiscoveryTrackedSessionKey trackedSessionKey = {};
