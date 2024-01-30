@@ -1,3 +1,17 @@
+# Copyright 2023 Dynatrace LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 cmake_minimum_required(VERSION 3.22.3)
 
 option(BUILD_TESTS "Build tests" ON)
@@ -104,18 +118,9 @@ if (BUILD_TESTS OR BUILD_BPF_TESTS)
     add_custom_target(run-tests COMMAND ${CMAKE_CTEST_COMMAND} -T Test --no-compress-output --output-on-failure USES_TERMINAL)
 endif ()
 
-add_subdirectory(thirdparty)
-execute_process(
-        COMMAND ${CMAKE_COMMAND} -DTHIRDPARTY_MAKE_JOBS_COUNT=${THIRDPARTY_MAKE_JOBS_COUNT} ${PROJECT_SOURCE_DIR}/thirdparty
-        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/thirdparty
-)
-execute_process(COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR}/thirdparty)
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/third_party/libbpf-bootstrap/tools/cmake)
 
-set(BPFOBJECT_BPFTOOL_EXE ${CMAKE_BINARY_DIR}/thirdparty/bpftool/bootstrap/bpftool)
-set(LIBBPF_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/thirdparty/libbpf)
-set(LIBBPF_LIBRARIES ${CMAKE_BINARY_DIR}/thirdparty/libbpf/libbpf.a)
-
-add_subdirectory(libbpfload)
+add_subdirectory(third_party)
 add_subdirectory(libebpfdiscovery)
 add_subdirectory(libebpfdiscoveryproto)
 add_subdirectory(libebpfdiscoveryshared)
