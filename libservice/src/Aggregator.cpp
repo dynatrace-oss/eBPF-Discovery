@@ -28,25 +28,24 @@ static std::string getEndpoint(const std::string& host, const std::string& url) 
 	return host + url;
 }
 
-static std::optional<bool> isIpv4ClientExternal(const IpAddressChecker& ipChecker, const std::string& addr) {
+static bool isIpv4ClientExternal(const IpAddressChecker& ipChecker, const std::string& addr) {
 	in_addr_t clientAddrBinary;
 	if (inet_pton(AF_INET, addr.c_str(), &clientAddrBinary) != 1) {
-		return std::nullopt;
+		throw std::runtime_error("Couldn't parse IPv4 client address");
 	}
 	return ipChecker.isV4AddressExternal(clientAddrBinary);
 }
 
-static std::optional<bool> isIpv6ClientExternal(const IpAddressChecker& ipChecker, const std::string& addr) {
+static bool isIpv6ClientExternal(const IpAddressChecker& ipChecker, const std::string& addr) {
 	in6_addr clientAddrBinary{};
 	if (inet_pton(AF_INET6, addr.c_str(), &clientAddrBinary) != 1) {
-		return std::nullopt;
+		throw std::runtime_error("Couldn't parse IPv6 client address");
 	}
 	return ipChecker.isV6AddressExternal(clientAddrBinary);
 }
 
 static bool isClientExternal(const IpAddressChecker& ipChecker, const std::string& addr, bool isIpv6) {
-	auto isExternal = isIpv6 ? isIpv6ClientExternal(ipChecker, addr) : isIpv4ClientExternal(ipChecker, addr);
-	return isExternal.value_or(false);
+	return isIpv6 ? isIpv6ClientExternal(ipChecker, addr) : isIpv4ClientExternal(ipChecker, addr);
 }
 
 static bool isClientExternal(const IpAddressChecker& ipChecker, const std::string& addr) {
@@ -57,14 +56,22 @@ static bool isClientExternal(const IpAddressChecker& ipChecker, const std::strin
 static void incrementServiceClientsNumber(
 		const IpAddressChecker& ipChecker, Service& service, const httpparser::HttpRequest& request, const DiscoverySessionMeta& meta) {
 	bool isExternal{false};
-	if (!request.xForwardedFor.empty()) {
-		isExternal = isClientExternal(ipChecker, request.xForwardedFor.front());
-	} else if (discoverySessionFlagsIsIPv4(meta.flags)) {
-		isExternal = isClientExternal(ipChecker, ipv4ToString(meta.sourceIPData), false);
-	} else if (discoverySessionFlagsIsIPv6(meta.flags)) {
-		isExternal = isClientExternal(ipChecker, ipv6ToString(meta.sourceIPData), true);
-	} else {
-		return;
+	std::string clientAddr;
+	try {
+		if (!request.xForwardedFor.empty()) {
+			clientAddr = request.xForwardedFor.front();
+			isExternal = isClientExternal(ipChecker, clientAddr);
+		} else if (discoverySessionFlagsIsIPv4(meta.flags)) {
+			clientAddr = ipv4ToString(meta.sourceIPData);
+			isExternal = isClientExternal(ipChecker, clientAddr, false);
+		} else if (discoverySessionFlagsIsIPv6(meta.flags)) {
+			clientAddr = ipv6ToString(meta.sourceIPData);
+			isExternal = isClientExternal(ipChecker, clientAddr, true);
+		} else {
+			return;
+		}
+	} catch (const std::runtime_error& e) {
+		LOG_TRACE("Couldn't determine if the client is external: {} (client address: {})", e.what(), clientAddr);
 	}
 
 	if (isExternal) {
