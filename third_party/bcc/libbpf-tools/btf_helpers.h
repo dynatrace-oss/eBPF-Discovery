@@ -3,7 +3,7 @@
 #ifndef __BTF_HELPERS_H
 #define __BTF_HELPERS_H
 
-#include <bpf/libbpf.h>
+#include "bpf/libbpf.h"
 
 int ensure_core_btf(struct bpf_object_open_opts* opts);
 void cleanup_core_btf(struct bpf_object_open_opts* opts);
