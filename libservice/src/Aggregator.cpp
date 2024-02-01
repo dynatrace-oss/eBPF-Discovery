@@ -13,29 +13,30 @@ static std::string getEndpoint(const std::string& host, const std::string& url) 
 	return host + url;
 }
 
-static bool isIpv4ClientExternal(const IpAddressChecker& ipChecker, const std::string& addr) {
+static std::optional<bool> isIpv4ClientExternal(const IpAddressChecker& ipChecker, const std::string& addr) {
 	in_addr_t clientAddrBinary;
 	if (inet_pton(AF_INET, addr.c_str(), &clientAddrBinary) != 1) {
-		return true;
+		return std::nullopt;
 	}
 	return ipChecker.isV4AddressExternal(clientAddrBinary);
 }
 
-static bool isIpv6ClientExternal(const IpAddressChecker& ipChecker, const std::string& addr) {
+static std::optional<bool> isIpv6ClientExternal(const IpAddressChecker& ipChecker, const std::string& addr) {
 	in6_addr clientAddrBinary{};
 	if (inet_pton(AF_INET6, addr.c_str(), &clientAddrBinary) != 1) {
-		return true;
+		return std::nullopt;
 	}
 	return ipChecker.isV6AddressExternal(clientAddrBinary);
 }
 
-static bool isClientExternal(const IpAddressChecker& ipChecker, const std::string& addr) {
-	bool isPossiblyIpv6{addr.find(':') != std::string::npos};
-	return isPossiblyIpv6 ? isIpv6ClientExternal(ipChecker, addr) : isIpv4ClientExternal(ipChecker, addr);
+static bool isClientExternal(const IpAddressChecker& ipChecker, const std::string& addr, bool isIpv6) {
+	auto isExternal = isIpv6 ? isIpv6ClientExternal(ipChecker, addr) : isIpv4ClientExternal(ipChecker, addr);
+	return isExternal.value_or(false);
 }
 
-static bool isClientExternal(const IpAddressChecker& ipChecker, const std::string& addr, bool isIpV6) {
-	return isIpV6 ? isIpv6ClientExternal(ipChecker, addr) : isIpv4ClientExternal(ipChecker, addr);
+static bool isClientExternal(const IpAddressChecker& ipChecker, const std::string& addr) {
+	bool isPossiblyIpv6{std::count(addr.begin(), addr.end(), ':') >= 2};
+	return isClientExternal(ipChecker, addr, isPossiblyIpv6);
 }
 
 static void incrementServiceClientsNumber(
@@ -51,15 +52,10 @@ static void incrementServiceClientsNumber(
 		return;
 	}
 
-	try {
-		if (isExternal) {
-			++service.externalClientsNumber;
-		} else {
-			++service.internalClientsNumber;
-		}
-	} catch (const std::runtime_error& e) {
-		LOG_TRACE(e.what());
-		return;
+	if (isExternal) {
+		++service.externalClientsNumber;
+	} else {
+		++service.internalClientsNumber;
 	}
 }
 
