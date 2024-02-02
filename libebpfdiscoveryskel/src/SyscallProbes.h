@@ -49,6 +49,30 @@ struct {
 	__uint(max_entries, DISCOVERY_MAX_SESSIONS);
 } runningReadArgsMap SEC(".maps");
 
+char* convertIovToBuf(const struct iovec* iov, size_t iovlen) {
+	if (iov == NULL || iovlen == 0) {
+		return NULL;
+	}
+
+	size_t total_size = 0;
+	for (size_t i = 0; i < iovlen; ++i) {
+		total_size += iov[i].iov_len;
+	}
+
+	char* buf = (char*)malloc(total_size);
+	if (buf == NULL) {
+		return NULL;
+	}
+
+	size_t offset = 0;
+	for (size_t i = 0; i < iovlen; ++i) {
+		memcpy(buf + offset, iov[i].iov_base, iov[i].iov_len);
+		offset += iov[i].iov_len;
+	}
+
+	return buf;
+}
+
 /*
  * Syscall handlers
  */
@@ -210,6 +234,30 @@ __attribute__((always_inline)) inline static int handleSysRecvExit(struct pt_reg
 	return handleSysReadExit(ctx, bytesCount);
 }
 
+__attribute__((always_inline)) inline static int handleSysRecvmsgEntry(struct pt_regs* ctx, int fd, struct msghdr* msg, int flags) {
+	if (flags & MSG_PEEK) {
+		return 0;
+	}
+
+	if (flags & MSG_TRUNC || flags & MSG_OOB) {
+		// We drop handling the session when these flags are used
+		handleSysCloseEntry(ctx, fd);
+		return 0;
+	}
+
+	char* buf{convertIovToBuf(msg->msg_iov, msg->msg_iovlen)};
+	if (buf == NULL) {
+		return 0;
+	}
+
+	handleSysReadEntry(ctx, fd, buf);
+	return 0;
+}
+
+__attribute__((always_inline)) inline static int handleSysRecvmsgExit(struct pt_regs* ctx, ssize_t bytesCount) {
+	return handleSysReadExit(ctx, bytesCount);
+}
+
 /*
  * Syscall probes
  */
@@ -252,6 +300,16 @@ int BPF_KPROBE_SYSCALL(kprobeSysRecv, int fd, void* buf, size_t len, int flags) 
 SEC("kretprobe/" SYS_PREFIX "sys_recv")
 int BPF_KRETPROBE(kretprobeSysRecv, ssize_t bytesCount) {
 	return handleSysRecvExit(ctx, bytesCount);
+}
+
+SEC("kprobe/" SYS_PREFIX "sys_recvmsg")
+int BPF_KPROBE_SYSCALL(kprobeSysRecvmsg, int fd, struct msghdr *msg, int flags) {
+	return handleSysRecvmsgEntry(ctx, fd, msg, flags);
+}
+
+SEC("kretprobe/" SYS_PREFIX "sys_recvmsg")
+int BPF_KRETPROBE(kretprobeSysRecvmsg, ssize_t bytesCount) {
+	return handleSysRecvmsgExit(ctx, bytesCount);
 }
 
 SEC("kprobe/" SYS_PREFIX "sys_recvfrom")
