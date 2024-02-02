@@ -49,6 +49,13 @@ struct {
 	__uint(max_entries, DISCOVERY_MAX_SESSIONS);
 } runningReadArgsMap SEC(".maps");
 
+struct {
+	__uint(type, BPF_MAP_TYPE_HASH);
+	__type(key, __u64); // pid_tgid
+	__type(value, struct ConnectArgs);
+	__uint(max_entries, DISCOVERY_MAX_SESSIONS);
+} runningConnectArgsMap SEC(".maps");
+
 /*
  * Syscall handlers
  */
@@ -210,6 +217,93 @@ __attribute__((always_inline)) inline static int handleSysRecvExit(struct pt_reg
 	return handleSysReadExit(ctx, bytesCount);
 }
 
+__attribute__((always_inline)) inline static int handleSysRecvmsgEntry(struct pt_regs* ctx, int fd, struct msghdr* msg, int flags) {
+	if (flags & MSG_PEEK) {
+		return 0;
+	}
+
+	if (flags & MSG_TRUNC || flags & MSG_OOB) {
+		// We drop handling the session when these flags are used
+		handleSysCloseEntry(ctx, fd);
+		return 0;
+	}
+
+	if (msg == NULL) {
+		return 0;
+	}
+
+	struct DiscoveryGlobalState* globalStatePtr = getGlobalState();
+	if (globalStatePtr == NULL || globalStatePtr->isCollectingDisabled) {
+		return 0;
+	}
+
+	struct DiscoveryAllSessionState* allSessionStatePtr = getAllSessionState();
+	if (allSessionStatePtr == NULL) {
+		return 0;
+	};
+
+	__u64 pidTgid = bpf_get_current_pid_tgid();
+
+	struct DiscoveryTrackedSessionKey trackedSessionKey = {};
+	trackedSessionKey.pid = pidTgidToPid(pidTgid);
+	trackedSessionKey.fd = fd;
+
+	if (bpf_map_lookup_elem(&trackedSessionsMap, &trackedSessionKey) == NULL) {
+		// If the read call is not part of a being handled session, stop handling the syscall
+		return 0;
+	}
+
+	if (msg->msg_name != NULL) {
+		struct ConnectArgs connectArgs = {
+				.fd = trackedSessionKey.fd,
+				.addr = msg->msg_name,
+		};
+		bpf_map_update_elem(&runningConnectArgsMap, &pidTgid, &connectArgs, BPF_ANY);
+	}
+
+	struct ReadArgs readArgs = {
+			.fd = trackedSessionKey.fd,
+			.iov = msg->msg_iov,
+			.iovlen = msg->msg_iovlen,
+
+	};
+	bpf_map_update_elem(&runningReadArgsMap, &pidTgid, &readArgs, BPF_ANY);
+
+	return 0;
+}
+
+__attribute__((always_inline)) inline static int handleSysRecvmsgExit(struct pt_regs* ctx, ssize_t bytesCount) {
+	struct DiscoveryGlobalState* globalStatePtr = getGlobalState();
+	if (globalStatePtr == NULL || globalStatePtr->isCollectingDisabled) {
+		return 0;
+	}
+
+	struct DiscoveryAllSessionState* allSessionStatePtr = getAllSessionState();
+	if (allSessionStatePtr == NULL) {
+		return 0;
+	};
+
+	__u64 pidTgid = bpf_get_current_pid_tgid();
+
+	// Get arguments of currently handled syscall
+	struct ConnectArgs* connectArgsPtr = (struct ConnectArgs*)bpf_map_lookup_elem(&runningConnectArgsMap, &pidTgid);
+	if (connectArgsPtr != NULL) {
+		// TODO: Process ConnectArgs
+	}
+	bpf_map_delete_elem(&runningConnectArgsMap, &pidTgid);
+
+	struct ReadArgs* readArgsPtr = (struct ReadArgs*)bpf_map_lookup_elem(&runningReadArgsMap, &pidTgid);
+	if (readArgsPtr == NULL) {
+		return 0;
+	}
+
+	// TODO: Extend handleRead with recvmsg handling or implement handleRecvmsg
+	handleRead(ctx, globalStatePtr, allSessionStatePtr, readArgsPtr, bytesCount);
+	bpf_map_delete_elem(&runningReadArgsMap, &pidTgid);
+
+	return 0;
+}
+
 /*
  * Syscall probes
  */
@@ -252,6 +346,16 @@ int BPF_KPROBE_SYSCALL(kprobeSysRecv, int fd, void* buf, size_t len, int flags) 
 SEC("kretprobe/" SYS_PREFIX "sys_recv")
 int BPF_KRETPROBE(kretprobeSysRecv, ssize_t bytesCount) {
 	return handleSysRecvExit(ctx, bytesCount);
+}
+
+SEC("kprobe/" SYS_PREFIX "sys_recvmsg")
+int BPF_KPROBE_SYSCALL(kprobeSysRecvmsg, int fd, struct msghdr *msg, int flags) {
+	return handleSysRecvmsgEntry(ctx, fd, msg, flags);
+}
+
+SEC("kretprobe/" SYS_PREFIX "sys_recvmsg")
+int BPF_KRETPROBE(kretprobeSysRecvmsg, ssize_t bytesCount) {
+	return handleSysRecvmsgExit(ctx, bytesCount);
 }
 
 SEC("kprobe/" SYS_PREFIX "sys_recvfrom")

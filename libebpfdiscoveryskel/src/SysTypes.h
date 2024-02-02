@@ -54,5 +54,16 @@ struct AcceptArgs {
 
 struct ReadArgs {
 	__u32 fd;
+
+	// For recv, read, recvfrom
 	char* buf;
+
+	// For recvmsg
+	const struct iovec* iov;
+	size_t iovlen;
+};
+
+struct ConnectArgs {
+	__u32 fd;
+	const struct sockaddr* addr;
 };
