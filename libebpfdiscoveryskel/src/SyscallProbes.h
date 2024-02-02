@@ -177,7 +177,7 @@ __attribute__((always_inline)) inline static int handleSysReadExit(struct pt_reg
 		return 0;
 	}
 
-	handleRead(ctx, globalStatePtr, allSessionStatePtr, readArgsPtr, bytesCount);
+	handleRead(false, ctx, globalStatePtr, allSessionStatePtr, readArgsPtr, bytesCount);
 	bpf_map_delete_elem(&runningReadArgsMap, &pidTgid);
 
 	return 0;
@@ -288,7 +288,7 @@ __attribute__((always_inline)) inline static int handleSysRecvmsgExit(struct pt_
 	// Get arguments of currently handled syscall
 	struct ConnectArgs* connectArgsPtr = (struct ConnectArgs*)bpf_map_lookup_elem(&runningConnectArgsMap, &pidTgid);
 	if (connectArgsPtr != NULL) {
-		// TODO: Process ConnectArgs
+		// TODO: Handle ConnectArgs
 	}
 	bpf_map_delete_elem(&runningConnectArgsMap, &pidTgid);
 
@@ -298,7 +298,7 @@ __attribute__((always_inline)) inline static int handleSysRecvmsgExit(struct pt_
 	}
 
 	// TODO: Extend handleRead with recvmsg handling or implement handleRecvmsg
-	handleRead(ctx, globalStatePtr, allSessionStatePtr, readArgsPtr, bytesCount);
+	handleRead(true, ctx, globalStatePtr, allSessionStatePtr, readArgsPtr, bytesCount);
 	bpf_map_delete_elem(&runningReadArgsMap, &pidTgid);
 
 	return 0;

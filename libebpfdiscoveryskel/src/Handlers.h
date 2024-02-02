@@ -140,6 +140,7 @@ __attribute__((always_inline)) inline static int sessionFillIP(
 }
 
 __attribute__((always_inline)) inline static void handleRead(
+		bool handleVector,
 		struct pt_regs* ctx,
 		struct DiscoveryGlobalState* globalStatePtr,
 		struct DiscoveryAllSessionState* allSessionStatePtr,
@@ -162,7 +163,15 @@ __attribute__((always_inline)) inline static void handleRead(
 	}
 
 	if (sessionPtr->bufferCount == 0) {
-		if (!dataProbeIsBeginningOfHttpRequest(readArgsPtr->buf, bytesCount)) {
+		bool isBeginningOfHttpRequest;
+		if(handleVector) {
+			isBeginningOfHttpRequest = dataProbeIsBeginningOfHttpRequest(readArgsPtr->buf, bytesCount);
+		}
+		else {
+			isBeginningOfHttpRequest = dataProbeIsBeginningOfHttpRequest((char*)readArgsPtr->iov[0].iov_base, bytesCount);
+		}
+
+		if (!isBeginningOfHttpRequest) {
 			deleteTrackedSession((struct DiscoveryTrackedSessionKey*)&event.dataKey, sessionPtr);
 			LOG_TRACE(
 					ctx,
