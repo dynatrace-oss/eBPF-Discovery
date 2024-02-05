@@ -245,7 +245,7 @@ __attribute__((always_inline)) inline static int handleSysRecvmsgEntry(struct pt
 		return 0;
 	}
 
-	char* buf{convertIovToBuf(msg->msg_iov, msg->msg_iovlen)};
+	char* buf = convertIovToBuf(msg->msg_iov, msg->msg_iovlen);
 	if (buf == NULL) {
 		return 0;
 	}
