@@ -30,6 +30,7 @@
 #include <bpf/bpf_core_read.h>
 #include <bpf/bpf_helpers.h>
 #include <bpf/bpf_tracing.h>
+#include <sys/socket.h>
 
 /*
  * Maps for storing syscall arguments to pass them from kprobes to kretprobes.
