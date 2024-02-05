@@ -56,13 +56,6 @@ struct {
 	__uint(max_entries, DISCOVERY_MAX_SESSIONS);
 } runningReadVectorArgsMap SEC(".maps");
 
-struct {
-	__uint(type, BPF_MAP_TYPE_HASH);
-	__type(key, __u64); // pid_tgid
-	__type(value, struct ConnectArgs);
-	__uint(max_entries, DISCOVERY_MAX_SESSIONS);
-} runningConnectArgsMap SEC(".maps");
-
 /*
  * Syscall handlers
  */
@@ -260,14 +253,6 @@ __attribute__((always_inline)) inline static int handleSysRecvmsgEntry(struct pt
 		return 0;
 	}
 
-	if (msg->msg_name != NULL) {
-		struct ConnectArgs connectArgs = {
-				.fd = trackedSessionKey.fd,
-				.addr = msg->msg_name,
-		};
-		bpf_map_update_elem(&runningConnectArgsMap, &pidTgid, &connectArgs, BPF_ANY);
-	}
-
 	struct ReadVectorArgs readVectorArgs = {
 			.fd = trackedSessionKey.fd,
 			.iov = msg->msg_iov,
@@ -291,13 +276,6 @@ __attribute__((always_inline)) inline static int handleSysRecvmsgExit(struct pt_
 	};
 
 	__u64 pidTgid = bpf_get_current_pid_tgid();
-
-	// Get arguments of currently handled syscall
-	struct ConnectArgs* connectArgsPtr = (struct ConnectArgs*)bpf_map_lookup_elem(&runningConnectArgsMap, &pidTgid);
-	if (connectArgsPtr != NULL) {
-		// TODO: Handle ConnectArgs
-	}
-	bpf_map_delete_elem(&runningConnectArgsMap, &pidTgid);
 
 	struct ReadVectorArgs* readVectorArgsPtr = (struct ReadVectorArgs*)bpf_map_lookup_elem(&runningReadVectorArgsMap, &pidTgid);
 	if (readVectorArgsPtr == NULL) {

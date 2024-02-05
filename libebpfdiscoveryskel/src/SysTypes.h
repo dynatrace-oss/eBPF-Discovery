@@ -62,8 +62,3 @@ struct ReadVectorArgs {
 	const struct iovec* iov;
 	size_t iovlen;
 };
-
-struct ConnectArgs {
-	__u32 fd;
-	const struct sockaddr* addr;
-};
