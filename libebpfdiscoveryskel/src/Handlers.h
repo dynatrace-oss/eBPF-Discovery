@@ -140,7 +140,6 @@ __attribute__((always_inline)) inline static int sessionFillIP(
 }
 
 __attribute__((always_inline)) inline static void handleRead(
-		bool handleVector,
 		struct pt_regs* ctx,
 		struct DiscoveryGlobalState* globalStatePtr,
 		struct DiscoveryAllSessionState* allSessionStatePtr,
@@ -163,15 +162,7 @@ __attribute__((always_inline)) inline static void handleRead(
 	}
 
 	if (sessionPtr->bufferCount == 0) {
-		bool isBeginningOfHttpRequest;
-		if(handleVector) {
-			isBeginningOfHttpRequest = dataProbeIsBeginningOfHttpRequest(readArgsPtr->buf, bytesCount);
-		}
-		else {
-			isBeginningOfHttpRequest = dataProbeIsBeginningOfHttpRequest((char*)readArgsPtr->iov[0].iov_base, bytesCount);
-		}
-
-		if (!isBeginningOfHttpRequest) {
+		if (!dataProbeIsBeginningOfHttpRequest(readArgsPtr->buf, bytesCount)) {
 			deleteTrackedSession((struct DiscoveryTrackedSessionKey*)&event.dataKey, sessionPtr);
 			LOG_TRACE(
 					ctx,
@@ -217,6 +208,15 @@ __attribute__((always_inline)) inline static void handleRead(
 	}
 
 	sessionPtr->bufferCount++;
+}
+
+__attribute__((always_inline)) inline static void handleReadVector(
+		struct pt_regs* ctx,
+		struct DiscoveryGlobalState* globalStatePtr,
+		struct DiscoveryAllSessionState* allSessionStatePtr,
+		struct ReadVectorArgs* readVectorArgsPtr,
+		ssize_t bytesCount) {
+	return;
 }
 
 __attribute__((always_inline)) inline static void handleClose(

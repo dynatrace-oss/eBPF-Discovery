@@ -52,6 +52,13 @@ struct {
 struct {
 	__uint(type, BPF_MAP_TYPE_HASH);
 	__type(key, __u64); // pid_tgid
+	__type(value, struct ReadVectorArgs);
+	__uint(max_entries, DISCOVERY_MAX_SESSIONS);
+} runningReadVectorArgsMap SEC(".maps");
+
+struct {
+	__uint(type, BPF_MAP_TYPE_HASH);
+	__type(key, __u64); // pid_tgid
 	__type(value, struct ConnectArgs);
 	__uint(max_entries, DISCOVERY_MAX_SESSIONS);
 } runningConnectArgsMap SEC(".maps");
@@ -177,7 +184,7 @@ __attribute__((always_inline)) inline static int handleSysReadExit(struct pt_reg
 		return 0;
 	}
 
-	handleRead(false, ctx, globalStatePtr, allSessionStatePtr, readArgsPtr, bytesCount);
+	handleRead(ctx, globalStatePtr, allSessionStatePtr, readArgsPtr, bytesCount);
 	bpf_map_delete_elem(&runningReadArgsMap, &pidTgid);
 
 	return 0;
@@ -261,13 +268,13 @@ __attribute__((always_inline)) inline static int handleSysRecvmsgEntry(struct pt
 		bpf_map_update_elem(&runningConnectArgsMap, &pidTgid, &connectArgs, BPF_ANY);
 	}
 
-	struct ReadArgs readArgs = {
+	struct ReadVectorArgs readVectorArgs = {
 			.fd = trackedSessionKey.fd,
 			.iov = msg->msg_iov,
 			.iovlen = msg->msg_iovlen,
 
 	};
-	bpf_map_update_elem(&runningReadArgsMap, &pidTgid, &readArgs, BPF_ANY);
+	bpf_map_update_elem(&runningReadVectorArgsMap, &pidTgid, &readVectorArgs, BPF_ANY);
 
 	return 0;
 }
@@ -292,14 +299,13 @@ __attribute__((always_inline)) inline static int handleSysRecvmsgExit(struct pt_
 	}
 	bpf_map_delete_elem(&runningConnectArgsMap, &pidTgid);
 
-	struct ReadArgs* readArgsPtr = (struct ReadArgs*)bpf_map_lookup_elem(&runningReadArgsMap, &pidTgid);
-	if (readArgsPtr == NULL) {
+	struct ReadVectorArgs* readVectorArgsPtr = (struct ReadVectorArgs*)bpf_map_lookup_elem(&runningReadVectorArgsMap, &pidTgid);
+	if (readVectorArgsPtr == NULL) {
 		return 0;
 	}
 
-	// TODO: Extend handleRead with recvmsg handling or implement handleRecvmsg
-	handleRead(true, ctx, globalStatePtr, allSessionStatePtr, readArgsPtr, bytesCount);
-	bpf_map_delete_elem(&runningReadArgsMap, &pidTgid);
+	handleReadVector(ctx, globalStatePtr, allSessionStatePtr, readVectorArgsPtr, bytesCount);
+	bpf_map_delete_elem(&runningReadVectorArgsMap, &pidTgid);
 
 	return 0;
 }

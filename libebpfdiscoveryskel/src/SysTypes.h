@@ -54,11 +54,11 @@ struct AcceptArgs {
 
 struct ReadArgs {
 	__u32 fd;
-
-	// For recv, read, recvfrom
 	char* buf;
+};
 
-	// For recvmsg
+struct ReadVectorArgs {
+	__u32 fd;
 	const struct iovec* iov;
 	size_t iovlen;
 };
