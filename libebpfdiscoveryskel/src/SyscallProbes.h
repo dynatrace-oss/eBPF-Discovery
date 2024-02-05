@@ -217,7 +217,7 @@ __attribute__((always_inline)) inline static int handleSysRecvExit(struct pt_reg
 	return handleSysReadExit(ctx, bytesCount);
 }
 
-__attribute__((always_inline)) inline static int handleSysRecvmsgEntry(struct pt_regs* ctx, int fd, struct msghdr* msg, int flags) {
+__attribute__((always_inline)) inline static int handleSysRecvmsgEntry(struct pt_regs* ctx, int fd, struct user_msghdr* msg, int flags) {
 	if (flags & MSG_PEEK) {
 		return 0;
 	}
@@ -349,7 +349,7 @@ int BPF_KRETPROBE(kretprobeSysRecv, ssize_t bytesCount) {
 }
 
 SEC("kprobe/" SYS_PREFIX "sys_recvmsg")
-int BPF_KPROBE_SYSCALL(kprobeSysRecvmsg, int fd, struct msghdr *msg, int flags) {
+int BPF_KPROBE_SYSCALL(kprobeSysRecvmsg, int fd, struct user_msghdr *msg, int flags) {
 	return handleSysRecvmsgEntry(ctx, fd, msg, flags);
 }
 
