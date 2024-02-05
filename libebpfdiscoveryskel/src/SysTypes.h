@@ -59,6 +59,6 @@ struct ReadArgs {
 
 struct ReadVectorArgs {
 	__u32 fd;
-	const struct iovec* iov;
+	struct iovec* iov;
 	size_t iovlen;
 };
