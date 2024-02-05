@@ -304,7 +304,13 @@ __attribute__((always_inline)) inline static int handleSysRecvmsgExit(struct pt_
 		return 0;
 	}
 
-	handleReadVector(ctx, globalStatePtr, allSessionStatePtr, readVectorArgsPtr, bytesCount);
+	for (size_t i = 0; i < PROTOCOL_VEC_LIMIT && i < readVectorArgsPtr->iovlen; i++) {
+		struct ReadArgs readArgs = {
+				.fd = readVectorArgsPtr->fd,
+				.buf = (char*) readVectorArgsPtr->iov[i].iov_base,
+		};
+		handleRead(ctx, globalStatePtr, allSessionStatePtr, &readArgs, readVectorArgsPtr->iov[i].iov_len);
+	}
 	bpf_map_delete_elem(&runningReadVectorArgsMap, &pidTgid);
 
 	return 0;

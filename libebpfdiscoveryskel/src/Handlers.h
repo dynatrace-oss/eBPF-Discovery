@@ -33,6 +33,8 @@
 #include <bpf/bpf_helpers.h>
 #include <bpf/bpf_tracing.h>
 
+#define PROTOCOL_VEC_LIMIT 3
+
 __attribute__((always_inline)) inline static void handleAcceptIPv4Session(
 		struct pt_regs* ctx,
 		const struct DiscoveryTrackedSessionKey trackedSessionKey,
@@ -208,15 +210,6 @@ __attribute__((always_inline)) inline static void handleRead(
 	}
 
 	sessionPtr->bufferCount++;
-}
-
-__attribute__((always_inline)) inline static void handleReadVector(
-		struct pt_regs* ctx,
-		struct DiscoveryGlobalState* globalStatePtr,
-		struct DiscoveryAllSessionState* allSessionStatePtr,
-		struct ReadVectorArgs* readVectorArgsPtr,
-		ssize_t bytesCount) {
-	return;
 }
 
 __attribute__((always_inline)) inline static void handleClose(
