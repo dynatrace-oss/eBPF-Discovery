@@ -33,8 +33,6 @@
 #include <bpf/bpf_helpers.h>
 #include <bpf/bpf_tracing.h>
 
-#define PROTOCOL_VEC_LIMIT 3
-
 __attribute__((always_inline)) inline static void handleAcceptIPv4Session(
 		struct pt_regs* ctx,
 		const struct DiscoveryTrackedSessionKey trackedSessionKey,
