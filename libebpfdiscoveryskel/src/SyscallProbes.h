@@ -253,12 +253,11 @@ __attribute__((always_inline)) inline static int handleSysRecvmsgEntry(struct pt
 		return 0;
 	}
 
-	struct ReadVectorArgs readVectorArgs = {
-			.fd = trackedSessionKey.fd,
-			.iov = msg->msg_iov,
-			.iovlen = msg->msg_iovlen,
+	struct ReadVectorArgs readVectorArgs = {};
+	readVectorArgs.fd = trackedSessionKey.fd;
+	bpf_probe_read(&readVectorArgs.iovlen, sizeof(size_t), &msg->msg_iovlen);
+	bpf_probe_read(&readVectorArgs.iov, sizeof(void*), &msg->msg_iov);
 
-	};
 	bpf_map_update_elem(&runningReadVectorArgsMap, &pidTgid, &readVectorArgs, BPF_ANY);
 
 	return 0;
