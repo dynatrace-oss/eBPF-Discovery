@@ -31,6 +31,8 @@
 #include <bpf/bpf_helpers.h>
 #include <bpf/bpf_tracing.h>
 
+#define PROTOCOL_VEC_LIMIT 3
+
 /*
  * Maps for storing syscall arguments to pass them from kprobes to kretprobes.
  */
