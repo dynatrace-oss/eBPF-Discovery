@@ -257,7 +257,7 @@ __attribute__((always_inline)) inline static int handleSysRecvmsgEntry(struct pt
 
 	struct ReadIovArgs readIovArgs = {};
 	readIovArgs.fd = trackedSessionKey.fd;
-	bpf_probe_read(&readIovArgs.iov, sizeof(void*), &msg->msg_iov);
+	bpf_probe_read(&readIovArgs.iov, sizeof(iovec*), &msg->msg_iov);
 	bpf_probe_read(&readIovArgs.iovlen, sizeof(size_t), &msg->msg_iovlen);
 
 	bpf_map_update_elem(&runningReadIovArgsMap, &pidTgid, &readIovArgs, BPF_ANY);
