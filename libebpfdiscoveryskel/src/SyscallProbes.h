@@ -179,7 +179,7 @@ __attribute__((always_inline)) inline static int handleSysReadExit(struct pt_reg
 		return 0;
 	}
 
-	handleRead(ctx, globalStatePtr, allSessionStatePtr, readArgsPtr, bytesCount);
+	handleRead(ctx, globalStatePtr, allSessionStatePtr, readArgsPtr, bytesCount, pidTgid);
 	bpf_map_delete_elem(&runningReadArgsMap, &pidTgid);
 
 	return 0;
@@ -288,7 +288,7 @@ __attribute__((always_inline)) inline static int handleSysRecvmsgExit(struct pt_
 				.fd = readVectorArgsPtr->fd,
 				.buf = (char*) readVectorArgsPtr->iov[i].iov_base,
 		};
-		handleRead(ctx, globalStatePtr, allSessionStatePtr, &readArgs, (ssize_t) readVectorArgsPtr->iov[i].iov_len);
+		handleRead(ctx, globalStatePtr, allSessionStatePtr, &readArgs, (ssize_t) readVectorArgsPtr->iov[i].iov_len, pidTgid);
 	}
 	bpf_map_delete_elem(&runningReadVectorArgsMap, &pidTgid);
 

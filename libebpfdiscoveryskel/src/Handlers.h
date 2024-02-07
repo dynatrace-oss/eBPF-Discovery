@@ -144,14 +144,15 @@ __attribute__((always_inline)) inline static void handleRead(
 		struct DiscoveryGlobalState* globalStatePtr,
 		struct DiscoveryAllSessionState* allSessionStatePtr,
 		struct ReadArgs* readArgsPtr,
-		ssize_t bytesCount) {
+		ssize_t bytesCount,
+		__u64 pidTgid) {
 	if (bytesCount <= 0) {
 		// No data to handle
 		return;
 	}
 
 	struct DiscoveryEvent event = {.flags = DISCOVERY_EVENT_FLAGS_NEW_DATA};
-	event.dataKey.pid = pidTgidToPid(bpf_get_current_pid_tgid());
+	event.dataKey.pid = pidTgidToPid(pidTgid);
 	event.dataKey.fd = readArgsPtr->fd;
 
 	struct DiscoverySession* sessionPtr =
