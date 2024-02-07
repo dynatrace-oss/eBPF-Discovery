@@ -143,7 +143,7 @@ __attribute__((always_inline)) inline static void handleRead(
 		struct pt_regs* ctx,
 		struct DiscoveryGlobalState* globalStatePtr,
 		struct DiscoveryAllSessionState* allSessionStatePtr,
-		struct ReadArgs* readArgsPtr,
+		struct ReadBufArgs* readBufArgsPtr,
 		ssize_t bytesCount,
 		__u64 pidTgid) {
 	if (bytesCount <= 0) {
@@ -153,7 +153,7 @@ __attribute__((always_inline)) inline static void handleRead(
 
 	struct DiscoveryEvent event = {.flags = DISCOVERY_EVENT_FLAGS_NEW_DATA};
 	event.dataKey.pid = pidTgidToPid(pidTgid);
-	event.dataKey.fd = readArgsPtr->fd;
+	event.dataKey.fd = readBufArgsPtr->fd;
 
 	struct DiscoverySession* sessionPtr =
 			(struct DiscoverySession*)bpf_map_lookup_elem(&trackedSessionsMap, (struct DiscoveryTrackedSessionKey*)&event.dataKey);
@@ -163,7 +163,7 @@ __attribute__((always_inline)) inline static void handleRead(
 	}
 
 	if (sessionPtr->bufferCount == 0) {
-		if (!dataProbeIsBeginningOfHttpRequest(readArgsPtr->buf, bytesCount)) {
+		if (!dataProbeIsBeginningOfHttpRequest(readBufArgsPtr->buf, bytesCount)) {
 			deleteTrackedSession((struct DiscoveryTrackedSessionKey*)&event.dataKey, sessionPtr);
 			LOG_TRACE(
 					ctx,
@@ -197,7 +197,7 @@ __attribute__((always_inline)) inline static void handleRead(
 	}
 
 	if (savedBufferPtr->length <= sizeof(savedBufferPtr->data)) {
-		bpf_probe_read(savedBufferPtr->data, savedBufferPtr->length, readArgsPtr->buf);
+		bpf_probe_read(savedBufferPtr->data, savedBufferPtr->length, readBufArgsPtr->buf);
 		bpf_map_update_elem(&savedBuffersMap, &event.dataKey, savedBufferPtr, BPF_ANY);
 	}
 

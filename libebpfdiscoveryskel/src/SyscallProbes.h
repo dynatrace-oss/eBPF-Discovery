@@ -47,16 +47,16 @@ struct {
 struct {
 	__uint(type, BPF_MAP_TYPE_HASH);
 	__type(key, __u64); // pid_tgid
-	__type(value, struct ReadArgs);
+	__type(value, struct ReadBufArgs);
 	__uint(max_entries, DISCOVERY_MAX_SESSIONS);
-} runningReadArgsMap SEC(".maps");
+} runningReadBufArgsMap SEC(".maps");
 
 struct {
 	__uint(type, BPF_MAP_TYPE_HASH);
 	__type(key, __u64); // pid_tgid
-	__type(value, struct ReadVectorArgs);
+	__type(value, struct ReadIovArgs);
 	__uint(max_entries, DISCOVERY_MAX_SESSIONS);
-} runningReadVectorArgsMap SEC(".maps");
+} runningReadIovArgsMap SEC(".maps");
 
 /*
  * Syscall handlers
@@ -151,12 +151,12 @@ __attribute__((always_inline)) inline static int handleSysReadEntry(struct pt_re
 		return 0;
 	}
 
-	struct ReadArgs readArgs = {
+	struct ReadBufArgs readBufArgs = {
 			.fd = trackedSessionKey.fd,
 			.buf = buf,
 	};
 
-	bpf_map_update_elem(&runningReadArgsMap, &pidTgid, &readArgs, BPF_ANY);
+	bpf_map_update_elem(&runningReadBufArgsMap, &pidTgid, &readBufArgs, BPF_ANY);
 	return 0;
 }
 
@@ -174,13 +174,13 @@ __attribute__((always_inline)) inline static int handleSysReadExit(struct pt_reg
 	__u64 pidTgid = bpf_get_current_pid_tgid();
 
 	// Get arguments of currently handled syscall
-	struct ReadArgs* readArgsPtr = (struct ReadArgs*)bpf_map_lookup_elem(&runningReadArgsMap, &pidTgid);
-	if (readArgsPtr == NULL) {
+	struct ReadBufArgs* readBufArgsPtr = (struct ReadBufArgs*)bpf_map_lookup_elem(&runningReadBufArgsMap, &pidTgid);
+	if (readBufArgsPtr == NULL) {
 		return 0;
 	}
 
-	handleRead(ctx, globalStatePtr, allSessionStatePtr, readArgsPtr, bytesCount, pidTgid);
-	bpf_map_delete_elem(&runningReadArgsMap, &pidTgid);
+	handleRead(ctx, globalStatePtr, allSessionStatePtr, readBufArgsPtr, bytesCount, pidTgid);
+	bpf_map_delete_elem(&runningReadBufArgsMap, &pidTgid);
 
 	return 0;
 }
@@ -255,12 +255,12 @@ __attribute__((always_inline)) inline static int handleSysRecvmsgEntry(struct pt
 		return 0;
 	}
 
-	struct ReadVectorArgs readVectorArgs = {};
-	readVectorArgs.fd = trackedSessionKey.fd;
-	bpf_probe_read(&readVectorArgs.iov, sizeof(void*), &msg->msg_iov);
-	bpf_probe_read(&readVectorArgs.iovlen, sizeof(size_t), &msg->msg_iovlen);
+	struct ReadIovArgs readIovArgs = {};
+	readIovArgs.fd = trackedSessionKey.fd;
+	bpf_probe_read(&readIovArgs.iov, sizeof(void*), &msg->msg_iov);
+	bpf_probe_read(&readIovArgs.iovlen, sizeof(size_t), &msg->msg_iovlen);
 
-	bpf_map_update_elem(&runningReadVectorArgsMap, &pidTgid, &readVectorArgs, BPF_ANY);
+	bpf_map_update_elem(&runningReadIovArgsMap, &pidTgid, &readIovArgs, BPF_ANY);
 
 	return 0;
 }
@@ -278,31 +278,31 @@ __attribute__((always_inline)) inline static int handleSysRecvmsgExit(struct pt_
 
 	__u64 pidTgid = bpf_get_current_pid_tgid();
 
-	struct ReadVectorArgs* readVectorArgsPtr = (struct ReadVectorArgs*)bpf_map_lookup_elem(&runningReadVectorArgsMap, &pidTgid);
-	if (readVectorArgsPtr == NULL) {
+	struct ReadIovArgs* readIovArgsPtr = (struct ReadIovArgs*)bpf_map_lookup_elem(&runningReadIovArgsMap, &pidTgid);
+	if (readIovArgsPtr == NULL) {
 		return 0;
 	}
 
-	if (readVectorArgsPtr->iov == NULL) {
+	if (readIovArgsPtr->iov == NULL) {
 		return 0;
 	}
 
-	for (size_t i = 0; i < PROTOCOL_VEC_LIMIT && i < readVectorArgsPtr->iovlen; i++) {
-		struct ReadArgs readArgs = {
-				.fd = readVectorArgsPtr->fd,
+	for (size_t i = 0; i < PROTOCOL_VEC_LIMIT && i < readIovArgsPtr->iovlen; i++) {
+		struct ReadBufArgs readBufArgs = {
+				.fd = readIovArgsPtr->fd,
 		};
 
-		bpf_probe_read(&readArgs.buf, sizeof(void*), &readVectorArgsPtr->iov[i].iov_base);
-		if (readArgs.buf == NULL) {
+		bpf_probe_read(&readBufArgs.buf, sizeof(void*), &readIovArgsPtr->iov[i].iov_base);
+		if (readBufArgs.buf == NULL) {
 			break;
 		}
 
 		size_t iovLen;
-		bpf_probe_read(&iovLen, sizeof(size_t), &readVectorArgsPtr->iov[i].iov_len);
+		bpf_probe_read(&iovLen, sizeof(size_t), &readIovArgsPtr->iov[i].iov_len);
 
-		handleRead(ctx, globalStatePtr, allSessionStatePtr, &readArgs, iovLen, pidTgid);
+		handleRead(ctx, globalStatePtr, allSessionStatePtr, &readBufArgs, iovLen, pidTgid);
 	}
-	bpf_map_delete_elem(&runningReadVectorArgsMap, &pidTgid);
+	bpf_map_delete_elem(&runningReadIovArgsMap, &pidTgid);
 
 	return 0;
 }

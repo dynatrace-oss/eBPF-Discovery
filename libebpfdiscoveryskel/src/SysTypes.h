@@ -52,12 +52,12 @@ struct AcceptArgs {
 	size_t addrSize;
 };
 
-struct ReadArgs {
+struct ReadBufArgs {
 	__u32 fd;
 	char* buf;
 };
 
-struct ReadVectorArgs {
+struct ReadIovArgs {
 	__u32 fd;
 	struct iovec* iov;
 	size_t iovlen;
