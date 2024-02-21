@@ -61,11 +61,11 @@ static void incrementServiceClientsNumber(
 		if (!request.xForwardedFor.empty()) {
 			clientAddr = request.xForwardedFor.front();
 			isExternal = isClientExternal(ipChecker, clientAddr);
-		} else if (discoverySessionFlagsIsIPv4(meta.flags)) {
-			clientAddr = ipv4ToString(meta.sourceIPData);
+		} else if (discoveryFlagsSessionIsIPv4(meta.flags)) {
+			clientAddr = ipv4ToString(meta.sourceIP.data);
 			isExternal = isClientExternal(ipChecker, clientAddr, false);
-		} else if (discoverySessionFlagsIsIPv6(meta.flags)) {
-			clientAddr = ipv6ToString(meta.sourceIPData);
+		} else if (discoveryFlagsSessionIsIPv6(meta.flags)) {
+			clientAddr = ipv6ToString(meta.sourceIP.data);
 			isExternal = isClientExternal(ipChecker, clientAddr, true);
 		} else {
 			return;
