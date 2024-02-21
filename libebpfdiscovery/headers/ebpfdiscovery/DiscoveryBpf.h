@@ -18,6 +18,8 @@
 
 #include "discovery.skel.h"
 
+#include <string>
+
 namespace ebpfdiscovery {
 
 struct DiscoveryBpfFds {
@@ -40,6 +42,14 @@ public:
 	int getLogPerfBufFd();
 
 private:
+	void attachSyscallProbes();
+	void attachLibSSLProbes();
+
+	void attachKprobe(bpf_link** link, bpf_program* prog, const std::string& funcName);
+	void attachKretprobe(bpf_link** link, bpf_program* prog, const std::string& funcName);
+	void attachUprobeToLibFunc(bpf_link** link, bpf_program* prog, const std::string& libName, const std::string& funcName);
+	void attachUretprobeToLibFunc(bpf_link** link, bpf_program* prog, const std::string& libName, const std::string& funcName);
+
 	bool coreEnsured{false};
 	bpf_object_open_opts openOpts{0};
 

@@ -31,7 +31,7 @@ static std::string getEndpoint(const std::string& host, const std::string& url) 
 static bool isIpv4ClientExternal(const IpAddressChecker& ipChecker, const std::string& addr) {
 	in_addr_t clientAddrBinary;
 	if (inet_pton(AF_INET, addr.c_str(), &clientAddrBinary) != 1) {
-		throw std::runtime_error("Cannot parse IPv4 client address: {}" + addr);
+		throw std::runtime_error("Couldn't parse IPv4 client address");
 	}
 	return ipChecker.isV4AddressExternal(clientAddrBinary);
 }
@@ -39,7 +39,7 @@ static bool isIpv4ClientExternal(const IpAddressChecker& ipChecker, const std::s
 static bool isIpv6ClientExternal(const IpAddressChecker& ipChecker, const std::string& addr) {
 	in6_addr clientAddrBinary{};
 	if (inet_pton(AF_INET6, addr.c_str(), &clientAddrBinary) != 1) {
-		throw std::runtime_error("Cannot parse IPv6 client address: {}" + addr);
+		throw std::runtime_error("Couldn't parse IPv6 client address");
 	}
 	return ipChecker.isV6AddressExternal(clientAddrBinary);
 }
@@ -53,20 +53,23 @@ static void incrementServiceClientsNumber(
 	std::string clientAddr;
 	if (!request.xForwardedFor.empty()) {
 		clientAddr = request.xForwardedFor.front();
-	} else if (discoverySessionFlagsIsIPv4(meta.flags)) {
-		clientAddr = ipv4ToString(meta.sourceIPData);
-	} else if (discoverySessionFlagsIsIPv6(meta.flags)) {
-		clientAddr = ipv6ToString(meta.sourceIPData);
+	} else if (discoveryFlagsSessionIsIPv4(meta.flags)) {
+		clientAddr = ipv4ToString(meta.sourceIP.data);
+	} else if (discoveryFlagsSessionIsIPv4(meta.flags)) {
+		clientAddr = ipv6ToString(meta.sourceIP.data);
+	} else {
+		LOG_TRACE("Couldn't increment number of clients: No source IP address.");
+		return;
 	}
 
 	try {
-		if (isClientExternal(ipChecker, clientAddr, discoverySessionFlagsIsIPv6(meta.flags))) {
+		if (isClientExternal(ipChecker, clientAddr, discoveryFlagsSessionIsIPv6(meta.flags))) {
 			++service.externalClientsNumber;
 		} else {
 			++service.internalClientsNumber;
 		}
 	} catch (const std::runtime_error& e) {
-		LOG_TRACE(e.what());
+		LOG_TRACE("Couldn't increment number of clients (address: {}): {}.", clientAddr, e.what());
 		return;
 	}
 }

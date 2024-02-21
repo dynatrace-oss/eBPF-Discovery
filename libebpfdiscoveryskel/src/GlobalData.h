@@ -19,6 +19,8 @@
 #pragma once
 
 #include "DebugPrint.h"
+#include "Log.h"
+
 #include "ebpfdiscoveryshared/Constants.h"
 #include "ebpfdiscoveryshared/Types.h"
 
@@ -89,10 +91,11 @@ __attribute__((always_inline)) inline static int pushEventToUserspace(
 		struct pt_regs* ctx, struct DiscoveryGlobalState* globalStatePtr, struct DiscoveryEvent* eventPtr) {
 	int result = bpf_map_push_elem(&eventsToUserspaceQueueMap, eventPtr, BPF_ANY);
 	if (result != 0) {
-		LOG_DEBUG(ctx, "Couldn't push the shared event. (fd: `%d`)", eventPtr->dataKey.fd);
+		LOG_DEBUG(ctx, "Couldn't push the shared event. (fd: `%d`)", eventPtr->key.fd);
 		disableDiscoveryCollecting(ctx, globalStatePtr);
 		return result;
 	}
 
-	return result;
+	DEBUG_PRINTLN("Pushed event to userspace pid: %d, fd: %d", eventPtr->key.pid, eventPtr->key.fd);
+	return 0;
 }

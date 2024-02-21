@@ -60,8 +60,8 @@ private:
 	void handleBufferLookupSuccess(DiscoverySavedBuffer& savedBuffer, DiscoveryEvent& event);
 	void handleExistingSession(SavedSessionsCacheType::iterator it, std::string_view& bufferView, DiscoveryEvent& event);
 	void handleNewSession(std::string_view& bufferView, DiscoveryEvent& event);
-	void handleNewRequest(const Session& session, const DiscoverySessionMeta& meta);
-	void handleSuccessfulParse(const Session& session, const DiscoverySessionMeta& sessionMeta);
+	void handleNewRequest(const Session& session, const service::DiscoverySessionMeta& meta);
+	void handleSuccessfulParse(const Session& session, const service::DiscoverySessionMeta& sessionMeta);
 
 	int bpfDiscoveryFetchAndHandleEvents();
 	int bpfDiscoveryResetConfig();

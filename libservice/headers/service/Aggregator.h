@@ -39,6 +39,12 @@ struct std::hash<std::pair<uint32_t, std::string>> {
 
 namespace service {
 
+struct DiscoverySessionMeta {
+	DiscoverySockSourceIP sourceIP;
+	__u32 pid;
+	DiscoveryFlags flags;
+};
+
 class Aggregator {
 private:
 	using ServiceKey = std::pair<uint32_t, std::string>;
