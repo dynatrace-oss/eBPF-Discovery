@@ -20,10 +20,10 @@
 
 #include "GlobalData.h"
 #include "Handlers.h"
-#include "SysPrefixMacro.h"
 #include "SysTypes.h"
 #include "TrackedSession.h"
 #include "ebpfdiscoveryshared/Constants.h"
+#include "ebpfdiscoveryshared/SysPrefixMacro.h"
 
 #include "vmlinux.h"
 
@@ -87,9 +87,9 @@ __attribute__((always_inline)) inline static int handleSysAcceptEntry(struct pt_
 		return 0;
 	}
 
-	__u64 pid_tgid = bpf_get_current_pid_tgid();
+	__u64 pidTgid = bpf_get_current_pid_tgid();
 
-	bpf_map_update_elem(&runningAcceptSyscallArgsMap, &pid_tgid, &acceptSyscallArgs, BPF_ANY);
+	bpf_map_update_elem(&runningAcceptSyscallArgsMap, &pidTgid, &acceptSyscallArgs, BPF_ANY);
 	return 0;
 }
 
@@ -117,7 +117,7 @@ __attribute__((always_inline)) inline static int handleSysAcceptExit(struct pt_r
 		return 0;
 	}
 
-	handleAccept(ctx, acceptSyscallArgsPtr, fd);
+	handleAccept(ctx, pidTgid, acceptSyscallArgsPtr, fd);
 
 	bpf_map_delete_elem(&runningAcceptSyscallArgsMap, &pidTgid);
 	return 0;
@@ -140,17 +140,17 @@ __attribute__((always_inline)) inline static int handleSysReadEntry(struct pt_re
 
 	__u64 pidTgid = bpf_get_current_pid_tgid();
 
-	struct DiscoveryTrackedSessionKey trackedSessionKey = {};
-	trackedSessionKey.pid = pidTgidToPid(pidTgid);
-	trackedSessionKey.fd = fd;
+	struct DiscoveryTrackedSessionKey key = {};
+	key.pid = pidTgidToPid(pidTgid);
+	key.fd = fd;
 
-	if (bpf_map_lookup_elem(&trackedSessionsMap, &trackedSessionKey) == NULL) {
-		// If the read call is not part of a being handled session, stop handling the syscall
+	// If the read call is not part of a tracked session, stop handling early
+	if (bpf_map_lookup_elem(&trackedSessionSockIPv4Map, &key) == NULL && bpf_map_lookup_elem(&trackedSessionSockIPv6Map, &key) == NULL) {
 		return 0;
 	}
 
 	struct ReadSyscallScalarArgs readSyscallScalarArgs = {
-			.fd = trackedSessionKey.fd,
+			.fd = key.fd,
 			.buf = buf,
 	};
 
@@ -159,6 +159,11 @@ __attribute__((always_inline)) inline static int handleSysReadEntry(struct pt_re
 }
 
 __attribute__((always_inline)) inline static int handleSysReadExit(struct pt_regs* ctx, ssize_t bytesCount) {
+	if (bytesCount <= 0) {
+		// No data to handle
+		return 0;
+	}
+
 	struct DiscoveryGlobalState* globalStatePtr = getGlobalState();
 	if (globalStatePtr == NULL || globalStatePtr->isCollectingDisabled) {
 		return 0;
@@ -171,19 +176,14 @@ __attribute__((always_inline)) inline static int handleSysReadExit(struct pt_reg
 
 	__u64 pidTgid = bpf_get_current_pid_tgid();
 
-	// Get arguments of currently handled syscall
-	struct ReadSyscallScalarArgs* readSyscallScalarArgsPtr = (struct ReadSyscallScalarArgs*)bpf_map_lookup_elem(&runningReadSyscallScalarArgsMap, &pidTgid);
+	struct ReadSyscallScalarArgs* readSyscallScalarArgsPtr =
+			(struct ReadSyscallScalarArgs*)bpf_map_lookup_elem(&runningReadSyscallScalarArgsMap, &pidTgid);
 	if (readSyscallScalarArgsPtr == NULL) {
 		return 0;
 	}
 
-	struct ReadSyscallHandlerArgs readSyscallHandlerArgs = {
-			.fd = readSyscallScalarArgsPtr->fd,
-			.buf = readSyscallScalarArgsPtr->buf,
-			.bytesCount = bytesCount,
-	};
-
-	handleRead(ctx, globalStatePtr, allSessionStatePtr, &readSyscallHandlerArgs, pidTgid);
+	handleReadUnencryptedHttp(
+			ctx, globalStatePtr, allSessionStatePtr, pidTgid, readSyscallScalarArgsPtr->fd, readSyscallScalarArgsPtr->buf, bytesCount);
 	bpf_map_delete_elem(&runningReadSyscallScalarArgsMap, &pidTgid);
 
 	return 0;
@@ -200,7 +200,9 @@ __attribute__((always_inline)) inline static int handleSysCloseEntry(struct pt_r
 		return 0;
 	};
 
-	handleClose(ctx, globalStatePtr, allSessionStatePtr, fd);
+	__u64 pidTgid = bpf_get_current_pid_tgid();
+	handleNoMoreData(ctx, globalStatePtr, allSessionStatePtr, pidTgid, fd);
+
 	return 0;
 }
 
@@ -231,7 +233,8 @@ __attribute__((always_inline)) inline static int handleSysRecvExit(struct pt_reg
 	return handleSysReadExit(ctx, bytesCount);
 }
 
-__attribute__((always_inline)) inline static int handleSysRecvmsgEntry(struct pt_regs* ctx, int sockfd, struct user_msghdr* msg, int flags) {
+__attribute__((always_inline)) inline static int handleSysRecvmsgEntry(
+		struct pt_regs* ctx, int sockfd, struct user_msghdr* msg, int flags) {
 	if (dropMessageHandling(ctx, sockfd, flags)) {
 		return 0;
 	}
@@ -267,7 +270,7 @@ __attribute__((always_inline)) inline static int handleSysRecvmsgEntry(struct pt
 	bpf_probe_read(&readSyscallVectorArgs.iovlen, sizeof(size_t), &msg->msg_iovlen);
 
 	bpf_map_update_elem(&runningReadSyscallVectorArgsMap, &pidTgid, &readSyscallVectorArgs, BPF_ANY);
-	
+
 	return 0;
 }
 
@@ -284,7 +287,8 @@ __attribute__((always_inline)) inline static int handleSysRecvmsgExit(struct pt_
 
 	__u64 pidTgid = bpf_get_current_pid_tgid();
 
-	struct ReadSyscallVectorArgs* readSyscallVectorArgsPtr = (struct ReadSyscallVectorArgs*)bpf_map_lookup_elem(&runningReadSyscallVectorArgsMap, &pidTgid);
+	struct ReadSyscallVectorArgs* readSyscallVectorArgsPtr =
+			(struct ReadSyscallVectorArgs*)bpf_map_lookup_elem(&runningReadSyscallVectorArgsMap, &pidTgid);
 	if (readSyscallVectorArgsPtr == NULL) {
 		return 0;
 	}
@@ -295,31 +299,24 @@ __attribute__((always_inline)) inline static int handleSysRecvmsgExit(struct pt_
 
 	if (bytesCount <= 0) {
 		bpf_map_delete_elem(&runningReadSyscallVectorArgsMap, &pidTgid);
-
 		return 0;
 	}
 
-	for (size_t i = 0; i < DISCOVERY_HANDLER_MAX_IOVLEN && i < readSyscallVectorArgsPtr->iovlen; i++) {
-		struct ReadSyscallScalarArgs readSyscallScalarArgs = {
-				.fd = readSyscallVectorArgsPtr->fd,
-		};
+	struct DiscoveryTrackedSessionKey key = {};
+	key.pid = pidTgidToPid(pidTgid);
+	key.fd = readSyscallVectorArgsPtr->fd;
 
-		bpf_probe_read(&readSyscallScalarArgs.buf, sizeof(void*), &readSyscallVectorArgsPtr->iov[i].iov_base);
-		if (readSyscallScalarArgs.buf == NULL) {
-			handleNoMoreDataForReading(ctx, globalStatePtr, allSessionStatePtr, readSyscallScalarArgs.fd, pidTgid);
+	for (size_t i = 0; i < DISCOVERY_HANDLER_MAX_IOVLEN && i < readSyscallVectorArgsPtr->iovlen; i++) {
+		char* buf = NULL;
+		bpf_probe_read(&buf, sizeof(char*), &readSyscallVectorArgsPtr->iov[i].iov_base);
+		if (buf == NULL) {
+			handleNoMoreData(ctx, globalStatePtr, allSessionStatePtr, key.fd, pidTgid);
 			return 0;
 		}
 
 		size_t iovLen;
 		bpf_probe_read(&iovLen, sizeof(size_t), &readSyscallVectorArgsPtr->iov[i].iov_len);
-
-		struct ReadSyscallHandlerArgs readSyscallHandlerArgs = {
-				.fd = readSyscallScalarArgs.fd,
-				.buf = readSyscallScalarArgs.buf,
-				.bytesCount = (ssize_t) iovLen,
-		};
-
-		handleRead(ctx, globalStatePtr, allSessionStatePtr, &readSyscallHandlerArgs, pidTgid);
+		handleReadUnencryptedHttp(ctx, globalStatePtr, allSessionStatePtr, pidTgid, key.fd, buf, iovLen);
 	}
 
 	bpf_map_delete_elem(&runningReadSyscallVectorArgsMap, &pidTgid);
@@ -372,7 +369,7 @@ int BPF_KRETPROBE(kretprobeSysRecv, ssize_t bytesCount) {
 }
 
 SEC("kprobe/" SYS_PREFIX "sys_recvmsg")
-int BPF_KPROBE_SYSCALL(kprobeSysRecvmsg, int sockfd, struct user_msghdr *msg, int flags) {
+int BPF_KPROBE_SYSCALL(kprobeSysRecvmsg, int sockfd, struct user_msghdr* msg, int flags) {
 	return handleSysRecvmsgEntry(ctx, sockfd, msg, flags);
 }
 
