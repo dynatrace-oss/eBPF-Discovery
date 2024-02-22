@@ -44,7 +44,7 @@
 
 typedef int socklen_t;
 
-struct AcceptArgs {
+struct AcceptSyscallArgs {
 	struct sockaddr* addr;
 	socklen_t* addrlen;
 
@@ -52,7 +52,19 @@ struct AcceptArgs {
 	size_t addrSize;
 };
 
-struct ReadArgs {
+struct ReadSyscallScalarArgs {
 	__u32 fd;
 	char* buf;
+};
+
+struct ReadSyscallVectorArgs {
+	__u32 fd;
+	struct iovec* iov;
+	size_t iovlen;
+};
+
+struct ReadSyscallHandlerArgs {
+	__u32 fd;
+	char* buf;
+	ssize_t bytesCount;
 };
