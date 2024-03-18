@@ -18,7 +18,6 @@
 
 #pragma once
 
-#include "DebugPrint.h"
 #include "vmlinux.h"
 
 #include <bpf/bpf_core_read.h>
@@ -40,6 +39,7 @@ enum LibSSLKind {
 struct LibSSLReadArgs {
 	void* ssl;
 	char* buf;
+	size_t* readBytes;
 };
 
 int getSslRbioOffset(enum LibSSLKind kind) {
