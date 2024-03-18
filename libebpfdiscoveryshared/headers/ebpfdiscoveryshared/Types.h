@@ -140,7 +140,7 @@ __attribute__((always_inline)) inline static bool discoveryFlagsEventIsDataEnd(D
 	return flags & DISCOVERY_FLAG_EVENT_DATA_END;
 }
 
-__attribute__((always_inline)) inline static void discoveryFlagsEventDataEnd(DiscoveryFlags* flags) {
+__attribute__((always_inline)) inline static void discoveryFlagsEventSetDataEnd(DiscoveryFlags* flags) {
 	*flags |= DISCOVERY_FLAG_EVENT_DATA_END;
 }
 
