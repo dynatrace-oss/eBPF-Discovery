@@ -82,67 +82,71 @@ int DiscoveryBpf::getLogPerfBufFd() {
 	return bpf_map__fd(skel->maps.logEventsPerfMap);
 }
 
-void DiscoveryBpf::attachSyscallProbes() {
-	attachKprobe(&skel->links.kprobeSysAccept, skel->progs.kprobeSysAccept, SYS_PREFIX "sys_accept");
-	attachKretprobe(&skel->links.kretprobeSysAccept, skel->progs.kretprobeSysAccept, SYS_PREFIX "sys_accept");
-	attachKprobe(&skel->links.kprobeSysAccept4, skel->progs.kprobeSysAccept4, SYS_PREFIX "sys_accept4");
-	attachKretprobe(&skel->links.kretprobeSysAccept4, skel->progs.kretprobeSysAccept4, SYS_PREFIX "sys_accept4");
-	attachKprobe(&skel->links.kprobeSysRead, skel->progs.kprobeSysRead, SYS_PREFIX "sys_read");
-	attachKretprobe(&skel->links.kretprobeSysRead, skel->progs.kretprobeSysRead, SYS_PREFIX "sys_read");
-	attachKprobe(&skel->links.kprobeSysRecv, skel->progs.kprobeSysRecv, SYS_PREFIX "sys_recv");
-	attachKretprobe(&skel->links.kretprobeSysRecv, skel->progs.kretprobeSysRecv, SYS_PREFIX "sys_recv");
-	attachKprobe(&skel->links.kprobeSysRecvfrom, skel->progs.kprobeSysRecvfrom, SYS_PREFIX "sys_recvfrom");
-	attachKretprobe(&skel->links.kretprobeSysRecvfrom, skel->progs.kretprobeSysRecvfrom, SYS_PREFIX "sys_recvfrom");
-	attachKprobe(&skel->links.kprobeSysClose, skel->progs.kprobeSysClose, SYS_PREFIX "sys_close");
-}
-
-void DiscoveryBpf::attachKprobe(bpf_link** link, bpf_program* prog, const std::string& funcName) {
-	*link = bpf_program__attach_kprobe(prog, false, funcName.c_str());
-	if (*link == nullptr) {
+static bpf_link* attachKprobe(bpf_program* prog, const std::string& funcName) {
+	auto link{bpf_program__attach_kprobe(prog, false, funcName.c_str())};
+	if (link == nullptr) {
 		LOG_WARN("Failed to attach kprobe for {}.", funcName);
 	}
+	return link;
 }
 
-void DiscoveryBpf::attachKretprobe(bpf_link** link, bpf_program* prog, const std::string& funcName) {
-	*link = bpf_program__attach_kprobe(prog, true, funcName.c_str());
-	if (*link == nullptr) {
+static bpf_link* attachKretprobe(bpf_program* prog, const std::string& funcName) {
+	auto link{bpf_program__attach_kprobe(prog, true, funcName.c_str())};
+	if (link == nullptr) {
 		LOG_WARN("Failed to attach kretprobe for {}.", funcName);
 	}
+	return link;
 }
 
-void DiscoveryBpf::attachLibSSLProbes() {
-	attachUprobeToLibFunc(&skel->links.uprobeSSLRead, skel->progs.uprobeSSLRead, "libssl.so", "SSL_read");
-	attachUretprobeToLibFunc(&skel->links.uretprobeSSLReadOpenSSL, skel->progs.uretprobeSSLReadOpenSSL, "libssl.so", "SSL_read");
-
-	attachUprobeToLibFunc(&skel->links.uprobeSSLRead, skel->progs.uprobeSSLRead, "libssl.so.3", "SSL_read");
-	attachUretprobeToLibFunc(&skel->links.uretprobeSSLReadOpenSSL3_0, skel->progs.uretprobeSSLReadOpenSSL3_0, "libssl.so.3", "SSL_read");
-	attachUprobeToLibFunc(&skel->links.uprobeSSLRead, skel->progs.uprobeSSLRead, "libssl3.so", "SSL_read");
-	attachUretprobeToLibFunc(&skel->links.uretprobeSSLReadOpenSSL3_0, skel->progs.uretprobeSSLReadOpenSSL3_0, "libssl3.so", "SSL_read");
-
-	attachUprobeToLibFunc(&skel->links.uprobeSSLRead, skel->progs.uprobeSSLRead, "libssl.so.1", "SSL_read");
-	attachUretprobeToLibFunc(&skel->links.uretprobeSSLReadOpenSSL3_0, skel->progs.uretprobeSSLReadOpenSSL1_1_1, "libssl.so.1", "SSL_read");
-	attachUprobeToLibFunc(&skel->links.uprobeSSLRead, skel->progs.uprobeSSLRead, "libssl1.so", "SSL_read");
-	attachUretprobeToLibFunc(&skel->links.uretprobeSSLReadOpenSSL3_0, skel->progs.uretprobeSSLReadOpenSSL1_1_1, "libssl1.so", "SSL_read");
-}
-
-void DiscoveryBpf::attachUprobeToLibFunc(bpf_link** link, bpf_program* prog, const std::string& libName, const std::string& funcName) {
+static bpf_link* attachUprobeToLibFunc(bpf_program* prog, const std::string& libName, const std::string& funcName) {
 	LIBBPF_OPTS(bpf_uprobe_opts, uprobeOpts);
 	uprobeOpts.func_name = funcName.c_str();
 	uprobeOpts.retprobe = false;
-	*link = bpf_program__attach_uprobe_opts(prog, -1, libName.c_str(), 0, &uprobeOpts);
+	auto link{bpf_program__attach_uprobe_opts(prog, -1, libName.c_str(), 0, &uprobeOpts)};
 	if (link == nullptr) {
 		LOG_ERROR("Failed to attach uprobe for {} {}.", libName, funcName);
 	}
+	return link;
 }
 
-void DiscoveryBpf::attachUretprobeToLibFunc(bpf_link** link, bpf_program* prog, const std::string& libName, const std::string& funcName) {
+static bpf_link* attachUretprobeToLibFunc(bpf_program* prog, const std::string& libName, const std::string& funcName) {
 	LIBBPF_OPTS(bpf_uprobe_opts, uprobeOpts);
 	uprobeOpts.func_name = funcName.c_str();
 	uprobeOpts.retprobe = true;
-	*link = bpf_program__attach_uprobe_opts(prog, -1, libName.c_str(), 0, &uprobeOpts);
+	auto link{bpf_program__attach_uprobe_opts(prog, -1, libName.c_str(), 0, &uprobeOpts)};
 	if (link == nullptr) {
 		LOG_ERROR("Failed to attach uretprobe for {} {}.", libName, funcName);
 	}
+	return link;
+}
+
+void DiscoveryBpf::attachSyscallProbes() {
+	skel->links.kprobeSysAccept = attachKprobe(skel->progs.kprobeSysAccept, SYS_PREFIX "sys_accept");
+	skel->links.kretprobeSysAccept = attachKretprobe(skel->progs.kretprobeSysAccept, SYS_PREFIX "sys_accept");
+	skel->links.kprobeSysAccept4 = attachKprobe(skel->progs.kprobeSysAccept4, SYS_PREFIX "sys_accept4");
+	skel->links.kretprobeSysAccept4 = attachKretprobe(skel->progs.kretprobeSysAccept4, SYS_PREFIX "sys_accept4");
+	skel->links.kprobeSysRead = attachKprobe(skel->progs.kprobeSysRead, SYS_PREFIX "sys_read");
+	skel->links.kretprobeSysRead = attachKretprobe(skel->progs.kretprobeSysRead, SYS_PREFIX "sys_read");
+	skel->links.kprobeSysRecv = attachKprobe(skel->progs.kprobeSysRecv, SYS_PREFIX "sys_recv");
+	skel->links.kretprobeSysRecv = attachKretprobe(skel->progs.kretprobeSysRecv, SYS_PREFIX "sys_recv");
+	skel->links.kprobeSysRecvfrom = attachKprobe(skel->progs.kprobeSysRecvfrom, SYS_PREFIX "sys_recvfrom");
+	skel->links.kretprobeSysRecvfrom = attachKretprobe(skel->progs.kretprobeSysRecvfrom, SYS_PREFIX "sys_recvfrom");
+	skel->links.kprobeSysClose = attachKprobe(skel->progs.kprobeSysClose, SYS_PREFIX "sys_close");
+}
+
+void DiscoveryBpf::attachLibSSLProbes() {
+	skel->links.uprobeSSLRead = attachUprobeToLibFunc(skel->progs.uprobeSSLRead, "libssl.so", "SSL_read");
+	skel->links.uretprobeSSLReadOpenSSL = attachUretprobeToLibFunc(skel->progs.uretprobeSSLReadOpenSSL, "libssl.so", "SSL_read");
+
+	skel->links.uprobeSSLRead = attachUprobeToLibFunc(skel->progs.uprobeSSLRead, "libssl.so.3", "SSL_read");
+	skel->links.uretprobeSSLReadOpenSSL3_0 = attachUretprobeToLibFunc(skel->progs.uretprobeSSLReadOpenSSL3_0, "libssl.so.3", "SSL_read");
+	skel->links.uprobeSSLRead = attachUprobeToLibFunc(skel->progs.uprobeSSLRead, "libssl3.so", "SSL_read");
+	skel->links.uretprobeSSLReadOpenSSL3_0 = attachUretprobeToLibFunc(skel->progs.uretprobeSSLReadOpenSSL3_0, "libssl3.so", "SSL_read");
+
+	skel->links.uprobeSSLRead = attachUprobeToLibFunc(skel->progs.uprobeSSLRead, "libssl.so.1", "SSL_read");
+	skel->links.uretprobeSSLReadOpenSSL3_0 = attachUretprobeToLibFunc(skel->progs.uretprobeSSLReadOpenSSL1_1_1, "libssl.so.1", "SSL_read");
+	skel->links.uprobeSSLRead = attachUprobeToLibFunc(skel->progs.uprobeSSLRead, "libssl1.so", "SSL_read");
+	skel->links.uretprobeSSLReadOpenSSL3_0 = attachUretprobeToLibFunc(skel->progs.uretprobeSSLReadOpenSSL1_1_1, "libssl1.so", "SSL_read");
 }
 
 } // namespace ebpfdiscovery
