@@ -40,6 +40,13 @@ struct {
 	__uint(max_entries, DISCOVERY_MAX_SESSIONS);
 } runningLibSSLReadArgsMap SEC(".maps");
 
+struct {
+	__uint(type, BPF_MAP_TYPE_HASH);
+	__type(key, __u64); // pid_tgid
+	__type(value, struct LibSSLPendingArgs);
+	__uint(max_entries, DISCOVERY_MAX_SESSIONS);
+} runningLibSSLPendingArgsMap SEC(".maps");
+
 /*
  * Probe handlers
  */
@@ -92,12 +99,14 @@ int handleSSLReadExit(struct pt_regs* ctx, int bytesCount) {
 		return 0;
 	}
 
+	int fd = -1;
+
 	if (bytesCount <= 0) {
-		handleNoMoreData(ctx, globalStatePtr, allSessionStatePtr, pidTgid, -1);
+		handleNoMoreData(ctx, globalStatePtr, allSessionStatePtr, pidTgid, fd);
 		return 0;
 	}
 
-	handleReadSslHttp(ctx, globalStatePtr, allSessionStatePtr, pidTgid, -1, sslReadArgsPtr->buf, bytesCount);
+	handleReadSslHttp(ctx, globalStatePtr, allSessionStatePtr, pidTgid, fd, sslReadArgsPtr->buf, bytesCount);
 	DEBUG_PRINTLN("ssl read exit, pid: `%d`, no fd", pidTgidToPid(pidTgid));
 
 	return 0;
@@ -125,20 +134,73 @@ int handleSSLReadExExit(struct pt_regs* ctx, int ret) {
 		return 0;
 	}
 
+	int fd = -1;
+
 	if (ret <= 0) {
-		handleNoMoreData(ctx, globalStatePtr, allSessionStatePtr, pidTgid, -1);
+		handleNoMoreData(ctx, globalStatePtr, allSessionStatePtr, pidTgid, fd);
 		return 0;
 	}
 
 	size_t bytesCount;
 	bpf_probe_read_user(&bytesCount, sizeof(size_t), sslReadArgsPtr->readBytes);
 	if (bytesCount <= 0) {
-		handleNoMoreData(ctx, globalStatePtr, allSessionStatePtr, pidTgid, -1);
+		handleNoMoreData(ctx, globalStatePtr, allSessionStatePtr, pidTgid, fd);
 		return 0;
 	}
 
-	handleReadSslHttp(ctx, globalStatePtr, allSessionStatePtr, pidTgid, -1, sslReadArgsPtr->buf, bytesCount);
+	handleReadSslHttp(ctx, globalStatePtr, allSessionStatePtr, pidTgid, fd, sslReadArgsPtr->buf, bytesCount);
 	DEBUG_PRINTLN("ssl read exit, pid: `%d`, no fd", pidTgidToPid(pidTgid));
+
+	return 0;
+}
+
+int handleSSLPendingEntry(struct pt_regs* ctx, void* ssl) {
+	struct DiscoveryGlobalState* globalStatePtr = getGlobalState();
+	if (globalStatePtr == NULL || globalStatePtr->isCollectingDisabled) {
+		return 0;
+	}
+
+	if (ssl == NULL) {
+		return 0;
+	}
+
+	struct LibSSLPendingArgs sslArgs = {};
+	sslArgs.ssl = ssl;
+
+	__u64 pidTgid = bpf_get_current_pid_tgid();
+	bpf_map_update_elem(&runningLibSSLPendingArgsMap, &pidTgid, &sslArgs, BPF_ANY);
+
+	return 0;
+}
+
+int handleSSLPendingExit(struct pt_regs* ctx, int ret) {
+	struct DiscoveryGlobalState* globalStatePtr = getGlobalState();
+	if (globalStatePtr == NULL || globalStatePtr->isCollectingDisabled) {
+		return 0;
+	}
+
+	struct DiscoveryAllSessionState* allSessionStatePtr = getAllSessionState();
+	if (allSessionStatePtr == NULL) {
+		return 0;
+	};
+
+	__u64 pidTgid = bpf_get_current_pid_tgid();
+
+	struct LibSSLPendingArgs* sslArgsPtr = (struct LibSSLPendingArgs*)bpf_map_lookup_elem(&runningLibSSLPendingArgsMap, &pidTgid);
+	if (sslArgsPtr == NULL) {
+		return 0;
+	}
+
+	if (sslArgsPtr->ssl == NULL) {
+		return 0;
+	}
+
+	int fd = -1;
+
+	if (ret <= 0) {
+		handleNoMoreData(ctx, globalStatePtr, allSessionStatePtr, pidTgid, fd);
+		return 0;
+	}
 
 	return 0;
 }
@@ -165,4 +227,14 @@ int BPF_UPROBE(uprobeSSLReadExOpenSSL, void* ssl, void* buf, size_t* readBytes) 
 SEC("uretprobe/SSL_read_ex:libssl.so")
 int BPF_URETPROBE(uretprobeSSLReadExOpenSSL, int ret) {
 	return handleSSLReadExExit(ctx, ret);
+}
+
+SEC("uprobe/SSL_pending:libssl.so")
+int BPF_UPROBE(uprobeSSLPendingOpenSSL, void* ssl) {
+	return handleSSLPendingEntry(ctx, ssl);
+}
+
+SEC("uretprobe/SSL_pending:libssl.so")
+int BPF_URETPROBE(uretprobeSSLPendingOpenSSL, int ret) {
+	return handleSSLPendingExit(ctx, ret);
 }
