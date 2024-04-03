@@ -139,26 +139,6 @@ void DiscoveryBpf::attachLibSSLProbes() {
 	skel->links.uretprobeSSLReadOpenSSL = attachUretprobeToLibFunc(skel->progs.uretprobeSSLReadOpenSSL, "libssl.so", "SSL_read");
 	skel->links.uprobeSSLReadExOpenSSL = attachUprobeToLibFunc(skel->progs.uprobeSSLReadExOpenSSL, "libssl.so", "SSL_read_ex");
 	skel->links.uretprobeSSLReadExOpenSSL = attachUretprobeToLibFunc(skel->progs.uretprobeSSLReadExOpenSSL, "libssl.so", "SSL_read_ex");
-
-	skel->links.uprobeSSLReadOpenSSL = attachUprobeToLibFunc(skel->progs.uprobeSSLReadOpenSSL, "libssl.so.3", "SSL_read");
-	skel->links.uretprobeSSLReadOpenSSL3_0 = attachUretprobeToLibFunc(skel->progs.uretprobeSSLReadOpenSSL3_0, "libssl.so.3", "SSL_read");
-	skel->links.uprobeSSLReadExOpenSSL = attachUprobeToLibFunc(skel->progs.uprobeSSLReadExOpenSSL, "libssl.so.3", "SSL_read_ex");
-	skel->links.uretprobeSSLReadExOpenSSL3_0 = attachUretprobeToLibFunc(skel->progs.uretprobeSSLReadExOpenSSL3_0, "libssl.so.3", "SSL_read_ex");
-
-	skel->links.uprobeSSLReadOpenSSL = attachUprobeToLibFunc(skel->progs.uprobeSSLReadOpenSSL, "libssl3.so", "SSL_read");
-	skel->links.uretprobeSSLReadOpenSSL3_0 = attachUretprobeToLibFunc(skel->progs.uretprobeSSLReadOpenSSL3_0, "libssl3.so", "SSL_read");
-	skel->links.uprobeSSLReadExOpenSSL = attachUprobeToLibFunc(skel->progs.uprobeSSLReadExOpenSSL, "libssl3.so", "SSL_read_ex");
-	skel->links.uretprobeSSLReadExOpenSSL3_0 = attachUretprobeToLibFunc(skel->progs.uretprobeSSLReadExOpenSSL3_0, "libssl3.so", "SSL_read_ex");
-
-	skel->links.uprobeSSLReadOpenSSL = attachUprobeToLibFunc(skel->progs.uprobeSSLReadOpenSSL, "libssl.so.1", "SSL_read");
-	skel->links.uretprobeSSLReadOpenSSL3_0 = attachUretprobeToLibFunc(skel->progs.uretprobeSSLReadOpenSSL1_1_1, "libssl.so.1", "SSL_read");
-	skel->links.uprobeSSLReadExOpenSSL = attachUprobeToLibFunc(skel->progs.uprobeSSLReadExOpenSSL, "libssl.so.1", "SSL_read_ex");
-	skel->links.uretprobeSSLReadExOpenSSL3_0 = attachUretprobeToLibFunc(skel->progs.uretprobeSSLReadExOpenSSL1_1_1, "libssl.so.1", "SSL_read_ex");
-
-	skel->links.uprobeSSLReadOpenSSL = attachUprobeToLibFunc(skel->progs.uprobeSSLReadOpenSSL, "libssl1.so", "SSL_read");
-	skel->links.uretprobeSSLReadOpenSSL3_0 = attachUretprobeToLibFunc(skel->progs.uretprobeSSLReadOpenSSL1_1_1, "libssl1.so", "SSL_read");
-	skel->links.uprobeSSLReadExOpenSSL = attachUprobeToLibFunc(skel->progs.uprobeSSLReadExOpenSSL, "libssl1.so", "SSL_read_ex");
-	skel->links.uretprobeSSLReadExOpenSSL3_0 = attachUretprobeToLibFunc(skel->progs.uretprobeSSLReadExOpenSSL1_1_1, "libssl1.so", "SSL_read_ex");
 }
 
 } // namespace ebpfdiscovery
