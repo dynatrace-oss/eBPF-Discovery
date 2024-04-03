@@ -139,6 +139,8 @@ void DiscoveryBpf::attachLibSSLProbes() {
 	skel->links.uretprobeSSLReadOpenSSL = attachUretprobeToLibFunc(skel->progs.uretprobeSSLReadOpenSSL, "libssl.so", "SSL_read");
 	skel->links.uprobeSSLReadExOpenSSL = attachUprobeToLibFunc(skel->progs.uprobeSSLReadExOpenSSL, "libssl.so", "SSL_read_ex");
 	skel->links.uretprobeSSLReadExOpenSSL = attachUretprobeToLibFunc(skel->progs.uretprobeSSLReadExOpenSSL, "libssl.so", "SSL_read_ex");
+	skel->links.uprobeSSLPendingOpenSSL = attachUprobeToLibFunc(skel->progs.uprobeSSLPendingOpenSSL, "libssl.so", "SSL_pending");
+	skel->links.uretprobeSSLPendingOpenSSL = attachUretprobeToLibFunc(skel->progs.uretprobeSSLPendingOpenSSL, "libssl.so", "SSL_pending");
 }
 
 } // namespace ebpfdiscovery
