@@ -25,10 +25,9 @@
 #include <atomic>
 #include <filesystem>
 #include <iostream>
-#include <memory>
-#include <signal.h>
-#include <sstream>
-#include <unistd.h>
+#include <csignal>
+
+#include <sys/stat.h>
 
 namespace po = boost::program_options;
 namespace bpflogging = ebpfdiscovery::bpflogging;
@@ -56,6 +55,7 @@ static po::options_description getProgramOptions() {
 }
 
 static void initLogging(logging::LogLevel logLevel, bool enableStdout, const std::filesystem::path& logDir) {
+	umask(S_IRWXG | S_IRWXO);
 	Logger::getInstance().init(enableStdout, logDir);
 	Logger::getInstance().setLevel(logLevel);
 	LOG_TRACE("Logging has been set up. (enableStdout: {}, logDir: `{}`)", enableStdout, logDir.string());
