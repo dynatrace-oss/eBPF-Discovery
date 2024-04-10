@@ -27,7 +27,7 @@ runs:
     - name: Create logs directory
       shell: bash
       run: mkdir logs
-    - name: Load tests
+    - name: Run tests
       shell: bash
       run: |
         source testvenv/bin/activate

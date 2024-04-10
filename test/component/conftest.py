@@ -23,11 +23,21 @@ import pytest
 
 from utils import is_responsive, wait_until, create_network_interface, delete_network_interface
 
-logging.basicConfig(level=logging.INFO)
+@pytest.fixture(autouse=True)
+def print_newline(request):
+    print() # https://github.com/pytest-dev/pytest/issues/8574
+    yield
+
+def pytest_configure(config):
+    logging.basicConfig(level=logging.INFO,
+                        format='%(asctime)s.%(msecs)03d %(levelname)s:\t%(message)s',
+                        datefmt='%Y-%m-%d %H:%M:%S'
+                        )
 
 
 def pytest_addoption(parser):
     parser.addoption("--discovery_path", action="store", help="Path to eBPF Discovery binary")
+    parser.addoption("--log_dir", action="store", help="Path to log directory")
     parser.addoption("--http_server_port", action="store", help="Port on which to run http server", default=9000)
     parser.addoption("--load-tests-execution-time", action="store", help="Load tests execution time in seconds", default=1800)
 
@@ -37,6 +47,13 @@ def discovery_path(pytestconfig):
     discovery_path = pytestconfig.getoption("discovery_path")
     assert discovery_path, "Path to eBPF discovery needs to be provided via --discovery_path"
     return discovery_path
+
+
+@pytest.fixture(scope="function")
+def log_dir(pytestconfig):
+    log_dir = pytestconfig.getoption("log_dir")
+    assert log_dir, "Path tolog directory needs to be provided via --log_dir"
+    return log_dir
 
 
 @pytest.fixture(scope="function")
@@ -63,9 +80,8 @@ def network_interfaces(request):
 
 
 @pytest.fixture(scope="function")
-def run_ebpf_discovery(discovery_path):
-    discovery_root_dir = os.path.dirname(os.path.realpath(discovery_path))
-    args = (discovery_path, "--interval", "2", "--log-no-stdout", "--log-dir", discovery_root_dir,
+def run_ebpf_discovery(discovery_path, log_dir):
+    args = (discovery_path, "--interval", "2", "--log-no-stdout", "--log-dir", log_dir,
             "--log-level", "debug")
     discovery = subprocess.Popen(args, stdout=subprocess.PIPE)
     sleep(0.2)  # delay to avoid sending requests before ebpf_discovery is responsive
@@ -77,14 +93,15 @@ def run_ebpf_discovery(discovery_path):
     exit_code = discovery.returncode
     assert not exit_code, "eBPF Discovery returned exit code: {}".format(exit_code)
 
-    log_files = glob.glob(discovery_root_dir + '/*.log')
+    log_files = glob.glob(log_dir + f'/*{discovery.pid}.log')
     assert log_files != [], "eBPF Discovery didn't produce any log files"
 
+    print() # https://github.com/pytest-dev/pytest/issues/8574
     logging.info("eBPF Discovery produced logs:")
     for file in log_files:
         with open(file, 'r') as f:
             content = f.read()
-            logging.info("File: {}\nContent:\n{}".format(file, content))
+            logging.info("{} content:\n{}".format(file, content.strip()))
 
 
 @pytest.fixture(scope="function")
