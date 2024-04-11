@@ -24,6 +24,9 @@ runs:
         python -m venv testvenv
         source testvenv/bin/activate
         pip install -r "${{ env.COMPONENT_TESTING_PATH }}/requirements.txt"
-    - name: Component tests
+    - name: Create logs directory
       shell: bash
-      run: sudo testvenv/bin/pytest ${{ env.COMPONENT_TESTING_PATH }} -s -v --discovery_path="${{ env.DISCOVERY_BIN_PATH }}"
+      run: mkdir logs
+    - name: Run tests
+      shell: bash
+      run: sudo testvenv/bin/pytest ${{ env.COMPONENT_TESTING_PATH }} -s -v --discovery_path="${{ env.DISCOVERY_BIN_PATH }}" --log_dir="${{ github.workspace }}/logs"
