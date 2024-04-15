@@ -155,8 +155,9 @@ __attribute__((always_inline)) inline static int trackedSessionPutSourceIp(
 	return -1;
 }
 
-__attribute__((always_inline)) inline static void trackedSessionPutBuf(
+__attribute__((always_inline)) inline static void trackedSessionSaveBuf(
 		struct DiscoverySavedBufferKey* key, const char* buf, size_t bytesCount) {
+	DEBUG_PRINTLN("Saving buffer for tracked session. (sessionID:`%d`, bufferSeq:`%d`)", key->sessionID, key->bufferSeq);
 	struct DiscoverySavedBuffer* savedBufferPtr = newSavedBuffer();
 	if (savedBufferPtr == NULL) {
 		return;
@@ -190,5 +191,5 @@ __attribute__((always_inline)) inline static void fillTrackedSession(
 		};
 	}
 
-	trackedSessionPutBuf(key, buf, bytesCount);
+	trackedSessionSaveBuf(key, buf, bytesCount);
 }
