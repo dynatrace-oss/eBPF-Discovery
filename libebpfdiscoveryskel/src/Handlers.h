@@ -132,15 +132,12 @@ __attribute__((always_inline)) inline static void handleReadUnencryptedHttp(
 	} else if (dataProbeIsBeginningOfHttpRequest(buf, bytesCount)) {
 		createTrackedSessionUnencryptedHttp(allSessionStatePtr, (struct DiscoveryTrackedSessionKey*)&key);
 		sessionPtr = (struct DiscoverySession*)bpf_map_lookup_elem(&trackedSessionsMap, (struct DiscoveryTrackedSessionKey*)&key);
-		if (sessionPtr != NULL) {
-			DEBUG_PRINTLN(
-					"Created new tracked session. (unencrypted http, pid: `%d`, fd: `%d`, sessionID: `%d`)",
-					key.pid,
-					key.fd,
-					sessionPtr->id);
+		if (sessionPtr == NULL) {
+			return;
 		}
-	}
-	if (sessionPtr == NULL) {
+		DEBUG_PRINTLN(
+				"Created new tracked session. (unencrypted http, pid: `%d`, fd: `%d`, sessionID: `%d`)", key.pid, key.fd, sessionPtr->id);
+	} else {
 		return;
 	}
 
@@ -164,17 +161,14 @@ __attribute__((always_inline)) inline static void handleReadSslHttp(
 	} else if (dataProbeIsBeginningOfHttpRequest(buf, bytesCount)) {
 		createTrackedSessionSslHttp(allSessionStatePtr, (struct DiscoveryTrackedSessionKey*)&key);
 		sessionPtr = (struct DiscoverySession*)bpf_map_lookup_elem(&trackedSessionsMap, (struct DiscoveryTrackedSessionKey*)&key);
-		if (sessionPtr != NULL) {
-			DEBUG_PRINTLN(
-					"Created new tracked session. (libssl https, pid: `%d`, fd: `%d`, sessionID: `%d`)", key.pid, key.fd, sessionPtr->id);
+		if (sessionPtr == NULL) {
+			return;
 		}
+		DEBUG_PRINTLN("Created new tracked session. (libssl https, pid: `%d`, fd: `%d`, sessionID: `%d`)", key.pid, key.fd, sessionPtr->id);
 	} else {
-		bpf_map_delete_elem(&trackedSessionsMap, &key);
-	}
-
-	if (sessionPtr == NULL) {
 		return;
 	}
+
 	fillTrackedSessionAndPushEvent(ctx, globalStatePtr, sessionPtr, &key, pidTgid, buf, bytesCount);
 }
 
@@ -198,6 +192,6 @@ __attribute__((always_inline)) inline static void handleNoMoreData(
 	event.flags = DISCOVERY_FLAG_EVENT_DATA_END;
 	pushEventToUserspace(ctx, globalStatePtr, &event);
 
-	DEBUG_PRINTLN("Tracked session ended. (pid: `%d`, fd: `%d`, sessionID: `%d`)", event.key.pid, event.key.fd, event.key.sessionID);
+	DEBUG_PRINTLN("Tracked session ended. (pid:`%d`, fd:`%d`, sessionID:`%d`)", event.key.pid, event.key.fd, event.key.sessionID);
 	bpf_map_delete_elem(&trackedSessionsMap, &key);
 }
