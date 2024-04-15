@@ -100,7 +100,7 @@ void Discovery::handleNewDataEvent(DiscoveryEvent& event) {
 	DiscoverySavedBuffer savedBuffer;
 	const auto res{bpf_map_lookup_and_delete_elem(bpfFds.savedBuffersMap, &event.key, &savedBuffer)};
 	if (res != 0) {
-		LOG_TRACE("No saved buffer for data event");
+		LOG_TRACE("No saved buffer for data event. (pid:{}, fd:{}, sessionID:{}, bufferSeq:{})", event.key.pid, event.key.fd, event.key.sessionID, event.key.bufferSeq);
 		return;
 	}
 
