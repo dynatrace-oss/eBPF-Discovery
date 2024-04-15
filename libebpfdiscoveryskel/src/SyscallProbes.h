@@ -117,7 +117,7 @@ __attribute__((always_inline)) inline static int handleSysAcceptExit(struct pt_r
 		return 0;
 	}
 
-	handleAccept(ctx, pidTgid, acceptSyscallArgsPtr, fd);
+	handleAccept(ctx, allSessionStatePtr, pidTgid, acceptSyscallArgsPtr, fd);
 
 	bpf_map_delete_elem(&runningAcceptSyscallArgsMap, &pidTgid);
 	return 0;
@@ -144,8 +144,9 @@ __attribute__((always_inline)) inline static int handleSysReadEntry(struct pt_re
 	key.pid = pidTgidToPid(pidTgid);
 	key.fd = fd;
 
-	// If the read call is not part of a tracked session, stop handling early
-	if (bpf_map_lookup_elem(&trackedSessionSockIPv4Map, &key) == NULL && bpf_map_lookup_elem(&trackedSessionSockIPv6Map, &key) == NULL) {
+	struct DiscoverySession* sessionPtr =
+			(struct DiscoverySession*)bpf_map_lookup_elem(&trackedSessionsMap, (struct DiscoveryTrackedSessionKey*)&key);
+	if (sessionPtr == NULL) {
 		return 0;
 	}
 
@@ -182,8 +183,25 @@ __attribute__((always_inline)) inline static int handleSysReadExit(struct pt_reg
 		return 0;
 	}
 
+	struct DiscoveryTrackedSessionKey key = {};
+	key.pid = pidTgidToPid(pidTgid);
+	key.fd = readSyscallScalarArgsPtr->fd;
+
+	struct DiscoverySession* sessionPtr =
+			(struct DiscoverySession*)bpf_map_lookup_elem(&trackedSessionsMap, (struct DiscoveryTrackedSessionKey*)&key);
+	if (sessionPtr == NULL) {
+		return 0;
+	}
+
 	handleReadUnencryptedHttp(
-			ctx, globalStatePtr, allSessionStatePtr, pidTgid, readSyscallScalarArgsPtr->fd, readSyscallScalarArgsPtr->buf, bytesCount);
+			ctx,
+			globalStatePtr,
+			allSessionStatePtr,
+			sessionPtr,
+			pidTgid,
+			readSyscallScalarArgsPtr->fd,
+			readSyscallScalarArgsPtr->buf,
+			bytesCount);
 	bpf_map_delete_elem(&runningReadSyscallScalarArgsMap, &pidTgid);
 
 	return 0;
@@ -306,6 +324,12 @@ __attribute__((always_inline)) inline static int handleSysRecvmsgExit(struct pt_
 	key.pid = pidTgidToPid(pidTgid);
 	key.fd = readSyscallVectorArgsPtr->fd;
 
+	struct DiscoverySession* sessionPtr =
+			(struct DiscoverySession*)bpf_map_lookup_elem(&trackedSessionsMap, (struct DiscoveryTrackedSessionKey*)&key);
+	if (sessionPtr == NULL) {
+		return 0;
+	}
+
 	for (size_t i = 0; i < DISCOVERY_HANDLER_MAX_IOVLEN && i < readSyscallVectorArgsPtr->iovlen; i++) {
 		char* buf = NULL;
 		bpf_probe_read(&buf, sizeof(char*), &readSyscallVectorArgsPtr->iov[i].iov_base);
@@ -316,7 +340,7 @@ __attribute__((always_inline)) inline static int handleSysRecvmsgExit(struct pt_
 
 		size_t iovLen;
 		bpf_probe_read(&iovLen, sizeof(size_t), &readSyscallVectorArgsPtr->iov[i].iov_len);
-		handleReadUnencryptedHttp(ctx, globalStatePtr, allSessionStatePtr, pidTgid, key.fd, buf, iovLen);
+		handleReadUnencryptedHttp(ctx, globalStatePtr, allSessionStatePtr, sessionPtr, pidTgid, key.fd, buf, iovLen);
 	}
 
 	bpf_map_delete_elem(&runningReadSyscallVectorArgsMap, &pidTgid);

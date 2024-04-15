@@ -34,7 +34,7 @@
 
 __attribute__((always_inline)) inline static void handleAcceptIPv4Session(
 		struct pt_regs* ctx,
-		const struct DiscoveryTrackedSessionKey trackedSessionKey,
+		const struct DiscoveryTrackedSessionKey* trackedSessionKey,
 		__u64 pidTgid,
 		const struct AcceptSyscallArgs* acceptSyscallArgsPtr,
 		int addrlen) {
@@ -44,13 +44,13 @@ __attribute__((always_inline)) inline static void handleAcceptIPv4Session(
 
 	struct DiscoverySockIPv4 sockIPv4 = {};
 	bpf_probe_read(&sockIPv4.addr, sizeof(struct sockaddr_in), acceptSyscallArgsPtr->addr);
-	setSockIPv4ForTrackedSession(&trackedSessionKey, pidTgid, &sockIPv4);
-	DEBUG_PRINTLN("saved ipv4 pid: `%d`, fd: `%d`, addr: `%d`", trackedSessionKey.pid, trackedSessionKey.fd, acceptSyscallArgsPtr->addr);
+	setSockIPv4ForTrackedSession(trackedSessionKey, pidTgid, &sockIPv4);
+	DEBUG_PRINTLN("saved ipv4 pid: `%d`, fd: `%d`, addr: `%d`", trackedSessionKey->pid, trackedSessionKey->fd, acceptSyscallArgsPtr->addr);
 }
 
 __attribute__((always_inline)) inline static void handleAcceptIPv6Session(
 		struct pt_regs* ctx,
-		const struct DiscoveryTrackedSessionKey trackedSessionKey,
+		const struct DiscoveryTrackedSessionKey* trackedSessionKey,
 		__u64 pidTgid,
 		const struct AcceptSyscallArgs* acceptSyscallArgsPtr,
 		int addrlen) {
@@ -60,12 +60,16 @@ __attribute__((always_inline)) inline static void handleAcceptIPv6Session(
 
 	struct DiscoverySockIPv6 sockIPv6 = {};
 	bpf_probe_read(&sockIPv6.addr, sizeof(struct sockaddr_in6), acceptSyscallArgsPtr->addr);
-	setSockIPv6ForTrackedSession(&trackedSessionKey, pidTgid, &sockIPv6);
-	DEBUG_PRINTLN("saved ipv6 pid: `%d`, fd: `%d`, addr: `%d`", trackedSessionKey.pid, trackedSessionKey.fd, acceptSyscallArgsPtr->addr);
+	setSockIPv6ForTrackedSession(trackedSessionKey, pidTgid, &sockIPv6);
+	DEBUG_PRINTLN("saved ipv6 pid: `%d`, fd: `%d`, addr: `%d`", trackedSessionKey->pid, trackedSessionKey->fd, acceptSyscallArgsPtr->addr);
 }
 
 __attribute__((always_inline)) inline static void handleAccept(
-		struct pt_regs* ctx, __u64 pidTgid, struct AcceptSyscallArgs* acceptSyscallArgsPtr, int fd) {
+		struct pt_regs* ctx,
+		struct DiscoveryAllSessionState* allSessionStatePtr,
+		__u64 pidTgid,
+		struct AcceptSyscallArgs* acceptSyscallArgsPtr,
+		int fd) {
 	// Size of returned sockaddr struct
 	int addrlen = 0;
 	bpf_probe_read(&addrlen, sizeof(addrlen), (acceptSyscallArgsPtr->addrlen));
@@ -82,14 +86,18 @@ __attribute__((always_inline)) inline static void handleAccept(
 		return;
 	}
 
-	struct DiscoveryTrackedSessionKey trackedSessionKey = {.pid = pidTgidToPid(pidTgid), .fd = fd};
-
+	struct DiscoveryTrackedSessionKey key = {.pid = pidTgidToPid(pidTgid), .fd = fd};
+	const struct DiscoverySession* sessionPtr =
+			(struct DiscoverySession*)bpf_map_lookup_elem(&trackedSessionsMap, (struct DiscoveryTrackedSessionKey*)&key);
+	if (sessionPtr == NULL) {
+		createTrackedSessionUnencryptedHttp(allSessionStatePtr, &key);
+	}
 	switch (saFamily) {
 	case AF_INET:
-		handleAcceptIPv4Session(ctx, trackedSessionKey, pidTgid, acceptSyscallArgsPtr, addrlen);
+		handleAcceptIPv4Session(ctx, &key, pidTgid, acceptSyscallArgsPtr, addrlen);
 		break;
 	case AF_INET6:
-		handleAcceptIPv6Session(ctx, trackedSessionKey, pidTgid, acceptSyscallArgsPtr, addrlen);
+		handleAcceptIPv6Session(ctx, &key, pidTgid, acceptSyscallArgsPtr, addrlen);
 		break;
 	}
 }
@@ -120,27 +128,24 @@ __attribute__((always_inline)) inline static void handleReadUnencryptedHttp(
 		struct pt_regs* ctx,
 		struct DiscoveryGlobalState* globalStatePtr,
 		struct DiscoveryAllSessionState* allSessionStatePtr,
+		struct DiscoverySession* sessionPtr,
 		__u64 pidTgid,
 		__u32 fd,
 		const char* buf,
 		size_t bytesCount) {
-	struct DiscoverySavedBufferKey key = {.pid = pidTgidToPid(pidTgid), .fd = fd, .sessionID = 0, .bufferSeq = 0};
-	struct DiscoverySession* sessionPtr =
-			(struct DiscoverySession*)bpf_map_lookup_elem(&trackedSessionsMap, (struct DiscoveryTrackedSessionKey*)&key);
-	if (sessionPtr != NULL) {
-		advanceTrackedSession(&key, sessionPtr);
-	} else if (dataProbeIsBeginningOfHttpRequest(buf, bytesCount)) {
-		createTrackedSessionUnencryptedHttp(allSessionStatePtr, (struct DiscoveryTrackedSessionKey*)&key);
-		sessionPtr = (struct DiscoverySession*)bpf_map_lookup_elem(&trackedSessionsMap, (struct DiscoveryTrackedSessionKey*)&key);
-		if (sessionPtr == NULL) {
-			return;
-		}
-		DEBUG_PRINTLN(
-				"Created new tracked session. (unencrypted http, pid: `%d`, fd: `%d`, sessionID: `%d`)", key.pid, key.fd, sessionPtr->id);
-	} else {
+	struct DiscoverySavedBufferKey key = {.pid = pidTgidToPid(pidTgid), .fd = fd};
+
+	if (sessionPtr->bufferCount == 0 && !dataProbeIsBeginningOfHttpRequest(buf, bytesCount)) {
 		return;
+	} else {
+		if (sessionPtr->bufferCount == 0) {
+			DEBUG_PRINTLN("New tracked session. (unencrypted http, pid: `%d`, fd: `%d`, sessionID: `%d`)", key.pid, key.fd, sessionPtr->id);
+		}
+		advanceTrackedSession(&key, sessionPtr);
 	}
 
+	key.sessionID = sessionPtr->id;
+	key.bufferSeq = sessionPtr->bufferCount;
 	fillTrackedSessionAndPushEvent(ctx, globalStatePtr, sessionPtr, &key, pidTgid, buf, bytesCount);
 }
 
@@ -156,7 +161,7 @@ __attribute__((always_inline)) inline static void handleReadSslHttp(
 	struct DiscoverySession* sessionPtr =
 			(struct DiscoverySession*)bpf_map_lookup_elem(&trackedSessionsMap, (struct DiscoveryTrackedSessionKey*)&key);
 
-	if (sessionPtr != NULL) {
+	if (sessionPtr != NULL && sessionPtr->bufferCount == 0) {
 		advanceTrackedSession(&key, sessionPtr);
 	} else if (dataProbeIsBeginningOfHttpRequest(buf, bytesCount)) {
 		createTrackedSessionSslHttp(allSessionStatePtr, (struct DiscoveryTrackedSessionKey*)&key);
@@ -166,9 +171,12 @@ __attribute__((always_inline)) inline static void handleReadSslHttp(
 		}
 		DEBUG_PRINTLN("Created new tracked session. (libssl https, pid: `%d`, fd: `%d`, sessionID: `%d`)", key.pid, key.fd, sessionPtr->id);
 	} else {
+		bpf_map_delete_elem(&trackedSessionsMap, &key);
 		return;
 	}
 
+	key.sessionID = sessionPtr->id;
+	key.bufferSeq = sessionPtr->bufferCount;
 	fillTrackedSessionAndPushEvent(ctx, globalStatePtr, sessionPtr, &key, pidTgid, buf, bytesCount);
 }
 
