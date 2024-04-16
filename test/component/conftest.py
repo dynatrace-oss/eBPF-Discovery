@@ -90,8 +90,6 @@ def run_ebpf_discovery(discovery_path, log_dir):
     discovery.terminate()
     while discovery.poll() is None:
         sleep(0.2)
-    exit_code = discovery.returncode
-    assert not exit_code, "eBPF Discovery returned exit code: {}".format(exit_code)
 
     log_files = glob.glob(log_dir + f'/*{discovery.pid}.log')
     assert log_files != [], "eBPF Discovery didn't produce any log files"
@@ -102,6 +100,9 @@ def run_ebpf_discovery(discovery_path, log_dir):
         with open(file, 'r') as f:
             content = f.read()
             logging.info("{} content:\n{}".format(file, content.strip()))
+
+    exit_code = discovery.returncode
+    assert not exit_code, "eBPF Discovery returned exit code: {}".format(exit_code)
 
 
 @pytest.fixture(scope="function")
