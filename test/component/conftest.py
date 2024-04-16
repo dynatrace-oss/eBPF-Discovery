@@ -82,7 +82,7 @@ def network_interfaces(request):
 @pytest.fixture(scope="function")
 def run_ebpf_discovery(discovery_path, log_dir):
     args = (discovery_path, "--interval", "2", "--log-no-stdout", "--log-dir", log_dir,
-            "--log-level", "trace")
+            "--log-level", "debug")
     discovery = subprocess.Popen(args, stdout=subprocess.PIPE)
     sleep(0.2)  # delay to avoid sending requests before ebpf_discovery is responsive
     yield discovery
