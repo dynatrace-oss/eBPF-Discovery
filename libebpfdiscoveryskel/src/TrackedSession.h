@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include "DataFunctions.h"
 #include "GlobalData.h"
 
 #include "ebpfdiscoveryshared/Constants.h"
@@ -162,19 +163,10 @@ __attribute__((always_inline)) inline static void trackedSessionSaveBuf(
 	if (savedBufferPtr == NULL) {
 		return;
 	}
-	// TODO: replace quirky if statements with bit operations
-	if (bytesCount <= sizeof(savedBufferPtr->data)) {
-		savedBufferPtr->length = bytesCount;
-	} else {
-		savedBufferPtr->length = sizeof(savedBufferPtr->data);
-	}
-	if (savedBufferPtr->length <= 0) {
-		return;
-	}
-	if (savedBufferPtr->length <= sizeof(savedBufferPtr->data)) {
-		bpf_probe_read(savedBufferPtr->data, savedBufferPtr->length, buf);
-		bpf_map_update_elem(&savedBuffersMap, key, savedBufferPtr, BPF_ANY);
-	}
+
+	savedBufferPtr->length = LIMIT_INTEGER_TO_MAX(bytesCount, DISCOVERY_BUFFER_MAX_DATA_SIZE);
+	bpf_probe_read(savedBufferPtr->data, savedBufferPtr->length, buf);
+	bpf_map_update_elem(&savedBuffersMap, key, savedBufferPtr, BPF_ANY);
 }
 
 __attribute__((always_inline)) inline static void fillTrackedSession(
