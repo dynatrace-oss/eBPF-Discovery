@@ -51,7 +51,7 @@ struct {
  * Probe handlers
  */
 
-int handleSSLReadExEntry(struct pt_regs* ctx, void* ssl, char* buf, size_t* readBytes) {
+int handleSSLReadExEntry(struct pt_regs* ctx, void* ssl, char* buf, size_t num, size_t* readBytes) {
 	struct DiscoveryGlobalState* globalStatePtr = getGlobalState();
 	if (globalStatePtr == NULL || globalStatePtr->isCollectingDisabled) {
 		return 0;
@@ -73,8 +73,8 @@ int handleSSLReadExEntry(struct pt_regs* ctx, void* ssl, char* buf, size_t* read
 	return 0;
 }
 
-int handleSSLReadEntry(struct pt_regs* ctx, void* ssl, char* buf) {
-	return handleSSLReadExEntry(ctx, ssl, buf, NULL);
+int handleSSLReadEntry(struct pt_regs* ctx, void* ssl, char* buf, int num) {
+	return handleSSLReadExEntry(ctx, ssl, buf, (size_t)num, NULL);
 }
 
 int handleSSLReadExit(struct pt_regs* ctx, int bytesCount) {
@@ -210,8 +210,8 @@ int handleSSLPendingExit(struct pt_regs* ctx, int ret) {
  */
 
 SEC("uprobe/SSL_read:libssl.so")
-int BPF_UPROBE(uprobeSSLReadOpenSSL, void* ssl, void* buf) {
-	return handleSSLReadEntry(ctx, ssl, (char*)buf);
+int BPF_UPROBE(uprobeSSLReadOpenSSL, void* ssl, void* buf, int num) {
+	return handleSSLReadEntry(ctx, ssl, (char*)buf, num);
 }
 
 SEC("uretprobe/SSL_read:libssl.so")
@@ -220,8 +220,8 @@ int BPF_URETPROBE(uretprobeSSLReadOpenSSL, int ret) {
 }
 
 SEC("uprobe/SSL_read_ex:libssl.so")
-int BPF_UPROBE(uprobeSSLReadExOpenSSL, void* ssl, void* buf, size_t* readBytes) {
-	return handleSSLReadExEntry(ctx, ssl, (char*)buf, readBytes);
+int BPF_UPROBE(uprobeSSLReadExOpenSSL, void* ssl, void* buf, size_t num, size_t* readBytes) {
+	return handleSSLReadExEntry(ctx, ssl, (char*)buf, num, readBytes);
 }
 
 SEC("uretprobe/SSL_read_ex:libssl.so")
