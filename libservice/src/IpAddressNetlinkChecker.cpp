@@ -22,6 +22,7 @@
 #include <boost/algorithm/string/join.hpp>
 #include <boost/range/adaptor/transformed.hpp>
 #include <iostream>
+#include <ifaddrs.h>
 
 namespace service {
 
@@ -116,9 +117,19 @@ bool IpAddressNetlinkChecker::isV4AddressExternal(IPv4int addr) const {
 }
 
 static bool ipv6AddressContainsMappedIpv4Address(const in6_addr& addr) {
+	const std::vector<std::string> mappedPrefixes = {
+			"::ffff:0:0:0/96", "64:ff9b::/96"
+	};
+	for (const auto& internalRange : mappedPrefixes) {
+		if (IpAddressNetlinkChecker::isInRange(addr, internalRange)) {
+			return true;
+		}
+	}
+
 	if (!std::all_of(addr.s6_addr, addr.s6_addr + 9, [](auto byte) { return byte == 0; })) {
 		return false;
 	}
+
 	return (addr.s6_addr[10] == 0xFF && addr.s6_addr[11] == 0xFF);
 }
 
@@ -131,11 +142,96 @@ static std::optional<IPv4int> getMappedIPv4Addr(const in6_addr& addr) {
 	return ipv4Binary;
 }
 
+std::vector<IpAddressNetlinkChecker::Ipv6Interface> IpAddressNetlinkChecker::getIpv6Interfaces() const {
+	std::vector<Ipv6Interface> collectedIpv6Interfaces{};
+
+	ifaddrs *ifAddressStruct = nullptr;
+	if (getifaddrs(&ifAddressStruct) == 0) {
+		for (ifaddrs *ifa = ifAddressStruct; ifa != nullptr; ifa = ifa->ifa_next) {
+			if (ifa->ifa_addr != nullptr && ifa->ifa_addr->sa_family == AF_INET6) {
+				in6_addr interfaceIpv6Addr = reinterpret_cast<sockaddr_in6*>(ifa->ifa_addr)->sin6_addr;
+				in6_addr interfaceMask = reinterpret_cast<sockaddr_in6*>(ifa->ifa_netmask)->sin6_addr;
+
+				collectedIpv6Interfaces.emplace_back(Ipv6Interface{interfaceIpv6Addr, interfaceMask});
+			}
+		}
+		freeifaddrs(ifAddressStruct);
+	}
+
+	return collectedIpv6Interfaces;
+}
+
+IpAddressNetlinkChecker::ipv6Range IpAddressNetlinkChecker::parseIpv6Range(const std::string& range) {
+	ipv6Range rangeStruct;
+	size_t slashPos = range.find('/');
+	rangeStruct.ipv6Address = range.substr(0, slashPos);
+	rangeStruct.prefixLength = slashPos != std::string::npos ? std::stoi(range.substr(slashPos + 1)) : 0;
+	return rangeStruct;
+}
+
+bool IpAddressNetlinkChecker::isInRange(const in6_addr& addr, const std::string &range) {
+	IpAddressNetlinkChecker::ipv6Range rangeStruct = IpAddressNetlinkChecker::parseIpv6Range(range);
+
+	in6_addr rangeIpv6Address{};
+	inet_pton(AF_INET6, rangeStruct.ipv6Address.c_str(), &rangeIpv6Address);
+
+	// Create mask
+	in6_addr mask{};
+	for (size_t i = 0; i < sizeof(mask.s6_addr); i++) {
+		if (rangeStruct.prefixLength >= 8) {
+			mask.s6_addr[i] = 0xFF;
+			rangeStruct.prefixLength -= 8;
+		}
+		else if (rangeStruct.prefixLength > 0) {
+			mask.s6_addr[i] = (uint8_t)(0xFF << (8 - rangeStruct.prefixLength));
+			rangeStruct.prefixLength = 0;
+		}
+		else {
+			mask.s6_addr[i] = 0;
+		}
+	}
+
+	// Check mask and addr
+	in6_addr andResult{};
+	for (size_t i = 0; i < sizeof(andResult.s6_addr); ++i) {
+		andResult.s6_addr[i] = addr.s6_addr[i] & mask.s6_addr[i];
+	}
+
+	// Compare andResult with IPv6 address of the rangeStruct
+	return memcmp(&andResult, &rangeIpv6Address, sizeof(andResult)) == 0;
+}
+
+bool IpAddressNetlinkChecker::checkSubnet(const in6_addr& addrToCheck, const in6_addr& interfaceIpv6Addr, const in6_addr& interfaceMask) {
+	for (size_t i = 0; i < 4; ++i) {
+		if ((addrToCheck.s6_addr32[i] & interfaceMask.s6_addr32[i]) != (interfaceIpv6Addr.s6_addr32[i] & interfaceMask.s6_addr32[i])) {
+			return false;
+		}
+	}
+	return true;
+}
+
 bool IpAddressNetlinkChecker::isV6AddressExternal(const in6_addr& addr) const {
 	if (auto mappedV4Addr = getMappedIPv4Addr(addr); mappedV4Addr) {
 		return isV4AddressExternal(*mappedV4Addr);
 	}
-	throw std::runtime_error("IPv6 is only supported for IPv4 mapped addresses");
+
+	const std::vector<std::string> internalRanges = {
+			"fc00::/7", "fec0::/10", "fe80::/10", "::1/128"
+	};
+	for (const auto& internalRange : internalRanges) {
+		if (IpAddressNetlinkChecker::isInRange(addr, internalRange)) {
+			return false;
+		}
+	}
+
+	const std::vector<Ipv6Interface> ipv6Interfaces = getIpv6Interfaces();
+	for (auto& ipv6Interface : ipv6Interfaces) {
+		if (checkSubnet(addr, ipv6Interface.interfaceIpv6Addr, ipv6Interface.interfaceMask)) {
+			return false;
+		}
+	}
+
+	return true;
 }
 
 } // namespace service
