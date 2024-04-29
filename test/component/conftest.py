@@ -105,24 +105,18 @@ def run_ebpf_discovery(discovery_path, log_dir):
     assert not exit_code, "eBPF Discovery returned exit code: {}".format(exit_code)
 
 
-@pytest.fixture(scope="function")
-def run_http_service(http_server_port):
+@pytest.fixture(scope="function", params=["http", "https"])
+def run_http_service(request, http_server_port):
     ip_addr = "127.0.0.1"
-    url = "http://{}:{}".format(ip_addr, http_server_port)
-    args = (sys.executable, "-m", "http.server", "--bind", ip_addr, str(http_server_port))
+    protocol = request.param
+    url = f"{protocol}://{ip_addr}:{http_server_port}"
+    if protocol == "https":
+        script_path = os.path.dirname(__file__) + "/https_server.py"
+        cert_path = os.path.dirname(__file__) + "/https_server.pem"
+        args = (sys.executable, script_path, ip_addr, str(http_server_port), cert_path)
+    else:
+        args = (sys.executable, "-m", "http.server", "--bind", ip_addr, str(http_server_port))
     server = subprocess.Popen(args)
-    wait_until(lambda: is_responsive(url), timeout=10)
-    yield url
-    server.terminate()
-
-
-@pytest.fixture(scope="function")
-def run_fast_api_http_service(http_server_port):
-    ip_addr = "127.0.0.1"
-    url = "http://{}:{}".format(ip_addr, http_server_port)
-    workers = "12"
-    args = (sys.executable, "-m", "uvicorn", "fast_api_server:app", "--host", ip_addr, "--port", str(http_server_port), "--workers", workers)
-    server = subprocess.Popen(args, cwd=os.environ.get("TESTING_PATH"))
     wait_until(lambda: is_responsive(url), timeout=10)
     yield url
     server.terminate()
