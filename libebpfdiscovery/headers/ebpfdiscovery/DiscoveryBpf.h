@@ -44,6 +44,8 @@ public:
 private:
 	void attachSyscallProbes();
 	void attachLibSSLProbes();
+	void attachOpenSSLProbesToLibName(const std::string& libName);
+	void attachOpenSSLProbes();
 
 	bool coreEnsured{false};
 	bpf_object_open_opts openOpts{0};
