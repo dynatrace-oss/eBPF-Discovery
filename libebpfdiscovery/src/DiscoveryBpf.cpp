@@ -104,7 +104,7 @@ static bpf_link* attachUprobeToLibFunc(bpf_program* prog, const std::string& lib
 	uprobeOpts.retprobe = false;
 	auto link{bpf_program__attach_uprobe_opts(prog, -1, libName.c_str(), 0, &uprobeOpts)};
 	if (link == nullptr) {
-		LOG_ERROR("Failed to attach uprobe for {} {}.", libName, funcName);
+		throw std::runtime_error(fmt::format("Failed to attach uprobe for {} {}.", libName, funcName));
 	}
 	return link;
 }
@@ -115,7 +115,7 @@ static bpf_link* attachUretprobeToLibFunc(bpf_program* prog, const std::string& 
 	uprobeOpts.retprobe = true;
 	auto link{bpf_program__attach_uprobe_opts(prog, -1, libName.c_str(), 0, &uprobeOpts)};
 	if (link == nullptr) {
-		LOG_ERROR("Failed to attach uretprobe for {} {}.", libName, funcName);
+		throw std::runtime_error(fmt::format("Failed to attach uretprobe for {} {}.", libName, funcName));
 	}
 	return link;
 }
@@ -134,13 +134,31 @@ void DiscoveryBpf::attachSyscallProbes() {
 	skel->links.kprobeSysClose = attachKprobe(skel->progs.kprobeSysClose, SYS_PREFIX "sys_close");
 }
 
+void DiscoveryBpf::attachOpenSSLProbesToLibName(const std::string& libName) {
+	skel->links.uprobeSSLReadOpenSSL = attachUprobeToLibFunc(skel->progs.uprobeSSLReadOpenSSL, libName, "SSL_read");
+	skel->links.uretprobeSSLReadOpenSSL = attachUretprobeToLibFunc(skel->progs.uretprobeSSLReadOpenSSL, libName, "SSL_read");
+	skel->links.uprobeSSLReadExOpenSSL = attachUprobeToLibFunc(skel->progs.uprobeSSLReadExOpenSSL, libName, "SSL_read_ex");
+	skel->links.uretprobeSSLReadExOpenSSL = attachUretprobeToLibFunc(skel->progs.uretprobeSSLReadExOpenSSL, libName, "SSL_read_ex");
+	skel->links.uprobeSSLPendingOpenSSL = attachUprobeToLibFunc(skel->progs.uprobeSSLPendingOpenSSL, libName, "SSL_pending");
+	skel->links.uretprobeSSLPendingOpenSSL = attachUretprobeToLibFunc(skel->progs.uretprobeSSLPendingOpenSSL, libName, "SSL_pending");
+}
+
+void DiscoveryBpf::attachOpenSSLProbes() {
+	auto libNames = {"libssl.so", "libssl3.so", "libssl.so.3", "libssl1.so", "libssl.so.1"};
+	for (const auto& libName : libNames) {
+		try {
+			attachOpenSSLProbesToLibName(libName);
+			return; // success
+		} catch (const std::runtime_error& e) {
+			LOG_WARN("Error occurred when attaching OpenSSL probes: {}", e.what());
+		}
+	}
+
+	throw std::runtime_error("Couldn't attach OpenSSL probes to any of the libraries");
+}
+
 void DiscoveryBpf::attachLibSSLProbes() {
-	skel->links.uprobeSSLReadOpenSSL = attachUprobeToLibFunc(skel->progs.uprobeSSLReadOpenSSL, "libssl.so", "SSL_read");
-	skel->links.uretprobeSSLReadOpenSSL = attachUretprobeToLibFunc(skel->progs.uretprobeSSLReadOpenSSL, "libssl.so", "SSL_read");
-	skel->links.uprobeSSLReadExOpenSSL = attachUprobeToLibFunc(skel->progs.uprobeSSLReadExOpenSSL, "libssl.so", "SSL_read_ex");
-	skel->links.uretprobeSSLReadExOpenSSL = attachUretprobeToLibFunc(skel->progs.uretprobeSSLReadExOpenSSL, "libssl.so", "SSL_read_ex");
-	skel->links.uprobeSSLPendingOpenSSL = attachUprobeToLibFunc(skel->progs.uprobeSSLPendingOpenSSL, "libssl.so", "SSL_pending");
-	skel->links.uretprobeSSLPendingOpenSSL = attachUretprobeToLibFunc(skel->progs.uretprobeSSLPendingOpenSSL, "libssl.so", "SSL_pending");
+	attachOpenSSLProbes();
 }
 
 } // namespace ebpfdiscovery
