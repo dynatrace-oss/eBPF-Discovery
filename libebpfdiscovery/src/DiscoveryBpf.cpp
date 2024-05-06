@@ -144,7 +144,7 @@ void DiscoveryBpf::attachOpenSSLProbesToLibName(const std::string& libName) {
 }
 
 void DiscoveryBpf::attachOpenSSLProbes() {
-        const auto libNames{"libssl.so", "libssl3.so", "libssl.so.3", "libssl1.so", "libssl.so.1"};
+        const std::vector<std::string> libNames{"libssl.so", "libssl3.so", "libssl.so.3", "libssl1.so", "libssl.so.1"};
 	for (const auto& libName : libNames) {
 		try {
 			attachOpenSSLProbesToLibName(libName);
