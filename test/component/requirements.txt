@@ -1,3 +1,4 @@
 pytest~=7.4.3
 requests~=2.31.0
 pyroute2~=0.7.10
+fastapi~=0.83.0

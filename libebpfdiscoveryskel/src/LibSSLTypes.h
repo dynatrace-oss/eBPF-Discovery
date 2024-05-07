@@ -16,12 +16,19 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  */
 
-#include "LibSSLProbes.h"
-#include "SyscallProbes.h"
+#pragma once
 
-// vmlinux.h is required by bpf_helpers.h
 #include "vmlinux.h"
 
+#include <bpf/bpf_core_read.h>
 #include <bpf/bpf_helpers.h>
 
-char LICENSE[] SEC("license") = "GPL";
+struct LibSSLPendingArgs {
+	void* ssl;
+};
+
+struct LibSSLReadArgs {
+	void* ssl;
+	char* buf;
+	size_t* readBytes;
+};

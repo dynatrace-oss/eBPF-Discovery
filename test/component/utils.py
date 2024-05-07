@@ -19,6 +19,7 @@ import time
 
 import requests
 from pyroute2 import IPRoute
+from urllib.parse import urlparse
 
 
 def send_http_requests(url: str, requests_num: int, x_forwarded_for: str | None = None):
@@ -26,12 +27,12 @@ def send_http_requests(url: str, requests_num: int, x_forwarded_for: str | None 
     if x_forwarded_for:
         headers.update({"X-Forwarded-For": x_forwarded_for})
     for i in range(requests_num):
-        requests.get(url, headers=headers)
+        requests.get(url, verify=False, headers=headers)
 
 
 def is_responsive(url: str) -> bool:
     try:
-        response = requests.get(url)
+        response = requests.get(url, verify=False)
         if response.status_code == 200:
             return True
     except (requests.ConnectionError, requests.ConnectTimeout, requests.Timeout):
@@ -49,7 +50,11 @@ def wait_until(predicate, timeout, period=1):
 
 def get_discovered_service_json(discovery: subprocess.Popen, url: str) -> dict | None:
     def url_matches_endpoint(url, endpoint):
-        return url[len("http://"):] == endpoint
+        parsed_url1 = urlparse(url)
+        parsed_url2 = urlparse("x://" + endpoint)
+        normalized_url1 = (parsed_url1.hostname, parsed_url1.port, parsed_url1.path)
+        normalized_url2 = (parsed_url2.hostname, parsed_url2.port, parsed_url2.path)
+        return normalized_url1 == normalized_url2
 
     output = discovery.stdout.readline()
     if not output:

@@ -88,18 +88,19 @@ int Discovery::bpfDiscoveryFetchAndHandleEvents() {
 }
 
 void Discovery::handleNewEvent(DiscoveryEvent event) {
-	if (discoveryEventFlagsIsNewData(event.flags)) {
+	if (discoveryFlagsEventIsNewData(event.flags)) {
 		handleNewDataEvent(event);
 	}
-	if (discoveryEventFlagsIsNoMoreData(event.flags) || discoveryEventFlagsIsClose(event.flags)) {
+	if (discoveryFlagsEventIsDataEnd(event.flags)) {
 		handleCloseEvent(event);
 	}
 }
 
 void Discovery::handleNewDataEvent(DiscoveryEvent& event) {
 	DiscoverySavedBuffer savedBuffer;
-	const auto res{bpf_map_lookup_and_delete_elem(bpfFds.savedBuffersMap, &event.dataKey, &savedBuffer)};
+	const auto res{bpf_map_lookup_and_delete_elem(bpfFds.savedBuffersMap, &event.key, &savedBuffer)};
 	if (res != 0) {
+		LOG_TRACE("No saved buffer for data event. (pid:{}, fd:{}, sessionID:{}, bufferSeq:{})", event.key.pid, event.key.fd, event.key.sessionID, event.key.bufferSeq);
 		return;
 	}
 
@@ -108,7 +109,7 @@ void Discovery::handleNewDataEvent(DiscoveryEvent& event) {
 
 void Discovery::handleBufferLookupSuccess(DiscoverySavedBuffer& savedBuffer, DiscoveryEvent& event) {
 	std::string_view bufferView(savedBuffer.data, savedBuffer.length);
-	const auto it{savedSessions.find(event.dataKey)};
+	const auto it{savedSessions.find(event.key)};
 	if (it != savedSessions.end()) {
 		handleExistingSession(it, bufferView, event);
 		return;
@@ -120,7 +121,7 @@ void Discovery::handleBufferLookupSuccess(DiscoverySavedBuffer& savedBuffer, Dis
 void Discovery::handleExistingSession(SavedSessionsCacheType::iterator it, std::string_view& bufferView, DiscoveryEvent& event) {
 	savedSessions.update(it, [bufferView = std::move(bufferView)](auto& session) { session.parser.parse(std::move(bufferView)); });
 	if (it->second.parser.isInvalidState()) {
-		bpfDiscoveryDeleteSession(event.dataKey);
+		bpfDiscoveryDeleteSession(event.key);
 		savedSessions.erase(it);
 		return;
 	}
@@ -130,7 +131,8 @@ void Discovery::handleExistingSession(SavedSessionsCacheType::iterator it, std::
 		return;
 	}
 
-	handleSuccessfulParse(it->second, event.sessionMeta);
+	service::DiscoverySessionMeta sessionMeta{.sourceIP = event.sourceIP, .pid = event.key.pid, .flags = event.flags};
+	handleSuccessfulParse(it->second, sessionMeta);
 	savedSessions.update(it, [](auto& session) { session.reset(); });
 }
 
@@ -138,12 +140,11 @@ void Discovery::handleNewSession(std::string_view& bufferView, DiscoveryEvent& e
 	Session session;
 	session.parser.parse(std::move(bufferView));
 	if (session.parser.isInvalidState()) {
-		bpfDiscoveryDeleteSession(event.dataKey);
 		return;
 	}
 
-	if (!session.parser.isFinished() && !discoveryEventFlagsIsNoMoreData(event.flags)) {
-		saveSession(event.dataKey, std::move(session));
+	if (!session.parser.isFinished() && !discoveryFlagsEventIsDataEnd(event.flags)) {
+		saveSession(event.key, std::move(session));
 		return;
 	}
 
@@ -151,29 +152,30 @@ void Discovery::handleNewSession(std::string_view& bufferView, DiscoveryEvent& e
 		return;
 	}
 
-	handleSuccessfulParse(session, event.sessionMeta);
+	service::DiscoverySessionMeta sessionMeta{.sourceIP = event.sourceIP, .pid = event.key.pid, .flags = event.flags};
+	handleSuccessfulParse(session, sessionMeta);
 }
 
-void Discovery::handleNewRequest(const Session& session, const DiscoverySessionMeta& meta) {
+void Discovery::handleNewRequest(const Session& session, const service::DiscoverySessionMeta& meta) {
 	const auto& request{session.parser.result};
 	const auto xForwardedForClient{request.xForwardedFor.empty() ? "" : ", X-Forwarded-For client: " + request.xForwardedFor.front()};
-	if (discoverySessionFlagsIsIPv4(meta.flags)) {
+	if (discoveryFlagsSessionIsIPv4(meta.flags)) {
 		LOG_DEBUG(
 				"Handling new request. (method: {}, host: {}, url: {}{}, sourceIPv4: {}, pid: {})",
 				request.method,
 				request.host,
 				request.url,
 				xForwardedForClient,
-				service::ipv4ToString(meta.sourceIPData),
+				service::ipv4ToString(meta.sourceIP.data),
 				meta.pid);
-	} else if (discoverySessionFlagsIsIPv6(meta.flags)) {
+	} else if (discoveryFlagsSessionIsIPv6(meta.flags)) {
 		LOG_DEBUG(
 				"Handling new request. (method: {}, host: {}, url: {}{}, sourceIPv6: {}, pid: {})",
 				request.method,
 				request.host,
 				request.url,
 				xForwardedForClient,
-				service::ipv6ToString(meta.sourceIPData),
+				service::ipv6ToString(meta.sourceIP.data),
 				meta.pid);
 	} else {
 		LOG_DEBUG(
@@ -188,7 +190,7 @@ void Discovery::handleNewRequest(const Session& session, const DiscoverySessionM
 }
 
 void Discovery::handleCloseEvent(DiscoveryEvent& event) {
-	if (auto it{savedSessions.find(event.dataKey)}; it != savedSessions.end()) {
+	if (auto it{savedSessions.find(event.key)}; it != savedSessions.end()) {
 		savedSessions.erase(it);
 	}
 }
@@ -203,7 +205,7 @@ int Discovery::bpfDiscoveryResetConfig() {
 	return bpfDiscoveryResumeCollecting();
 }
 
-void Discovery::handleSuccessfulParse(const Session& session, const DiscoverySessionMeta& meta) {
+void Discovery::handleSuccessfulParse(const Session& session, const service::DiscoverySessionMeta& meta) {
 	handleNewRequest(session, meta);
 }
 

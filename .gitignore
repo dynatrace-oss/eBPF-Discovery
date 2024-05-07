@@ -18,3 +18,5 @@
 
 **/.idea/
 **/cmake-build-debug-wsl/
+
+__pycache__/

@@ -18,7 +18,7 @@
 
 #include "Constants.h"
 
-#ifdef TARGET_BPF
+#ifdef __TARGET_BPF
 #	include "vmlinux.h"
 #else
 #	include <linux/types.h>
@@ -116,81 +116,82 @@ struct DiscoverySavedBufferKey {
 };
 
 /*
- * Session state bitmask
+ * Session state and event flags bitmask
  */
 
-typedef __u8 DiscoverySessionFlags;
+typedef __u8 DiscoveryFlags;
 
-#define DISCOVERY_SESSION_FLAGS_IPV4 0x02
-#define DISCOVERY_SESSION_FLAGS_IPV6 0x04
+#define DISCOVERY_FLAG_SESSION_IPV4 2
+#define DISCOVERY_FLAG_SESSION_IPV6 4
+#define DISCOVERY_FLAG_SESSION_UNENCRYPTED_HTTP 8
+#define DISCOVERY_FLAG_SESSION_SSL_HTTP 16
+#define DISCOVERY_FLAG_EVENT_NEW_DATA 32
+#define DISCOVERY_FLAG_EVENT_DATA_END 64
 
-__attribute__((always_inline)) inline static bool discoverySessionFlagsIsIPv4(DiscoverySessionFlags session_flags) {
-	return session_flags & DISCOVERY_SESSION_FLAGS_IPV4;
+__attribute__((always_inline)) inline static bool discoveryFlagsEventIsNewData(DiscoveryFlags flags) {
+	return flags & DISCOVERY_FLAG_EVENT_NEW_DATA;
 }
 
-__attribute__((always_inline)) inline static void discoverySessionFlagsSetIPv4(DiscoverySessionFlags* session_flags) {
-	*session_flags |= DISCOVERY_SESSION_FLAGS_IPV4;
-	*session_flags &= ~DISCOVERY_SESSION_FLAGS_IPV6;
+__attribute__((always_inline)) inline static void discoveryFlagsEventSetNewData(DiscoveryFlags* flags) {
+	*flags |= DISCOVERY_FLAG_EVENT_NEW_DATA;
 }
 
-__attribute__((always_inline)) inline static bool discoverySessionFlagsIsIPv6(DiscoverySessionFlags session_flags) {
-	return session_flags & DISCOVERY_SESSION_FLAGS_IPV6;
+__attribute__((always_inline)) inline static bool discoveryFlagsEventIsDataEnd(DiscoveryFlags flags) {
+	return flags & DISCOVERY_FLAG_EVENT_DATA_END;
 }
 
-__attribute__((always_inline)) inline static void discoverySessionFlagsSetIPv6(DiscoverySessionFlags* session_flags) {
-	*session_flags |= DISCOVERY_SESSION_FLAGS_IPV6;
-	*session_flags &= ~DISCOVERY_SESSION_FLAGS_IPV4;
+__attribute__((always_inline)) inline static void discoveryFlagsEventSetDataEnd(DiscoveryFlags* flags) {
+	*flags |= DISCOVERY_FLAG_EVENT_DATA_END;
+}
+
+__attribute__((always_inline)) inline static bool discoveryFlagsSessionIsUnencryptedHttp(DiscoveryFlags flags) {
+	return flags & DISCOVERY_FLAG_SESSION_UNENCRYPTED_HTTP;
+}
+
+__attribute__((always_inline)) inline static void discoveryFlagsSessionSetUnencryptedHttp(DiscoveryFlags* flags) {
+	*flags |= DISCOVERY_FLAG_SESSION_UNENCRYPTED_HTTP;
+}
+
+__attribute__((always_inline)) inline static bool discoveryFlagsSessionIsSslHttp(DiscoveryFlags flags) {
+	return flags & DISCOVERY_FLAG_SESSION_SSL_HTTP;
+}
+
+__attribute__((always_inline)) inline static void discoveryFlagsSessionSetSslHttp(DiscoveryFlags* flags) {
+	*flags |= DISCOVERY_FLAG_SESSION_SSL_HTTP;
+}
+
+__attribute__((always_inline)) inline static bool discoveryFlagsSessionIsIPv4(DiscoveryFlags discoveryFlags) {
+	return discoveryFlags & DISCOVERY_FLAG_SESSION_IPV4;
+}
+
+__attribute__((always_inline)) inline static void discoveryFlagsSessionSetIPv4(DiscoveryFlags* discoveryFlags) {
+	*discoveryFlags |= DISCOVERY_FLAG_SESSION_IPV4;
+	*discoveryFlags &= ~DISCOVERY_FLAG_SESSION_IPV6;
+}
+
+__attribute__((always_inline)) inline static bool discoveryFlagsSessionIsIPv6(DiscoveryFlags discoveryFlags) {
+	return discoveryFlags & DISCOVERY_FLAG_SESSION_IPV6;
+}
+
+__attribute__((always_inline)) inline static void discoveryFlagsSessionSetIPv6(DiscoveryFlags* discoveryFlags) {
+	*discoveryFlags |= DISCOVERY_FLAG_SESSION_IPV6;
+	*discoveryFlags &= ~DISCOVERY_FLAG_SESSION_IPV4;
 }
 
 /*
  * Session
  */
 
-struct DiscoverySessionMeta {
-	__u8 sourceIPData[16];
-	DiscoverySessionFlags flags;
-	__u32 pid;
+struct DiscoverySockSourceIP {
+	__u8 data[16];
 };
 
 struct DiscoverySession {
 	__u32 id;
 	__u32 bufferCount;
-	struct DiscoverySessionMeta meta;
+	struct DiscoverySockSourceIP sourceIP;
+	DiscoveryFlags flags;
 };
-
-/*
- * Shared event flags bitmask
- */
-
-typedef __u8 DiscoveryEventFlags;
-
-#define DISCOVERY_EVENT_FLAGS_NEW_DATA 0x01
-#define DISCOVERY_EVENT_FLAGS_NO_MORE_DATA 0x02
-#define DISCOVERY_EVENT_FLAGS_CLOSE 0x04
-
-__attribute__((always_inline)) inline static bool discoveryEventFlagsIsNewData(DiscoveryEventFlags flags) {
-	return flags & DISCOVERY_EVENT_FLAGS_NEW_DATA;
-}
-
-__attribute__((always_inline)) inline static void discoveryEventFlagsSetNewData(DiscoveryEventFlags* flags) {
-	*flags |= DISCOVERY_EVENT_FLAGS_NEW_DATA;
-}
-
-__attribute__((always_inline)) inline static bool discoveryEventFlagsIsNoMoreData(DiscoveryEventFlags flags) {
-	return flags & DISCOVERY_EVENT_FLAGS_NO_MORE_DATA;
-}
-
-__attribute__((always_inline)) inline static void discoveryEventFlagsSetNoMoreData(DiscoveryEventFlags* flags) {
-	*flags |= DISCOVERY_EVENT_FLAGS_NO_MORE_DATA;
-}
-
-__attribute__((always_inline)) inline static bool discoveryEventFlagsIsClose(DiscoveryEventFlags flags) {
-	return flags & DISCOVERY_EVENT_FLAGS_CLOSE;
-}
-
-__attribute__((always_inline)) inline static void discoveryEventFlagsSetClose(DiscoveryEventFlags* flags) {
-	*flags |= DISCOVERY_EVENT_FLAGS_CLOSE;
-}
 
 /*
  * Shared event
@@ -198,9 +199,9 @@ __attribute__((always_inline)) inline static void discoveryEventFlagsSetClose(Di
 
 // Event sent from eBPF to userspace program
 struct DiscoveryEvent {
-	struct DiscoverySavedBufferKey dataKey;
-	struct DiscoverySessionMeta sessionMeta;
-	DiscoveryEventFlags flags;
+	struct DiscoverySavedBufferKey key;
+	struct DiscoverySockSourceIP sourceIP;
+	DiscoveryFlags flags;
 };
 
 /*

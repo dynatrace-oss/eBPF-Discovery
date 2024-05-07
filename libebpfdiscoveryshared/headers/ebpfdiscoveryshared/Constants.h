@@ -16,7 +16,7 @@
 
 #pragma once
 
-#define DISCOVERY_BUFFER_MAX_DATA_SIZE 10240 // 10 KiB
+#define DISCOVERY_BUFFER_MAX_DATA_SIZE 8192 // 8 KiB (has to be a power of 2)
 #define DISCOVERY_MAX_SESSIONS 8192
 #define DISCOVERY_EVENT_QUEUE_SIZE 512
 

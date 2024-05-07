@@ -59,7 +59,7 @@ TEST_F(ServiceAggregatorTest, aggregate) {
 	EXPECT_EQ(aggregator.collectServices().size(), 0);
 	// Service 1
 	{
-		const auto [request, meta]{makeRequest(100, "host", "/url", DISCOVERY_SESSION_FLAGS_IPV4)};
+		const auto [request, meta]{makeRequest(100, "host", "/url", DISCOVERY_FLAG_SESSION_IPV4)};
 		EXPECT_CALL(ipCheckerMock, isV4AddressExternal).WillOnce(testing::Return(true));
 		aggregator.newRequest(request, meta);
 	}
@@ -69,23 +69,23 @@ TEST_F(ServiceAggregatorTest, aggregate) {
 	}
 	// Service 2
 	{
-		auto [request, meta]{makeRequest(100, "host", "/url2", DISCOVERY_SESSION_FLAGS_IPV4)};
+		auto [request, meta]{makeRequest(100, "host", "/url2", DISCOVERY_FLAG_SESSION_IPV4)};
 		EXPECT_CALL(ipCheckerMock, isV4AddressExternal).WillOnce(testing::Return(false));
 		aggregator.newRequest(request, meta);
 	}
 	// Service 3
 	{
-		auto [request, meta]{makeRequest(200, "host", "/url2", DISCOVERY_SESSION_FLAGS_IPV4)};
+		auto [request, meta]{makeRequest(200, "host", "/url2", DISCOVERY_FLAG_SESSION_IPV4)};
 		EXPECT_CALL(ipCheckerMock, isV4AddressExternal).WillOnce(testing::Return(true));
 		aggregator.newRequest(request, meta);
 	}
 	{
-		auto [request, meta]{makeRequest(200, "host", "/url2", DISCOVERY_SESSION_FLAGS_IPV4)};
+		auto [request, meta]{makeRequest(200, "host", "/url2", DISCOVERY_FLAG_SESSION_IPV4)};
 		EXPECT_CALL(ipCheckerMock, isV4AddressExternal).WillOnce(testing::Return(false));
 		aggregator.newRequest(request, meta);
 	}
 	{
-		auto [request, meta]{makeRequest(200, "host", "/url2", DISCOVERY_SESSION_FLAGS_IPV4)};
+		auto [request, meta]{makeRequest(200, "host", "/url2", DISCOVERY_FLAG_SESSION_IPV4)};
 		EXPECT_CALL(ipCheckerMock, isV4AddressExternal).WillOnce(testing::Return(true));
 		aggregator.newRequest(request, meta);
 	}
