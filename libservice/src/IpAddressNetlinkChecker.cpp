@@ -116,12 +116,9 @@ bool IpAddressNetlinkChecker::isV4AddressExternal(IPv4int addr) const {
 	return true;
 }
 
-static bool ipv6AddressContainsMappedIpv4Address(const in6_addr& addr) {
-	const std::vector<std::string> mappedPrefixes = {
-			"::ffff:0:0:0/96", "64:ff9b::/96"
-	};
-	for (const auto& internalRange : mappedPrefixes) {
-		if (IpAddressNetlinkChecker::isInRange(addr, internalRange)) {
+bool IpAddressNetlinkChecker::ipv6AddressContainsMappedIpv4Address(const in6_addr& addr) const {
+	for (const auto& internalRange : {"::ffff:0:0:0/96", "64:ff9b::/96"}) {
+		if (isInRange(addr, internalRange)) {
 			return true;
 		}
 	}
@@ -133,7 +130,7 @@ static bool ipv6AddressContainsMappedIpv4Address(const in6_addr& addr) {
 	return (addr.s6_addr[10] == 0xFF && addr.s6_addr[11] == 0xFF);
 }
 
-static std::optional<IPv4int> getMappedIPv4Addr(const in6_addr& addr) {
+std::optional<IPv4int> IpAddressNetlinkChecker::getMappedIPv4Addr(const in6_addr& addr) const {
 	if (!ipv6AddressContainsMappedIpv4Address(addr)) {
 		return std::nullopt;
 	}
@@ -142,35 +139,16 @@ static std::optional<IPv4int> getMappedIPv4Addr(const in6_addr& addr) {
 	return ipv4Binary;
 }
 
-std::vector<IpAddressNetlinkChecker::Ipv6Interface> IpAddressNetlinkChecker::getIpv6Interfaces() const {
-	std::vector<Ipv6Interface> collectedIpv6Interfaces{};
-
-	ifaddrs *ifAddressStruct = nullptr;
-	if (getifaddrs(&ifAddressStruct) == 0) {
-		for (ifaddrs *ifa = ifAddressStruct; ifa != nullptr; ifa = ifa->ifa_next) {
-			if (ifa->ifa_addr != nullptr && ifa->ifa_addr->sa_family == AF_INET6) {
-				in6_addr interfaceIpv6Addr = reinterpret_cast<sockaddr_in6*>(ifa->ifa_addr)->sin6_addr;
-				in6_addr interfaceMask = reinterpret_cast<sockaddr_in6*>(ifa->ifa_netmask)->sin6_addr;
-
-				collectedIpv6Interfaces.emplace_back(Ipv6Interface{interfaceIpv6Addr, interfaceMask});
-			}
-		}
-		freeifaddrs(ifAddressStruct);
-	}
-
-	return collectedIpv6Interfaces;
-}
-
-IpAddressNetlinkChecker::ipv6Range IpAddressNetlinkChecker::parseIpv6Range(const std::string& range) {
+IpAddressNetlinkChecker::ipv6Range IpAddressNetlinkChecker::parseIpv6Range(const std::string& range) const {
 	ipv6Range rangeStruct;
-	size_t slashPos = range.find('/');
+	const auto slashPos{range.find('/')};
 	rangeStruct.ipv6Address = range.substr(0, slashPos);
 	rangeStruct.prefixLength = slashPos != std::string::npos ? std::stoi(range.substr(slashPos + 1)) : 0;
 	return rangeStruct;
 }
 
-bool IpAddressNetlinkChecker::isInRange(const in6_addr& addr, const std::string &range) {
-	IpAddressNetlinkChecker::ipv6Range rangeStruct = IpAddressNetlinkChecker::parseIpv6Range(range);
+bool IpAddressNetlinkChecker::isInRange(const in6_addr& addr, const std::string& range) const {
+	auto rangeStruct{IpAddressNetlinkChecker::parseIpv6Range(range)};
 
 	in6_addr rangeIpv6Address{};
 	inet_pton(AF_INET6, rangeStruct.ipv6Address.c_str(), &rangeIpv6Address);
@@ -181,12 +159,10 @@ bool IpAddressNetlinkChecker::isInRange(const in6_addr& addr, const std::string 
 		if (rangeStruct.prefixLength >= 8) {
 			mask.s6_addr[i] = 0xFF;
 			rangeStruct.prefixLength -= 8;
-		}
-		else if (rangeStruct.prefixLength > 0) {
+		} else if (rangeStruct.prefixLength > 0) {
 			mask.s6_addr[i] = (uint8_t)(0xFF << (8 - rangeStruct.prefixLength));
 			rangeStruct.prefixLength = 0;
-		}
-		else {
+		} else {
 			mask.s6_addr[i] = 0;
 		}
 	}
@@ -201,8 +177,10 @@ bool IpAddressNetlinkChecker::isInRange(const in6_addr& addr, const std::string 
 	return memcmp(&andResult, &rangeIpv6Address, sizeof(andResult)) == 0;
 }
 
-bool IpAddressNetlinkChecker::checkSubnet(const in6_addr& addrToCheck, const in6_addr& interfaceIpv6Addr, const in6_addr& interfaceMask) {
-	for (size_t i = 0; i < 4; ++i) {
+bool IpAddressNetlinkChecker::checkSubnet(
+		const in6_addr& addrToCheck, const in6_addr& interfaceIpv6Addr, const in6_addr& interfaceMask) const {
+	const auto s6Addr32ArraySize = sizeof(addrToCheck.s6_addr32) / sizeof(addrToCheck.s6_addr32[0]);
+	for (size_t i = 0; i < s6Addr32ArraySize; ++i) {
 		if ((addrToCheck.s6_addr32[i] & interfaceMask.s6_addr32[i]) != (interfaceIpv6Addr.s6_addr32[i] & interfaceMask.s6_addr32[i])) {
 			return false;
 		}
@@ -215,18 +193,14 @@ bool IpAddressNetlinkChecker::isV6AddressExternal(const in6_addr& addr) const {
 		return isV4AddressExternal(*mappedV4Addr);
 	}
 
-	const std::vector<std::string> internalRanges = {
-			"fc00::/7", "fec0::/10", "fe80::/10", "::1/128"
-	};
-	for (const auto& internalRange : internalRanges) {
-		if (IpAddressNetlinkChecker::isInRange(addr, internalRange)) {
+	for (auto& ipv6Interface : netlink.collectIpv6Interfaces()) {
+		if (checkSubnet(addr, ipv6Interface.interfaceIpv6Addr, ipv6Interface.interfaceMask)) {
 			return false;
 		}
 	}
 
-	const std::vector<Ipv6Interface> ipv6Interfaces = getIpv6Interfaces();
-	for (auto& ipv6Interface : ipv6Interfaces) {
-		if (checkSubnet(addr, ipv6Interface.interfaceIpv6Addr, ipv6Interface.interfaceMask)) {
+	for (const auto& internalRange : {"fc00::/7", "fec0::/10", "fe80::/10", "::1/128"}) {
+		if (IpAddressNetlinkChecker::isInRange(addr, internalRange)) {
 			return false;
 		}
 	}

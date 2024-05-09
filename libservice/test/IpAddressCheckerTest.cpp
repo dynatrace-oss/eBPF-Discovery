@@ -15,7 +15,6 @@
  */
 
 #include "NetlinkCallsMock.h"
-#include "IpAddressNetlinkCheckerMock.h"
 #include "service/IpAddressNetlinkChecker.h"
 
 #include <arpa/inet.h>
@@ -339,11 +338,11 @@ TEST_F(IpAddressCheckerTest, Ipv6InterfaceSubnet) {
 	inet_pton(AF_INET6, "2001:db8:85a3::8a2e:370:7336", &ipv6InterfaceAddr);
 	inet_pton(AF_INET6, "ffff:ffff:ffff:ffff::", &ipv6InterfaceMask);
 
-	std::vector<service::IpAddressNetlinkChecker::Ipv6Interface> interfaces = {service::IpAddressNetlinkChecker::Ipv6Interface{ipv6InterfaceAddr, ipv6InterfaceMask}};
-	NiceMock<IpAddressNetlinkCheckerMock> ipAddressNetlinkCheckerMock{netlinkMock};
-	EXPECT_CALL(ipAddressNetlinkCheckerMock, getIpv6Interfaces).Times(3).WillRepeatedly(Return(interfaces));
+	std::vector<service::NetlinkCalls::Ipv6Interface> interfaces = {service::NetlinkCalls::Ipv6Interface{ipv6InterfaceAddr, ipv6InterfaceMask}};
+	IpAddressNetlinkChecker ipAddressNetlinkChecker{netlinkMock};
+	EXPECT_CALL(netlinkMock, collectIpv6Interfaces).Times(3).WillRepeatedly(Return(interfaces));
 
-	EXPECT_FALSE(ipAddressNetlinkCheckerMock.isV6AddressExternal(getV6AddrBinary("2001:0db8:85a3:0000:0000:0000:0000:0000")));
-	EXPECT_TRUE(ipAddressNetlinkCheckerMock.isV6AddressExternal(getV6AddrBinary("2001:0db8:85a3:0001:0000:0000:0000:0000")));
-	EXPECT_TRUE(ipAddressNetlinkCheckerMock.isV6AddressExternal(getV6AddrBinary("2001:0db8:85a2:ffff:ffff:ffff:ffff:ffff")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV6AddressExternal(getV6AddrBinary("2001:0db8:85a3:0000:0000:0000:0000:0000")));
+	EXPECT_TRUE(ipAddressNetlinkChecker.isV6AddressExternal(getV6AddrBinary("2001:0db8:85a3:0001:0000:0000:0000:0000")));
+	EXPECT_TRUE(ipAddressNetlinkChecker.isV6AddressExternal(getV6AddrBinary("2001:0db8:85a2:ffff:ffff:ffff:ffff:ffff")));
 }

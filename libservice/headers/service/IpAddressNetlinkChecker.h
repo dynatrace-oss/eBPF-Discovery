@@ -19,6 +19,7 @@
 #include <string>
 #include <netinet/in.h>
 #include <linux/netfilter.h>
+#include <optional>
 
 #include "IpAddressChecker.h"
 #include "NetlinkCalls.h"
@@ -38,14 +39,11 @@ public:
 		int prefixLength;
 	};
 
-	static ipv6Range parseIpv6Range(const std::string& range);
-	static bool isInRange(const in6_addr& addr, const std::string& range);
-	static bool checkSubnet(const in6_addr& addrToCheck, const in6_addr& interfaceIpv6Addr, const in6_addr& interfaceMask);
-
-	struct Ipv6Interface {
-		in6_addr interfaceIpv6Addr;
-		in6_addr interfaceMask;
-	};
+	ipv6Range parseIpv6Range(const std::string& range) const;
+	bool isInRange(const in6_addr& addr, const std::string& range) const;
+	bool checkSubnet(const in6_addr& addrToCheck, const in6_addr& interfaceIpv6Addr, const in6_addr& interfaceMask) const;
+	bool ipv6AddressContainsMappedIpv4Address(const in6_addr& addr) const;
+	std::optional<IPv4int> getMappedIPv4Addr(const in6_addr& addr) const;
 private:
 	void readNetworks();
 
@@ -58,8 +56,6 @@ private:
 
 		return false;
 	}
-
-	virtual std::vector<Ipv6Interface> getIpv6Interfaces() const;
 
 	const NetlinkCalls& netlink;
 	IpInterfaces ipInterfaces;

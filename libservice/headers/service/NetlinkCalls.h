@@ -21,6 +21,7 @@
 #include <stddef.h>
 #include <unordered_map>
 #include <vector>
+#include <netinet/in.h>
 
 struct sockaddr_nl;
 
@@ -41,7 +42,13 @@ class NetlinkCalls {
 public:
 	virtual ~NetlinkCalls() = default;
 
+	struct Ipv6Interface {
+		in6_addr interfaceIpv6Addr;
+		in6_addr interfaceMask;
+	};
+
 	virtual IpInterfaces collectIpInterfaces() const;
+	virtual std::vector<Ipv6Interface> collectIpv6Interfaces() const;
 	virtual BridgeIndices collectBridgeIndices() const;
 };
 
