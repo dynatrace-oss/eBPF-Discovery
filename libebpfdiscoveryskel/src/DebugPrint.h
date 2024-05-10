@@ -38,5 +38,5 @@ struct trace_event_raw_bpf_trace_printk___log {};
 			}                                                                          \
 		})
 #else
-#	define DEBUG_PRINTLN(fmt, ...) ()
+#	define DEBUG_PRINTLN(fmt, ...)
 #endif
