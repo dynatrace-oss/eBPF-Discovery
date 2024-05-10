@@ -38,13 +38,13 @@ public:
 		std::string ipv6Address;
 		int prefixLength;
 	};
-
+private:
 	ipv6Range parseIpv6Range(const std::string& range) const;
 	bool isInRange(const in6_addr& addr, const std::string& range) const;
 	bool checkSubnet(const in6_addr& addrToCheck, const in6_addr& interfaceIpv6Addr, const in6_addr& interfaceMask) const;
 	bool ipv6AddressContainsMappedIpv4Address(const in6_addr& addr) const;
 	std::optional<IPv4int> getMappedIPv4Addr(const in6_addr& addr) const;
-private:
+
 	void readNetworks();
 
 	void printNetworkInterfacesInfo();
