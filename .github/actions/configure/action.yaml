@@ -31,7 +31,7 @@ runs:
         -S .
         -B ${{ env.BUILD_PATH }}
         -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
-        -DCMAKE_C_COMPILER=gcc
-        '-DCMAKE_CXX_COMPILER=g++'
+        -DCMAKE_C_COMPILER=clang
+        -DCMAKE_CXX_COMPILER=clang++
         -DBUILD_TESTS=ON
         -DPROJECT_VERSION=${{ env.PROJECT_VERSION }}

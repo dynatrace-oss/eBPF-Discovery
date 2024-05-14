@@ -14,15 +14,15 @@ Discovered services are popped from the program in a specified time interval, se
 ## Building
 
 **Prerequisites**
-* conan >= 1.56.0
+* conan >= 1.62.0
 * cmake >= 3.22.3
-* clang >= 12
+* clang >= 17
 * libelf-dev
 
 **Build**
 
 ```
-cmake -DCMAKE_BUILD_TYPE=<build type> -DCMAKE_C_COMPILER=gcc '-DCMAKE_CXX_COMPILER=g++' -DBUILD_TESTS=ON -DBUILD_BPF_TESTS=ON -DPROJECT_VERSION=<version> -S . -B <build dir>
+cmake -DCMAKE_BUILD_TYPE=<build type> -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DBUILD_TESTS=ON -DBUILD_BPF_TESTS=ON -DPROJECT_VERSION=<version> -S . -B <build dir>
 cmake --build <build dir>
 ```
 `<version>` must be provided in the format major.minor.patch e.g. 1.2.3

@@ -53,7 +53,7 @@ public:
 
 	template <typename... Args>
 	void log(enum LogLevel level, const char* fmt, const Args&... args) {
-		spdLogger.log(static_cast<spdlog::level::level_enum>(level), fmt, args...);
+		spdLogger.log(static_cast<spdlog::level::level_enum>(level), fmt::runtime(fmt), args...);
 		spdLogger.flush_on(static_cast<spdlog::level::level_enum>(level));
 	}
 
@@ -61,37 +61,37 @@ public:
 
 	template <typename... Args>
 	void trace(const char* fmt, const Args&... args) {
-		spdLogger.trace(fmt, args...);
+		spdLogger.trace(fmt::runtime(fmt), args...);
 		spdLogger.flush_on(spdlog::level::trace);
 	}
 
 	template <typename... Args>
 	void debug(const char* fmt, const Args&... args) {
-		spdLogger.debug(fmt, args...);
+		spdLogger.debug(fmt::runtime(fmt), args...);
 		spdLogger.flush_on(spdlog::level::debug);
 	}
 
 	template <typename... Args>
 	void info(const char* fmt, const Args&... args) {
-		spdLogger.info(fmt, args...);
+		spdLogger.info(fmt::runtime(fmt), args...);
 		spdLogger.flush_on(spdlog::level::info);
 	}
 
 	template <typename... Args>
 	void warn(const char* fmt, const Args&... args) {
-		spdLogger.warn(fmt, args...);
+		spdLogger.warn(fmt::runtime(fmt), args...);
 		spdLogger.flush_on(spdlog::level::warn);
 	}
 
 	template <typename... Args>
 	void error(const char* fmt, const Args&... args) {
-		spdLogger.error(fmt, args...);
+		spdLogger.error(fmt::runtime(fmt), args...);
 		spdLogger.flush_on(spdlog::level::err);
 	}
 
 	template <typename... Args>
 	void critical(const char* fmt, const Args&... args) {
-		spdLogger.critical(fmt, args...);
+		spdLogger.critical(fmt::runtime(fmt), args...);
 		spdLogger.flush_on(spdlog::level::critical);
 	}
 
