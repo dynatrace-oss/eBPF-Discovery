@@ -221,9 +221,9 @@ struct DiscoveryGlobalState {
  */
 
 enum DiscoveryLogLevel {
-	DISCOVERY_LOG_LEVEL_TRACE,
-	DISCOVERY_LOG_LEVEL_DEBUG,
-	DISCOVERY_LOG_LEVEL_OFF,
+	DISCOVERY_LOG_LEVEL_TRACE = 1,
+	DISCOVERY_LOG_LEVEL_DEBUG = 2,
+	DISCOVERY_LOG_LEVEL_OFF = 3,
 };
 
 struct DiscoveryConfig {
