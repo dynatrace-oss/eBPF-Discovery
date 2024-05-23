@@ -38,7 +38,8 @@ if (BUILD_TESTS)
     list(APPEND TEST_SOURCES
             test/AggregatorTest.cpp
             test/IpAddressCheckerTest.cpp
-            test/IpAddressTest.cpp)
+            test/IpAddressTest.cpp
+            test/HttpRequestParserTest.cpp)
     set(TEST_TARGET test${TARGET})
 
     add_executable(${TEST_TARGET} ${TEST_SOURCES})

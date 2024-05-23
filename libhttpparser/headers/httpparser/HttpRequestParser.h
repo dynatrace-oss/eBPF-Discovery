@@ -64,7 +64,7 @@ public:
 		INVALID,
 	};
 
-private:
+protected:
 	State state;
 
 	void setInvalidState();
