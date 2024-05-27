@@ -313,7 +313,7 @@ workflows:
       - build_ebpf_x86_64:
           requires:
             - checkout_and_env_vars
-      - test_ebpf_x86:
+      - test_ebpf_x86_64:
           requires:
             - build_ebpf_x86_64
       - build_ebpf_aarch64:
@@ -335,7 +335,7 @@ workflows:
       - build_ebpf_x86_64:
           requires:
             - checkout_and_env_vars
-      - load_tests_x86:
+      - load_tests_x86_64:
           requires:
             - build_ebpf_x86_64
       - build_ebpf_aarch64:
