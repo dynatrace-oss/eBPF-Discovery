@@ -42,9 +42,9 @@ __attribute__((always_inline)) inline static int sendDiscoveryLogEvent(struct pt
 __attribute__((always_inline)) inline static enum DiscoveryLogLevel getDiscoveryLogLevel() {
 	const struct DiscoveryConfig* configPtr = getDiscoveryConfig();
 	if (configPtr == NULL) {
-		return 0;
+		return DISCOVERY_LOG_LEVEL_OFF;
 	}
-	return configPtr->logLevel;
+	return (configPtr->logLevel > 0) ? configPtr->logLevel : DISCOVERY_LOG_LEVEL_OFF;
 }
 
 __attribute__((always_inline)) inline static int discoveryLog(

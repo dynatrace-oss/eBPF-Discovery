@@ -162,7 +162,7 @@ void DiscoveryBpf::attachOpenSSLProbes() {
 	auto isAttached =
 			std::any_of(libNames.begin(), libNames.end(), [this](const auto& libName) { return tryAttachOpenSSLProbesToLibName(libName); });
 	if (!isAttached) {
-		throw std::runtime_error("Couldn't attach OpenSSL probes to any of the libraries");
+		LOG_ERROR("Couldn't attach OpenSSL probes to any of the libraries");
 	}
 }
 
