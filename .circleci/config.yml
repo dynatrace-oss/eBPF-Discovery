@@ -1,31 +1,375 @@
-# Use the latest 2.1 version of CircleCI pipeline process engine.
-# See: https://circleci.com/docs/configuration-reference
 version: 2.1
 
-# Define a job to be invoked later in a workflow.
-# See: https://circleci.com/docs/jobs-steps/#jobs-overview & https://circleci.com/docs/configuration-reference/#jobs
-jobs:
-  say-hello:
-    # Specify the execution environment. You can specify an image from Docker Hub or use one of our convenience images from CircleCI's Developer Hub.
-    # See: https://circleci.com/docs/executor-intro/ & https://circleci.com/docs/configuration-reference/#executor-job
-    docker:
-      # Specify the version you desire here
-      # See: https://circleci.com/developer/images/image/cimg/base
-      - image: cimg/base:current
+####################
+### Parameters   ###
+####################
 
-    # Add steps to the job
-    # See: https://circleci.com/docs/jobs-steps/#steps-overview & https://circleci.com/docs/configuration-reference/#steps
+parameters:
+  runLoadTests:
+    type: boolean
+    default: false
+
+######################
+### Job Executors ####
+######################
+
+executors:
+  ebpf_builder_x86_64:
+    machine:
+      image: default
+    resource_class: medium
+    working_directory: ~/ebpf
+    environment:
+      ARCH: x86_64
+
+  ebpf_builder_aarch64:
+    machine:
+      image: default
+    resource_class: arm.medium
+    working_directory: ~/ebpf
+    environment:
+      ARCH: aarch64
+
+#########################################
+### Commands that can be used in jobs ###
+#########################################
+
+commands:
+  set_env_vars:
     steps:
-      # Checkout the code as the first step.
-      - checkout
       - run:
-          name: "Say hello"
-          command: "echo Hello, World!"
+          name: Create tmp dir
+          command: mkdir tmp/
+      - run:
+          name: Set ENV VARS
+          command: |
+            echo "export BUILD_TYPE=$buildType" >> "$BASH_ENV"
+            echo "export IMAGE_NAME=ebpf_discovery_image" >> "$BASH_ENV"
+            echo "export CONTAINER_NAME=ebpf_discovery_container" >> "$BASH_ENV"
+            newestVersion="$(git describe --tags --abbrev=0 --always)"
+            if printf "%s" "${newestVersion}" | grep -qEv "[0-9]+\.[0-9]+\.[0-9]+"; then
+            newestVersion="0.0.0"
+            fi
+            echo "export PROJECT_VERSION=$newestVersion" >> "$BASH_ENV"
+            echo "export ARTIFACT_VERSION="$newestVersion"."$(date +%Y%m%d-%H%M%S)"" >> "$BASH_ENV"
+            buildPath=$CIRCLE_WORKING_DIRECTORY/cmake-build-${buildType,,} 
+            echo "export BUILD_PATH=$buildPath">> "$BASH_ENV"
+            echo "export DISCOVERY_BIN_PATH=$buildPath/bin/ebpfdiscoverysrv" >> "$BASH_ENV"
+            testingPath="$CIRCLE_WORKING_DIRECTORY/test"
+            echo "export TESTING_PATH=${testingPath}" >> "$BASH_ENV"
+            echo "export COMPONENT_TESTING_PATH="${testingPath}/component"" >> "$BASH_ENV"
+            echo "export LOAD_TESTING_PATH=${testingPath}/load" >> "$BASH_ENV"
+            echo "export ARTIFACT_PATH=$CIRCLE_WORKING_DIRECTORY/artifact" >> "$BASH_ENV"
+            echo "export LOWERCASE_REPOSITORY_NAME=${ENV_VAR_GITHUB_APP_REPO_NAME,,}" >> "$BASH_ENV" 
+            githubOCIRegistryAddress="ghcr.io/${ENV_VAR_GITHUB_REPOSITYORY_OWNER}/${ENV_VAR_GITHUB_APP_REPO_NAME,,}"
+            echo "export GITHUB_OCI_REGISTRY_ADDRESS=$githubOCIRegistryAddress" >> "$BASH_ENV"
+            echo "export ABSOLUTE_WORKING_DIR=$(pwd)" >> "$BASH_ENV"
+            cp $BASH_ENV tmp/bash.env
+            source $BASH_ENV
 
-# Orchestrate jobs using workflows
-# See: https://circleci.com/docs/workflows/ & https://circleci.com/docs/configuration-reference/#workflows
+  build_docker_image:
+    steps:
+      - run:
+          name: Build docker image
+          command: |
+            echo $IMAGE_NAME
+            export DOCKER_CLI_EXPERIMENTAL=enabled
+            docker buildx build --file ./dev-dockerfile/Dockerfile --tag  $IMAGE_NAME:latest .
+
+  configure_ebpf_build:
+    steps:
+      - run:
+          name: Configure
+          command: >-
+            docker run -i --rm
+            -w $ABSOLUTE_WORKING_DIR
+            --user=$(id -u):$(id -g)
+            -v /home/circleci:/home/circleci
+            -v /etc/passwd:/etc/passwd
+            $IMAGE_NAME:latest
+            cmake
+            -S .
+            -B $BUILD_PATH
+            -DCMAKE_BUILD_TYPE=$BUILD_TYPE
+            -DCMAKE_C_COMPILER=gcc
+            '-DCMAKE_CXX_COMPILER=g++'
+            -DBUILD_TESTS=ON
+            -DPROJECT_VERSION=$PROJECT_VERSION
+
+  build_ebpf:
+    steps:
+      - run:
+          name: Build
+          command: >-
+            docker run -i --rm
+            -w $ABSOLUTE_WORKING_DIR
+            --user=$(id -u):$(id -g)
+            -v /home/circleci:/home/circleci
+            -v /etc/passwd:/etc/passwd
+            $IMAGE_NAME:latest
+            cmake --build $BUILD_PATH
+
+  export_image:
+    steps:
+      - run:
+          name: Export image to tar file
+          command: docker save $IMAGE_NAME:latest --output tmp/$IMAGE_NAME-latest.tar
+
+  import_image:
+    steps:
+      - run:
+          name: import image from tar
+          command: docker load < tmp/$IMAGE_NAME-latest.tar
+
+  run_unit_tests:
+    steps:
+      - run:
+          name: Unit tests
+          command: >-
+            docker run -i --rm
+            -w $ABSOLUTE_WORKING_DIR
+            --user=$(id -u):$(id -g)
+            -v /home/circleci:/home/circleci
+            -v /etc/passwd:/etc/passwd
+            $IMAGE_NAME:latest
+            ctest --test-dir $BUILD_PATH
+            --output-on-failure
+
+  run_component_tests:
+    steps:
+      - run:
+          name: Install requirements
+          command: |
+            python -m venv testvenv
+            source testvenv/bin/activate
+            pip install -r "$COMPONENT_TESTING_PATH/requirements.txt"
+      - run:
+          name: Component tests
+          command: sudo testvenv/bin/pytest $COMPONENT_TESTING_PATH -s -v --discovery_path="$DISCOVERY_BIN_PATH"
+
+  run_load_tests:
+    steps:
+      - run:
+          name: Create venv and install requirements
+          command: |
+            python -m venv testvenv
+            source testvenv/bin/activate
+            pip install -r "$LOAD_TESTING_PATH/requirements.txt"
+      - run:
+          name: Create logs directory
+          command: mkdir logs
+
+      - run:
+          name: Load tests
+          command: |
+            source testvenv/bin/activate
+            echo $ABSOLUTE_WORKING_DIR
+            cd ${LOAD_TESTING_PATH}
+            /bin/bash test_load.sh $DISCOVERY_BIN_PATH $ABSOLUTE_WORKING_DIR/logs 5 5 30m
+            tar -czvf load_tests_logs.tar.gz $ABSOLUTE_WORKING_DIR/logs
+
+  publish_ebpf:
+    steps:
+      - run:
+          name: Create artifact directory
+          command: mkdir $ARTIFACT_PATH
+
+      - run:
+          name: Move license to artifact directory
+          command: mv $ABSOLUTE_WORKING_DIR/LICENSE $ARTIFACT_PATH/LICENSE
+
+      - run:
+          name: Move third party licenses to artifact directory
+          command: mv $BUILD_PATH/licenses $ARTIFACT_PATH/third_party
+
+      - run:
+          name: Move protobuf model to artifact directory
+          command: mv $BUILD_PATH/libebpfdiscoveryproto/ebpfdiscoveryproto $ARTIFACT_PATH/ebpfdiscoveryproto
+
+      - run:
+          name: Move binaries to artifact directory
+          command: mv $BUILD_PATH/bin $ARTIFACT_PATH/bin
+
+      - run:
+          name: Remove test binaries from artifact directory
+          command: find $ARTIFACT_PATH/* -name 'test*' -exec rm {} \;
+
+      - run:
+          name: Zip artifact directory contents
+          command: |
+            cd $ARTIFACT_PATH
+            zip -r $ARTIFACT_VERSION.zip .
+
+      - run:
+          name: Publish zip to GitHub OCI registry
+          command: |
+            cd $ARTIFACT_PATH
+            printf "%s" $GITHUB_TOKEN | docker run --rm -i -v $(pwd):/workspace ghcr.io/oras-project/oras:v1.0.1 push -u $GITHUB_ACTOR --password-stdin $GITHUB_OCI_REGISTRY_ADDRESS/$LOWERCASE_REPOSITORY_NAME-linux-$ARCH:$ARTIFACT_VERSION,latest $ARTIFACT_VERSION.zip
+
+  prepare_workspace:
+    steps:
+      - attach_workspace:
+          at: ~/ebpf
+      - run: |
+          cat tmp/bash.env >> $BASH_ENV
+
+############
+### Jobs ###
+############
+jobs:
+  checkout_and_env_vars:
+    executor: ebpf_builder_x86_64
+    steps:
+      - checkout
+      - set_env_vars
+      - persist_to_workspace:
+          root: ~/ebpf
+          paths:
+            - .
+
+  build_ebpf_aarch64:
+    executor: ebpf_builder_aarch64
+    steps:
+      - prepare_workspace
+      - build_docker_image
+      - configure_ebpf_build
+      - build_ebpf
+      - export_image
+      - persist_to_workspace:
+          root: ~/ebpf
+          paths:
+            - .
+
+  load_tests_aarch64:
+    executor: ebpf_builder_aarch64
+    steps:
+      - prepare_workspace
+      - run_load_tests
+      - store_artifacts:
+          path: $ABSOLUTE_WORKING_DIR/logs/load_tests_logs.tar.gz
+          destination: ebpf-load-test-logs
+
+  test_ebpf_aarch64:
+    executor: ebpf_builder_aarch64
+    steps:
+      - prepare_workspace
+      - import_image
+      - run_unit_tests
+      - run_component_tests
+
+  publish_aarch64:
+    executor: ebpf_builder_aarch64
+    steps:
+      - prepare_workspace
+      - publish_ebpf
+
+  build_ebpf_x86_64:
+    executor: ebpf_builder_x86_64
+    steps:
+      - prepare_workspace
+      - build_docker_image
+      - configure_ebpf_build
+      - build_ebpf
+      - export_image
+      - persist_to_workspace:
+          root: ~/ebpf
+          paths:
+            - .
+
+  load_tests_x86_64:
+    executor: ebpf_builder_x86_64
+    steps:
+      - prepare_workspace
+      - run_load_tests
+      - store_artifacts:
+          path: $ABSOLUTE_WORKING_DIR/logs/load_tests_logs.tar.gz
+          destination: ebpf-load-test-logs
+
+  test_ebpf_x86_64:
+    executor: ebpf_builder_x86_64
+    steps:
+      - prepare_workspace
+      - import_image
+      - run_unit_tests
+      - run_component_tests
+
+  publish_x86_64:
+    executor: ebpf_builder_x86_64
+    steps:
+      - prepare_workspace
+      - publish_ebpf
+
+#################
+### Workflows ###
+#################
+
 workflows:
-  say-hello-workflow: # This is the name of the workflow, feel free to change it to better match your workflow.
-    # Inside the workflow, you define the jobs you want to run. Test
+  version: 2.1
+
+  pr-build-and-test-debug:
     jobs:
-      - say-hello
+      - checkout_and_env_vars:
+          context: ebpf-debug
+      - build_ebpf_x86_64:
+          requires:
+            - checkout_and_env_vars
+      - test_ebpf_x86:
+          requires:
+            - build_ebpf_x86_64
+      - build_ebpf_aarch64:
+          requires:
+            - checkout_and_env_vars
+      - test_ebpf_aarch64:
+          requires:
+            - build_ebpf_aarch64
+
+  build-and-load_test-debug:
+    when: << pipeline.parameters.runLoadTests >>
+    jobs:
+      - checkout_and_env_vars:
+          context: ebpf-debug
+          filters:
+            branches:
+              only:
+                - main
+      - build_ebpf_x86_64:
+          requires:
+            - checkout_and_env_vars
+      - load_tests_x86:
+          requires:
+            - build_ebpf_x86_64
+      - build_ebpf_aarch64:
+          requires:
+            - checkout_and_env_vars
+      - load_tests_aarch64:
+          requires:
+            - build_ebpf_aarch64
+
+  build-test-and-publish-release:
+    jobs:
+      - checkout_and_env_vars:
+          context: ebpf-release
+          filters:
+            branches:
+              only:
+                - main
+      - build_ebpf_x86_64:
+          requires:
+            - checkout_and_env_vars
+      - test_ebpf_x86_64:
+          requires:
+            - build_ebpf_x86_64
+      - publish_x86_64:
+          context: ebpf-release
+          requires:
+            - test_ebpf_x86_64
+      - build_ebpf_aarch64:
+          requires:
+            - checkout_and_env_vars
+      - test_ebpf_aarch64:
+          requires:
+            - build_ebpf_aarch64
+      - publish_aarch64:
+          context: ebpf-release
+          requires:
+            - test_ebpf_aarch64
