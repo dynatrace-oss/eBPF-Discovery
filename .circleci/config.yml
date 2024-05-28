@@ -91,8 +91,8 @@ commands:
             -S .
             -B $BUILD_PATH
             -DCMAKE_BUILD_TYPE=$BUILD_TYPE
-            -DCMAKE_C_COMPILER=gcc
-            '-DCMAKE_CXX_COMPILER=g++'
+            -DCMAKE_C_COMPILER=clang
+            '-DCMAKE_CXX_COMPILER=clang++'
             -DBUILD_TESTS=ON
             -DPROJECT_VERSION=$PROJECT_VERSION
 
