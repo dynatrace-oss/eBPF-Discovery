@@ -144,8 +144,11 @@ commands:
             source testvenv/bin/activate
             pip install -r "$COMPONENT_TESTING_PATH/requirements.txt"
       - run:
+          name: Create logs directory
+          command: mkdir logs
+      - run:
           name: Component tests
-          command: sudo testvenv/bin/pytest $COMPONENT_TESTING_PATH -s -v --discovery_path="$DISCOVERY_BIN_PATH"
+          command: sudo testvenv/bin/pytest $COMPONENT_TESTING_PATH -s -v --discovery_path="$DISCOVERY_BIN_PATH" --log_dir="$ABSOLUTE_WORKING_DIR/logs"
 
   run_load_tests:
     steps:
