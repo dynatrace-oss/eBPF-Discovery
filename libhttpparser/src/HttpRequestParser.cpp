@@ -387,10 +387,14 @@ void HttpRequestParser::parseXForwardedFor(const std::string& data) {
 	boost::split(addresses, data, boost::is_any_of(","), boost::token_compress_on);
 	for (auto& address : addresses) {
 		boost::trim(address);
-		if (const auto ipv6Address{getTextBetweenSquareBrackets(address)}; boost::starts_with(address, "[") && ipv6Address) {
-			address = boost::trim_copy(*ipv6Address);
-		} else if (const auto semicolonPos{address.rfind(':')}; semicolonPos != std::string::npos) {
-			address = boost::trim_copy(address.substr(0, semicolonPos));
+		if (address.find('.') != std::string::npos) { // IPv4
+			if (const auto semicolonPos{address.rfind(':')}; semicolonPos != std::string::npos) {
+				address = boost::trim_copy(address.substr(0, semicolonPos));
+			}
+		} else { // IPv6
+			if (const auto ipv6Address{getTextBetweenSquareBrackets(address)}; boost::starts_with(address, "[") && ipv6Address) {
+				address = boost::trim_copy(*ipv6Address);
+			}
 		}
 	}
 
