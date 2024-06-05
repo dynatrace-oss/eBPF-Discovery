@@ -59,6 +59,7 @@ private:
 
 	const NetlinkCalls& netlink;
 	IpInterfaces ipInterfaces;
+	std::vector<NetlinkCalls::Ipv6Network> ipv6Networks;
 	std::unordered_map<int, bool> isLocalBridgeMap;
 };
 } // namespace service

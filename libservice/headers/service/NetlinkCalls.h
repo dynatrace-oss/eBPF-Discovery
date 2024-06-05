@@ -42,13 +42,13 @@ class NetlinkCalls {
 public:
 	virtual ~NetlinkCalls() = default;
 
-	struct Ipv6Interface {
-		in6_addr interfaceIpv6Addr;
-		in6_addr interfaceMask;
+	struct Ipv6Network {
+		in6_addr networkIpv6Addr;
+		in6_addr networkMask;
 	};
 
 	virtual IpInterfaces collectIpInterfaces() const;
-	virtual std::vector<Ipv6Interface> collectIpv6Interfaces() const;
+	virtual std::vector<Ipv6Network> collectIpv6Networks() const;
 	virtual BridgeIndices collectBridgeIndices() const;
 };
 

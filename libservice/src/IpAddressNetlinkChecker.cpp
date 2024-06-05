@@ -41,6 +41,8 @@ void IpAddressNetlinkChecker::readNetworks() {
 		isLocalBridgeMap[index] = true;
 	}
 
+	ipv6Networks = netlink.collectIpv6Networks();
+
 	printNetworkInterfacesInfo();
 }
 
@@ -54,6 +56,14 @@ void IpAddressNetlinkChecker::printNetworkInterfacesInfo() {
 				}),
 				", ")};
 		LOG_INFO("index: {}, IP addresses: {}{}", index, ipAddresses, isLocalBridge(index) ? " (local bridge)" : "");
+	}
+	LOG_INFO("{} IPv6 networks have been discovered:", ipv6Networks.size());
+	for (const auto& ipv6Network : ipv6Networks) {
+		char ipv6NetworkAddrString[INET6_ADDRSTRLEN];
+		char ipv6NetworkMaskString[INET6_ADDRSTRLEN];
+		inet_ntop(AF_INET6, &(ipv6Network.networkIpv6Addr), ipv6NetworkAddrString, INET6_ADDRSTRLEN);
+		inet_ntop(AF_INET6, &(ipv6Network.networkMask), ipv6NetworkMaskString, INET6_ADDRSTRLEN);
+		LOG_INFO("Detected IPv6 network: {}, Mask: {}", ipv6NetworkAddrString, ipv6NetworkMaskString);
 	}
 }
 
@@ -117,17 +127,13 @@ bool IpAddressNetlinkChecker::isV4AddressExternal(IPv4int addr) const {
 }
 
 bool IpAddressNetlinkChecker::ipv6AddressContainsMappedIpv4Address(const in6_addr& addr) const {
-	for (const auto& internalRange : {"::ffff:0:0:0/96", "64:ff9b::/96"}) {
+	for (const auto& internalRange : {"::ffff:0:0/96", "::ffff:0:0:0/96", "64:ff9b::/96"}) {
 		if (isInRange(addr, internalRange)) {
 			return true;
 		}
 	}
 
-	if (!std::all_of(addr.s6_addr, addr.s6_addr + 9, [](auto byte) { return byte == 0; })) {
-		return false;
-	}
-
-	return (addr.s6_addr[10] == 0xFF && addr.s6_addr[11] == 0xFF);
+	return false;
 }
 
 std::optional<IPv4int> IpAddressNetlinkChecker::getMappedIPv4Addr(const in6_addr& addr) const {
@@ -193,8 +199,8 @@ bool IpAddressNetlinkChecker::isV6AddressExternal(const in6_addr& addr) const {
 		return isV4AddressExternal(*mappedV4Addr);
 	}
 
-	for (auto& ipv6Interface : netlink.collectIpv6Interfaces()) {
-		if (checkSubnet(addr, ipv6Interface.interfaceIpv6Addr, ipv6Interface.interfaceMask)) {
+	for (auto& ipv6Network : ipv6Networks) {
+		if (checkSubnet(addr, ipv6Network.networkIpv6Addr, ipv6Network.networkMask)) {
 			return false;
 		}
 	}

@@ -237,23 +237,23 @@ IpInterfaces NetlinkCalls::collectIpInterfaces() const {
 	return handleNetlink<decltype(sendIpAddrRequest), decltype(receiveIpAddr), IpInterfaces>(sendIpAddrRequest, receiveIpAddr, AF_INET);
 }
 
-std::vector<NetlinkCalls::Ipv6Interface> NetlinkCalls::collectIpv6Interfaces() const {
-	std::vector<Ipv6Interface> collectedIpv6Interfaces{};
+std::vector<NetlinkCalls::Ipv6Network> NetlinkCalls::collectIpv6Networks() const {
+	std::vector<Ipv6Network> collectedIpv6Networks{};
 
 	ifaddrs* ifAddressStruct = nullptr;
 	if (getifaddrs(&ifAddressStruct) == 0) {
 		for (ifaddrs* ifa = ifAddressStruct; ifa != nullptr; ifa = ifa->ifa_next) {
 			if (ifa->ifa_addr != nullptr && ifa->ifa_addr->sa_family == AF_INET6) {
-				in6_addr interfaceIpv6Addr = reinterpret_cast<sockaddr_in6*>(ifa->ifa_addr)->sin6_addr;
-				in6_addr interfaceMask = reinterpret_cast<sockaddr_in6*>(ifa->ifa_netmask)->sin6_addr;
+				in6_addr networkIpv6Addr = reinterpret_cast<sockaddr_in6*>(ifa->ifa_addr)->sin6_addr;
+				in6_addr networkMask = reinterpret_cast<sockaddr_in6*>(ifa->ifa_netmask)->sin6_addr;
 
-				collectedIpv6Interfaces.emplace_back(Ipv6Interface{interfaceIpv6Addr, interfaceMask});
+				collectedIpv6Networks.emplace_back(Ipv6Network{networkIpv6Addr, networkMask});
 			}
 		}
 		freeifaddrs(ifAddressStruct);
 	}
 
-	return collectedIpv6Interfaces;
+	return collectedIpv6Networks;
 }
 
 BridgeIndices NetlinkCalls::collectBridgeIndices() const {

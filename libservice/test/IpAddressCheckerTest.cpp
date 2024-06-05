@@ -331,16 +331,18 @@ TEST_F(IpAddressCheckerTest, LoopbackAddress) {
 }
 
 // address is from the same subnet as any local ipv6 interfaces
-TEST_F(IpAddressCheckerTest, Ipv6InterfaceSubnet) {
-	in6_addr ipv6InterfaceAddr{};
-	in6_addr ipv6InterfaceMask{};
+TEST_F(IpAddressCheckerTest, Ipv6NetworkSubnet) {
+	in6_addr ipv6NetworkAddr{};
+	in6_addr ipv6NetworkMask{};
 
-	inet_pton(AF_INET6, "2001:db8:85a3::8a2e:370:7336", &ipv6InterfaceAddr);
-	inet_pton(AF_INET6, "ffff:ffff:ffff:ffff::", &ipv6InterfaceMask);
+	inet_pton(AF_INET6, "2001:db8:85a3::8a2e:370:7336", &ipv6NetworkAddr);
+	inet_pton(AF_INET6, "ffff:ffff:ffff:ffff::", &ipv6NetworkMask);
 
-	std::vector<service::NetlinkCalls::Ipv6Interface> interfaces = {service::NetlinkCalls::Ipv6Interface{ipv6InterfaceAddr, ipv6InterfaceMask}};
+	EXPECT_CALL(netlinkMock, collectIpv6Networks).WillOnce(Return(std::vector<service::NetlinkCalls::Ipv6Network>{{service::NetlinkCalls::Ipv6Network{ipv6NetworkAddr, ipv6NetworkMask}}}));
+	EXPECT_CALL(netlinkMock, collectIpInterfaces).WillOnce(Return(IpInterfaces{0}));
+	EXPECT_CALL(netlinkMock, collectBridgeIndices).WillOnce(Return(BridgeIndices{0}));
+
 	IpAddressNetlinkChecker ipAddressNetlinkChecker{netlinkMock};
-	EXPECT_CALL(netlinkMock, collectIpv6Interfaces).Times(3).WillRepeatedly(Return(interfaces));
 
 	EXPECT_FALSE(ipAddressNetlinkChecker.isV6AddressExternal(getV6AddrBinary("2001:0db8:85a3:0000:0000:0000:0000:0000")));
 	EXPECT_TRUE(ipAddressNetlinkChecker.isV6AddressExternal(getV6AddrBinary("2001:0db8:85a3:0001:0000:0000:0000:0000")));

@@ -26,7 +26,7 @@ class NetlinkCallsMock : public NetlinkCalls {
 public:
 	MOCK_CONST_METHOD0(collectIpInterfaces, IpInterfaces());
 	MOCK_CONST_METHOD0(collectBridgeIndices, BridgeIndices());
-	MOCK_CONST_METHOD0(collectIpv6Interfaces, std::vector<Ipv6Interface>());
+	MOCK_CONST_METHOD0(collectIpv6Networks, std::vector<Ipv6Network>());
 };
 
 } // namespace service
