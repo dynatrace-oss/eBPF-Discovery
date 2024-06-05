@@ -37,7 +37,7 @@ static constexpr std::string_view VALID_X_FORWARDED_FOR_HEADER_VALUE_SPECIAL_CHA
 static constexpr std::string_view GET{"GET"};
 static constexpr std::string_view POST{"POST"};
 
-static constexpr std::string_view HOST{"Host"};
+[[maybe_unused]] static constexpr std::string_view HOST{"Host"};
 static constexpr std::string_view HOST_LOWER{"host"};
 
 static constexpr std::string_view X_FORWARDED_FOR{"X-Forwarded-For"};

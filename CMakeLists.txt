@@ -22,6 +22,7 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 # set(CMAKE_VERBOSE_MAKEFILE TRUE)
 set(CMAKE_CXX_EXTENSIONS TRUE)
+set(CMAKE_COMPILE_WARNING_AS_ERROR ON)
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
@@ -65,12 +66,13 @@ add_compile_options(${COMMON_C_FLAGS})
 
 set(BPF_C_FLAGS ${BPF_C_FLAGS} ${COMMON_C_FLAGS} -D__TARGET_BPF)
 
-# Set DEBUG macro in debug build and add additional warnings
-set(EXTRA_DEBUG_FLAGS -DDEBUG -Wall -Wextra -Wno-unused-parameter -Wno-unused-value -Wno-missing-field-initializers)
+set(EXTRA_COMPILE_FLAGS -Wall -Wextra -Wno-unused-parameter -Wno-unused-value -Wno-missing-field-initializers)
+# Set DEBUG macro in debug build
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-    add_compile_options(${EXTRA_DEBUG_FLAGS})
-    set(BPF_C_FLAGS ${BPF_C_FLAGS} ${EXTRA_DEBUG_FLAGS})
+    set(EXTRA_COMPILE_FLAGS ${EXTRA_COMPILE_FLAGS} -DDEBUG)
 endif ()
+add_compile_options(${EXTRA_COMPILE_FLAGS})
+set(BPF_C_FLAGS ${BPF_C_FLAGS} ${EXTRA_COMPILE_FLAGS})
 
 if (CONAN_EXPORTED)
 	include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)

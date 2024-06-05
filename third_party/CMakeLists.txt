@@ -25,7 +25,7 @@ execute_process(
 set(TARGET_BPFTOOL bpftool)
 add_executable(${TARGET_BPFTOOL} IMPORTED GLOBAL)
 set_property(TARGET ${TARGET_BPFTOOL} PROPERTY IMPORTED_LOCATION ${CMAKE_BINARY_DIR}/bpftool/bootstrap/bpftool)
-
+target_compile_options(${TARGET_BPFTOOL} INTERFACE -w)
 
 # libbpf
 
@@ -41,6 +41,7 @@ execute_process(
 set(TARGET_LIBBPF libbpf)
 add_library(${TARGET_LIBBPF} STATIC IMPORTED GLOBAL)
 set_property(TARGET ${TARGET_LIBBPF} PROPERTY IMPORTED_LOCATION ${CMAKE_BINARY_DIR}/libbpf/libbpf.a)
+target_compile_options(${TARGET_LIBBPF} INTERFACE -w)
 target_include_directories(${TARGET_LIBBPF} INTERFACE ${CMAKE_BINARY_DIR}/libbpf)
 
 
@@ -54,5 +55,6 @@ list(APPEND SOURCES_BCC_LIBBPF_TOOLS
 
 set(TARGET_BCC_LIBBPF_TOOLS libpf-tools)
 add_library(${TARGET_BCC_LIBBPF_TOOLS} STATIC ${SOURCES_BCC_LIBBPF_TOOLS})
+target_compile_options(${TARGET_BCC_LIBBPF_TOOLS} INTERFACE -w)
 target_include_directories(${TARGET_BCC_LIBBPF_TOOLS} PUBLIC libbpf-tools)
 target_link_libraries(${TARGET_BCC_LIBBPF_TOOLS} PRIVATE libbpf)
