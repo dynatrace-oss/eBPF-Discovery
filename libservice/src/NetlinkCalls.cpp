@@ -19,8 +19,8 @@
 #include <arpa/inet.h>
 #include <array>
 #include <cstring>
+#include <ifaddrs.h>
 #include <linux/rtnetlink.h>
-#include <net/if.h>
 
 #include "NetlinkSocket.h"
 #include "logging/Logger.h"
@@ -235,6 +235,25 @@ Data handleNetlink(const Send& send, const Receive& receive, int domain) {
 
 IpInterfaces NetlinkCalls::collectIpInterfaces() const {
 	return handleNetlink<decltype(sendIpAddrRequest), decltype(receiveIpAddr), IpInterfaces>(sendIpAddrRequest, receiveIpAddr, AF_INET);
+}
+
+std::vector<NetlinkCalls::Ipv6Network> NetlinkCalls::collectIpv6Networks() const {
+	std::vector<Ipv6Network> collectedIpv6Networks{};
+
+	ifaddrs* ifAddressStruct = nullptr;
+	if (getifaddrs(&ifAddressStruct) == 0) {
+		for (ifaddrs* ifa = ifAddressStruct; ifa != nullptr; ifa = ifa->ifa_next) {
+			if (ifa->ifa_addr != nullptr && ifa->ifa_addr->sa_family == AF_INET6) {
+				in6_addr networkIpv6Addr = reinterpret_cast<sockaddr_in6*>(ifa->ifa_addr)->sin6_addr;
+				in6_addr networkMask = reinterpret_cast<sockaddr_in6*>(ifa->ifa_netmask)->sin6_addr;
+
+				collectedIpv6Networks.emplace_back(Ipv6Network{networkIpv6Addr, networkMask});
+			}
+		}
+		freeifaddrs(ifAddressStruct);
+	}
+
+	return collectedIpv6Networks;
 }
 
 BridgeIndices NetlinkCalls::collectBridgeIndices() const {

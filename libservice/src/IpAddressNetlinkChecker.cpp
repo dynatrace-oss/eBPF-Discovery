@@ -22,6 +22,7 @@
 #include <boost/algorithm/string/join.hpp>
 #include <boost/range/adaptor/transformed.hpp>
 #include <iostream>
+#include <ifaddrs.h>
 
 namespace service {
 
@@ -40,6 +41,8 @@ void IpAddressNetlinkChecker::readNetworks() {
 		isLocalBridgeMap[index] = true;
 	}
 
+	ipv6Networks = netlink.collectIpv6Networks();
+
 	printNetworkInterfacesInfo();
 }
 
@@ -53,6 +56,14 @@ void IpAddressNetlinkChecker::printNetworkInterfacesInfo() {
 				}),
 				", ")};
 		LOG_INFO("index: {}, IP addresses: {}{}", index, ipAddresses, isLocalBridge(index) ? " (local bridge)" : "");
+	}
+	LOG_INFO("{} IPv6 networks have been discovered:", ipv6Networks.size());
+	for (const auto& ipv6Network : ipv6Networks) {
+		char ipv6NetworkAddrString[INET6_ADDRSTRLEN];
+		char ipv6NetworkMaskString[INET6_ADDRSTRLEN];
+		inet_ntop(AF_INET6, &(ipv6Network.networkIpv6Addr), ipv6NetworkAddrString, INET6_ADDRSTRLEN);
+		inet_ntop(AF_INET6, &(ipv6Network.networkMask), ipv6NetworkMaskString, INET6_ADDRSTRLEN);
+		LOG_INFO("Detected IPv6 network: {}, Mask: {}", ipv6NetworkAddrString, ipv6NetworkMaskString);
 	}
 }
 
@@ -115,14 +126,17 @@ bool IpAddressNetlinkChecker::isV4AddressExternal(IPv4int addr) const {
 	return true;
 }
 
-static bool ipv6AddressContainsMappedIpv4Address(const in6_addr& addr) {
-	if (!std::all_of(addr.s6_addr, addr.s6_addr + 9, [](auto byte) { return byte == 0; })) {
-		return false;
+bool IpAddressNetlinkChecker::ipv6AddressContainsMappedIpv4Address(const in6_addr& addr) const {
+	for (const auto& internalRange : {"::ffff:0:0/96", "::ffff:0:0:0/96", "64:ff9b::/96"}) {
+		if (isInRange(addr, internalRange)) {
+			return true;
+		}
 	}
-	return (addr.s6_addr[10] == 0xFF && addr.s6_addr[11] == 0xFF);
+
+	return false;
 }
 
-static std::optional<IPv4int> getMappedIPv4Addr(const in6_addr& addr) {
+std::optional<IPv4int> IpAddressNetlinkChecker::getMappedIPv4Addr(const in6_addr& addr) const {
 	if (!ipv6AddressContainsMappedIpv4Address(addr)) {
 		return std::nullopt;
 	}
@@ -131,11 +145,73 @@ static std::optional<IPv4int> getMappedIPv4Addr(const in6_addr& addr) {
 	return ipv4Binary;
 }
 
+IpAddressNetlinkChecker::ipv6Range IpAddressNetlinkChecker::parseIpv6Range(const std::string& range) const {
+	ipv6Range rangeStruct;
+	const auto slashPos{range.find('/')};
+	rangeStruct.ipv6Address = range.substr(0, slashPos);
+	rangeStruct.prefixLength = slashPos != std::string::npos ? std::stoi(range.substr(slashPos + 1)) : 0;
+	return rangeStruct;
+}
+
+bool IpAddressNetlinkChecker::isInRange(const in6_addr& addr, const std::string& range) const {
+	auto rangeStruct{IpAddressNetlinkChecker::parseIpv6Range(range)};
+
+	in6_addr rangeIpv6Address{};
+	inet_pton(AF_INET6, rangeStruct.ipv6Address.c_str(), &rangeIpv6Address);
+
+	// Create mask
+	in6_addr mask{};
+	for (size_t i = 0; i < sizeof(mask.s6_addr); i++) {
+		if (rangeStruct.prefixLength >= 8) {
+			mask.s6_addr[i] = 0xFF;
+			rangeStruct.prefixLength -= 8;
+		} else if (rangeStruct.prefixLength > 0) {
+			mask.s6_addr[i] = (uint8_t)(0xFF << (8 - rangeStruct.prefixLength));
+			rangeStruct.prefixLength = 0;
+		} else {
+			mask.s6_addr[i] = 0;
+		}
+	}
+
+	// Check mask and addr
+	in6_addr andResult{};
+	for (size_t i = 0; i < sizeof(andResult.s6_addr); ++i) {
+		andResult.s6_addr[i] = addr.s6_addr[i] & mask.s6_addr[i];
+	}
+
+	// Compare andResult with IPv6 address of the rangeStruct
+	return memcmp(&andResult, &rangeIpv6Address, sizeof(andResult)) == 0;
+}
+
+bool IpAddressNetlinkChecker::checkSubnet(
+		const in6_addr& addrToCheck, const in6_addr& interfaceIpv6Addr, const in6_addr& interfaceMask) const {
+	const auto s6Addr32ArraySize = sizeof(addrToCheck.s6_addr32) / sizeof(addrToCheck.s6_addr32[0]);
+	for (size_t i = 0; i < s6Addr32ArraySize; ++i) {
+		if ((addrToCheck.s6_addr32[i] & interfaceMask.s6_addr32[i]) != (interfaceIpv6Addr.s6_addr32[i] & interfaceMask.s6_addr32[i])) {
+			return false;
+		}
+	}
+	return true;
+}
+
 bool IpAddressNetlinkChecker::isV6AddressExternal(const in6_addr& addr) const {
 	if (auto mappedV4Addr = getMappedIPv4Addr(addr); mappedV4Addr) {
 		return isV4AddressExternal(*mappedV4Addr);
 	}
-	throw std::runtime_error("IPv6 is only supported for IPv4 mapped addresses");
+
+	for (auto& ipv6Network : ipv6Networks) {
+		if (checkSubnet(addr, ipv6Network.networkIpv6Addr, ipv6Network.networkMask)) {
+			return false;
+		}
+	}
+
+	for (const auto& internalRange : {"fc00::/7", "fec0::/10", "fe80::/10", "::1/128"}) {
+		if (IpAddressNetlinkChecker::isInRange(addr, internalRange)) {
+			return false;
+		}
+	}
+
+	return true;
 }
 
 } // namespace service

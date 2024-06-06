@@ -19,6 +19,11 @@ Discovered services are popped from the program in a specified time interval, se
 * clang >= 17
 * libelf-dev
 
+Add a new remote:
+```
+conan remote add conancenter https://center.conan.io
+```
+
 **Build**
 
 ```

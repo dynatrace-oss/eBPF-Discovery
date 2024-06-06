@@ -265,7 +265,7 @@ TEST_F(IpAddressCheckerTest, LocalIfceIpSrc) {
 	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(inet_addr("115.89.3.7")));
 }
 
-static in6_addr getV6AddrBinary(std::string addr) {
+static in6_addr getV6AddrBinary(const std::string& addr) {
 	in6_addr clientAddrBinary{};
 	inet_pton(AF_INET6, addr.c_str(), &clientAddrBinary);
 	return clientAddrBinary;
@@ -279,6 +279,72 @@ TEST_F(IpAddressCheckerTest, TestMapped) {
 	EXPECT_FALSE(ipAddressNetlinkChecker.isV6AddressExternal(getV6AddrBinary("::FFFF:192.168.0.5")));
 
 	// regular IPv6 addr
-	EXPECT_THROW(
-			ipAddressNetlinkChecker.isV6AddressExternal(getV6AddrBinary("2001:0db8:85a3:0000:0000:8a2e:0370:7334")), std::runtime_error);
+	EXPECT_TRUE(
+			ipAddressNetlinkChecker.isV6AddressExternal(getV6AddrBinary("2001:0db8:85a3:0000:0000:8a2e:0370:7334")));
+
+	// IPv4-translated Address
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV6AddressExternal(getV6AddrBinary("::ffff:0:0:0")));
+	EXPECT_TRUE(ipAddressNetlinkChecker.isV6AddressExternal(getV6AddrBinary("0000:0000:0000:0000:fffe:ffff:ffff:ffff")));
+	EXPECT_TRUE(ipAddressNetlinkChecker.isV6AddressExternal(getV6AddrBinary("0000:0000:0000:0000:ffff:0001:ffff:ffff")));
+
+	// IPv4-IPv6 Translatable Address
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV6AddressExternal(getV6AddrBinary("64:ff9b::")));
+	EXPECT_TRUE(ipAddressNetlinkChecker.isV6AddressExternal(getV6AddrBinary("0064:ff9a:ffff:ffff:ffff:ffff:ffff:ffff")));
+	EXPECT_TRUE(ipAddressNetlinkChecker.isV6AddressExternal(getV6AddrBinary("0064:ff9b:0000:0000:0000:0001:0000:0000")));
+}
+
+// unique local address (prefix fc00::/7)
+TEST_F(IpAddressCheckerTest, UniqueLocalAddress) {
+	IpAddressNetlinkChecker ipAddressNetlinkChecker{netlinkMock};
+
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV6AddressExternal(getV6AddrBinary("fc00::1")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV6AddressExternal(getV6AddrBinary("fdff:ffff:ffff:ffff:ffff:ffff:ffff:ffff")));
+	EXPECT_TRUE(ipAddressNetlinkChecker.isV6AddressExternal(getV6AddrBinary("fbff:ffff:ffff:ffff:ffff:ffff:ffff:ffff")));
+	EXPECT_TRUE(ipAddressNetlinkChecker.isV6AddressExternal(getV6AddrBinary("fe00::")));
+}
+
+// site local addresses (fec0::/10 - deprecated)
+TEST_F(IpAddressCheckerTest, SiteLocalAddress) {
+	IpAddressNetlinkChecker ipAddressNetlinkChecker{netlinkMock};
+
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV6AddressExternal(getV6AddrBinary("fec0::")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV6AddressExternal(getV6AddrBinary("feff:ffff:ffff:ffff:ffff:ffff:ffff:ffff")));
+	EXPECT_TRUE(ipAddressNetlinkChecker.isV6AddressExternal(getV6AddrBinary("ff00::")));
+}
+
+// link local addresses (fe80::/10)
+TEST_F(IpAddressCheckerTest, LinkLocalAddress) {
+	IpAddressNetlinkChecker ipAddressNetlinkChecker{netlinkMock};
+
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV6AddressExternal(getV6AddrBinary("fe80::")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV6AddressExternal(getV6AddrBinary("febf:ffff:ffff:ffff:ffff:ffff:ffff:ffff")));
+	EXPECT_TRUE(ipAddressNetlinkChecker.isV6AddressExternal(getV6AddrBinary("fe7f:ffff:ffff:ffff:ffff:ffff:ffff:ffff")));
+}
+
+// loopback addresses (::1/128)
+TEST_F(IpAddressCheckerTest, LoopbackAddress) {
+	IpAddressNetlinkChecker ipAddressNetlinkChecker{netlinkMock};
+
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV6AddressExternal(getV6AddrBinary("::1")));
+	EXPECT_TRUE(ipAddressNetlinkChecker.isV6AddressExternal(getV6AddrBinary("::")));
+	EXPECT_TRUE(ipAddressNetlinkChecker.isV6AddressExternal(getV6AddrBinary("::2")));
+}
+
+// address is from the same subnet as any local ipv6 interfaces
+TEST_F(IpAddressCheckerTest, Ipv6NetworkSubnet) {
+	in6_addr ipv6NetworkAddr{};
+	in6_addr ipv6NetworkMask{};
+
+	inet_pton(AF_INET6, "2001:db8:85a3::8a2e:370:7336", &ipv6NetworkAddr);
+	inet_pton(AF_INET6, "ffff:ffff:ffff:ffff::", &ipv6NetworkMask);
+
+	EXPECT_CALL(netlinkMock, collectIpv6Networks).WillOnce(Return(std::vector<service::NetlinkCalls::Ipv6Network>{{service::NetlinkCalls::Ipv6Network{ipv6NetworkAddr, ipv6NetworkMask}}}));
+	EXPECT_CALL(netlinkMock, collectIpInterfaces).WillOnce(Return(IpInterfaces{0}));
+	EXPECT_CALL(netlinkMock, collectBridgeIndices).WillOnce(Return(BridgeIndices{0}));
+
+	IpAddressNetlinkChecker ipAddressNetlinkChecker{netlinkMock};
+
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV6AddressExternal(getV6AddrBinary("2001:0db8:85a3:0000:0000:0000:0000:0000")));
+	EXPECT_TRUE(ipAddressNetlinkChecker.isV6AddressExternal(getV6AddrBinary("2001:0db8:85a3:0001:0000:0000:0000:0000")));
+	EXPECT_TRUE(ipAddressNetlinkChecker.isV6AddressExternal(getV6AddrBinary("2001:0db8:85a2:ffff:ffff:ffff:ffff:ffff")));
 }

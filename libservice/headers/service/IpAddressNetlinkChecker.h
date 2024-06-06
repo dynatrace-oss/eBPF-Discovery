@@ -16,6 +16,11 @@
 
 #pragma once
 
+#include <string>
+#include <netinet/in.h>
+#include <linux/netfilter.h>
+#include <optional>
+
 #include "IpAddressChecker.h"
 #include "NetlinkCalls.h"
 
@@ -29,7 +34,17 @@ public:
 
 	bool isV6AddressExternal(const in6_addr& addr) const override;
 
+	struct ipv6Range {
+		std::string ipv6Address;
+		int prefixLength;
+	};
 private:
+	ipv6Range parseIpv6Range(const std::string& range) const;
+	bool isInRange(const in6_addr& addr, const std::string& range) const;
+	bool checkSubnet(const in6_addr& addrToCheck, const in6_addr& interfaceIpv6Addr, const in6_addr& interfaceMask) const;
+	bool ipv6AddressContainsMappedIpv4Address(const in6_addr& addr) const;
+	std::optional<IPv4int> getMappedIPv4Addr(const in6_addr& addr) const;
+
 	void readNetworks();
 
 	void printNetworkInterfacesInfo();
@@ -44,6 +59,7 @@ private:
 
 	const NetlinkCalls& netlink;
 	IpInterfaces ipInterfaces;
+	std::vector<NetlinkCalls::Ipv6Network> ipv6Networks;
 	std::unordered_map<int, bool> isLocalBridgeMap;
 };
 } // namespace service

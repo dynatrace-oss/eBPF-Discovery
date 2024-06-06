@@ -69,3 +69,23 @@ def test_request_forwarded_to_public_ip_matching_local_interface_mask(network_in
     assert discovered_service_has_clients(run_ebpf_discovery, url,
                                           internal_clients_number=0,
                                           external_clients_number=1)
+
+@pytest.mark.parametrize('network_interfaces', [[('dummy', 'eth17', '2001:db8:85a3::8a2e:370:7336', 64)]], indirect=True)
+def test_request_forwarded_to_public_ipv6_matching_local_network_mask(network_interfaces, run_ebpf_discovery, run_http_service):
+    url = run_http_service + "/forwarded"
+    send_http_requests(url, 1, "2001:0db8:85a3:0000:0000:0000:0000:0000")
+    send_http_requests(url, 1, "[2001:0db8:85a3::]:420")
+    assert discovered_service_has_clients(run_ebpf_discovery, url,
+                                          internal_clients_number=2,
+                                          external_clients_number=0)
+
+@pytest.mark.parametrize('network_interfaces', [[('dummy', 'eth18', '2001:db8:85a3::8a2e:370:7337', 64)]], indirect=True)
+def test_request_forwarded_to_public_ipv6_not_matching_local_interface_mask(network_interfaces, run_ebpf_discovery, run_http_service):
+    url = run_http_service + "/forwarded"
+    send_http_requests(url, 1, "2001:0db8:85a3:0001:0000:0000:0000:0000")
+    send_http_requests(url, 1, "[2001:0db8:85a3:0001::]:12345")
+    send_http_requests(url, 1, "2001:0db8:85a2:ffff:ffff:ffff:ffff:ffff")
+    send_http_requests(url, 1, "[2001:0db8:85a2:ffff:ffff:ffff:ffff:ffff]:111")
+    assert discovered_service_has_clients(run_ebpf_discovery, url,
+                                          internal_clients_number=0,
+                                          external_clients_number=4)
