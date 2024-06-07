@@ -94,9 +94,9 @@ TEST_F(ServiceAggregatorTest, aggregate) {
 		auto services{aggregator.collectServices()};
 		EXPECT_EQ(services.size(), 3);
 
-		Service expectedService1{.pid{100}, .endpoint{"host/url"}, .internalClientsNumber{0}, .externalClientsNumber{1}};
-		Service expectedService2{.pid{100}, .endpoint{"host/url2"}, .internalClientsNumber{1}, .externalClientsNumber{0}};
-		Service expectedService3{.pid{200}, .endpoint{"host/url2"}, .internalClientsNumber{1}, .externalClientsNumber{2}};
+		Service expectedService1{.pid = 100, .endpoint{"host/url"}, .internalClientsNumber = 0, .externalClientsNumber = 1};
+		Service expectedService2{.pid = 100, .endpoint{"host/url2"}, .internalClientsNumber = 1, .externalClientsNumber = 0};
+		Service expectedService3{.pid = 200, .endpoint{"host/url2"}, .internalClientsNumber = 1, .externalClientsNumber = 2};
 
 		std::vector<Service> servicesCopy;
 		std::transform(services.begin(), services.end(), std::back_inserter(servicesCopy), [](const auto& ref) { return ref.get(); });

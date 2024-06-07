@@ -104,7 +104,7 @@ TEST_P(HttpRequestParserTestInvalid, testInvalidRequest) {
 	EXPECT_EQ(totalBytesParsed, testData.expectTotalBytesParsed);
 }
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
 		Default,
 		HttpRequestParserTest,
 		::testing::Values(
@@ -169,7 +169,7 @@ INSTANTIATE_TEST_CASE_P(
 				HttpRequestTestData{{"GET /"}, "GET", "/", "", "", {}, false},
 				HttpRequestTestData{{"", ""}, "", "", "", "", {}, false}));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
 		Default,
 		HttpRequestParserTestInvalid,
 		::testing::Values(
