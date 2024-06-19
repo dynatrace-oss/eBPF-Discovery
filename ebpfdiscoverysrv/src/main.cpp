@@ -19,13 +19,15 @@
 #include "ebpfdiscovery/DiscoveryBpfLogging.h"
 #include "logging/Logger.h"
 
-#include <boost/asio/steady_timer.hpp>
 #include <boost/program_options.hpp>
 
 #include <atomic>
 #include <filesystem>
 #include <iostream>
 #include <csignal>
+#include <future>
+#include <chrono>
+#include <thread>
 
 #include <sys/stat.h>
 
@@ -84,28 +86,18 @@ static void initLibbpf() {
 	libbpf_set_print(libbpfPrintFn);
 }
 
-template <typename Duration>
-static void scheduleFunction(boost::asio::steady_timer& timer, const Duration& interval, std::function<void()> func) {
-	timer.expires_from_now(interval);
-	timer.async_wait([&timer, &interval, func](const boost::system::error_code& err) {
-		if (err) {
-			return;
-		}
+static void periodicTask(const std::chrono::milliseconds interval, std::function<void()> func) {
+	while (programRunningFlag.test()) {
+		std::this_thread::sleep_for(interval);
 		func();
-		scheduleFunction(timer, interval, func);
-	});
+	}
 }
 
 template <typename Duration>
-static void setupBpfLogging(
-		logging::LogLevel logLevel,
-		boost::asio::io_context& ioContext,
-		boost::asio::steady_timer& logBufFetchTimer,
-		Duration logBufFetchInterval,
-		perf_buffer* logBuf) {
+static std::future<void> setupBpfLogging(logging::LogLevel logLevel, Duration logBufFetchInterval, perf_buffer* logBuf){
 	if (logLevel <= logging::LogLevel::Debug) {
 		LOG_DEBUG("Handling of Discovery BPF logging is enabled.");
-		scheduleFunction(logBufFetchTimer, logBufFetchInterval, [logBuf]() {
+		return std::async(std::launch::async, periodicTask, logBufFetchInterval, [logBuf]() {
 			auto ret{bpflogging::fetchAndLog(logBuf)};
 			if (ret != 0) {
 				LOG_CRITICAL("Failed to fetch and handle Discovery BPF logging: {}.", std::strerror(-ret));
@@ -113,6 +105,7 @@ static void setupBpfLogging(
 			}
 		});
 	}
+	return {};
 }
 
 int main(int argc, char** argv) {
@@ -154,7 +147,6 @@ int main(int argc, char** argv) {
 		return EXIT_FAILURE;
 	}
 
-	boost::asio::io_context ioContext;
 	LOG_DEBUG("Starting the program.");
 
 	initLibbpf();
@@ -186,8 +178,7 @@ int main(int argc, char** argv) {
 	}
 
 	auto eventQueuePollInterval{std::chrono::milliseconds(250)};
-	auto fetchAndHandleTimer{boost::asio::steady_timer(ioContext, eventQueuePollInterval)};
-	scheduleFunction(fetchAndHandleTimer, eventQueuePollInterval, [&instance]() {
+	auto featchAndHanleEventsFuture = std::async(std::launch::async, periodicTask, eventQueuePollInterval, [&instance]() {
 		auto ret{instance.fetchAndHandleEvents()};
 		if (ret != 0) {
 			LOG_CRITICAL("Failed to fetch and handle Discovery BPF events: {}.", std::strerror(-ret));
@@ -196,16 +187,15 @@ int main(int argc, char** argv) {
 	});
 
 	auto outputServicesToStdoutInterval{std::chrono::seconds(vm["interval"].as<int>())};
-	auto outputServicesToStdoutTimer{boost::asio::steady_timer(ioContext, outputServicesToStdoutInterval)};
-	scheduleFunction(outputServicesToStdoutTimer, outputServicesToStdoutInterval, [&]() { instance.outputServicesToStdout(); });
+	auto outputServicesToStdoutFuture = std::async(std::launch::async, periodicTask, outputServicesToStdoutInterval, [&](){ instance.outputServicesToStdout(); });
 
 	auto logBufFetchInterval{std::chrono::milliseconds(250)};
-	auto logBufFetchTimer{boost::asio::steady_timer(ioContext, logBufFetchInterval)};
-	setupBpfLogging(logLevel, ioContext, logBufFetchTimer, logBufFetchInterval, logBuf);
+	auto logBpfLoggingFuture = setupBpfLogging(logLevel, logBufFetchInterval, logBuf);
 
-	while (programRunningFlag.test_and_set()) {
-		ioContext.run_one();
-	}
+	if(outputServicesToStdoutFuture.valid()) outputServicesToStdoutFuture.wait();
+	if(logBpfLoggingFuture.valid()) logBpfLoggingFuture.wait();
+	if(featchAndHanleEventsFuture.valid()) featchAndHanleEventsFuture.wait();
+
 	programRunningFlag.clear();
 
 	LOG_DEBUG("Exiting the program.");
