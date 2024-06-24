@@ -26,10 +26,12 @@ struct Service {
 	std::string endpoint;
 	uint32_t internalClientsNumber{0u};
 	uint32_t externalClientsNumber{0u};
+	std::string domain;
+	std::string scheme;
 
 	bool operator==(const Service& other) const {
 		return pid == other.pid && endpoint == other.endpoint && internalClientsNumber == other.internalClientsNumber &&
-			   externalClientsNumber == other.externalClientsNumber;
+			   externalClientsNumber == other.externalClientsNumber && domain == other.domain && scheme == other.scheme;
 	}
 };
 

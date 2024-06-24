@@ -29,15 +29,22 @@ TEST_F(ProtobufTranslatorTest, successfulTranslationToJson) {
 	service::Service service2{.pid = 2, .endpoint = "/endpoint/1", .internalClientsNumber = 1, .externalClientsNumber = 2};
 	service::Service service3{.pid = 3, .endpoint = "/endpoint/2", .internalClientsNumber = 1, .externalClientsNumber = 2};
 
+	service::Service service4{.pid = 4, .endpoint = "google.com/endpoint/3", .internalClientsNumber = 1, .externalClientsNumber = 2, .domain = "google.com", .scheme = "http"};
+	service::Service service5{.pid = 5, .endpoint = "dynatrace.com/endpoint/4", .internalClientsNumber = 1, .externalClientsNumber = 2, .domain = "dynatrace.com", .scheme = "https"};
+
 	internalServices.push_back(service1);
 	internalServices.push_back(service2);
 	internalServices.push_back(service3);
+	internalServices.push_back(service4);
+	internalServices.push_back(service5);
 
 	const auto proto{internalToProto(internalServices)};
 	const auto result{protoToJson(proto)};
 	const std::string expected{"{\"service\":[{\"pid\":1,\"endpoint\":\"/endpoint/"
 							   "1\",\"internalClientsNumber\":1,\"externalClientsNumber\":2},{\"pid\":2,\"endpoint\":\"/endpoint/"
 							   "1\",\"internalClientsNumber\":1,\"externalClientsNumber\":2},{\"pid\":3,\"endpoint\":\"/endpoint/"
-							   "2\",\"internalClientsNumber\":1,\"externalClientsNumber\":2}]}"};
+							   "2\",\"internalClientsNumber\":1,\"externalClientsNumber\":2},{\"pid\":4,\"endpoint\":\"google.com/"
+							   "endpoint/3\",\"internalClientsNumber\":1,\"externalClientsNumber\":2,\"domain\":\"google.com\",\"scheme\":\"http\"},{\"pid\":5,\"endpoint\":\"dynatrace.com/"
+							   "endpoint/4\",\"internalClientsNumber\":1,\"externalClientsNumber\":2,\"domain\":\"dynatrace.com\",\"scheme\":\"https\"}]}"};
 	EXPECT_EQ(result, expected);
 }

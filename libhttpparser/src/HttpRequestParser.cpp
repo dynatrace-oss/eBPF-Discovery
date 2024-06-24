@@ -67,6 +67,7 @@ inline static bool isValidXForwardedForHeaderValueChar(const char ch) {
 HttpRequest::HttpRequest() {
 	method.reserve(4);
 	protocol.reserve(8);
+	isHttps = false;
 }
 
 void HttpRequest::clear() {
@@ -75,12 +76,13 @@ void HttpRequest::clear() {
 	protocol.clear();
 	host.clear();
 	xForwardedFor.clear();
+	isHttps = false;
 }
 
 HttpRequestParser::HttpRequestParser() : state{State::METHOD}, length{0} {
 }
 
-size_t HttpRequestParser::parse(std::string_view data) {
+size_t HttpRequestParser::parse(std::string_view data, __u8 discoveryFlags) {
 	size_t i{0};
 	while (i < data.size()) {
 		if (length > DISCOVERY_MAX_HTTP_REQUEST_LENGTH) {
@@ -94,6 +96,7 @@ size_t HttpRequestParser::parse(std::string_view data) {
 		length++;
 
 		if (state == State::FINISHED || state == State::INVALID) {
+			result.isHttps = discoveryFlags & DISCOVERY_FLAG_SESSION_SSL_HTTP;
 			return i;
 		}
 	}

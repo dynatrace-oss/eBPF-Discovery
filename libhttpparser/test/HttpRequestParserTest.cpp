@@ -40,6 +40,7 @@ struct HttpRequestTestData {
 	std::string protocol;
 	std::string host;
 	std::vector<std::string> xForwardedFor;
+	bool isHttps;
 	bool expectFinished;
 	size_t expectTotalBytesParsed;
 
@@ -50,6 +51,7 @@ struct HttpRequestTestData {
 			std::string protocol = "",
 			std::string host = "",
 			std::vector<std::string> xForwardedFor = {},
+			bool isHttps = false,
 			bool expectFinished = true,
 			std::optional<size_t> expectTotalBytesParsed_ = std::nullopt)
 			: requestChunks(std::move(requestChunks_)),
@@ -58,6 +60,7 @@ struct HttpRequestTestData {
 			  protocol(std::move(protocol)),
 			  host(std::move(host)),
 			  xForwardedFor(std::move(xForwardedFor)),
+			  isHttps(isHttps),
 			  expectFinished(expectFinished),
 			  expectTotalBytesParsed(expectTotalBytesParsed_.value_or(std::accumulate(
 					  requestChunks.begin(), requestChunks.end(), 0, [](int sum, const std::string& str) { return sum + str.length(); }))) {
@@ -71,7 +74,7 @@ TEST_P(HttpRequestParserTest, TestValidRequest) {
 	HttpRequestParser parser;
 	size_t totalBytesParsed{0};
 	for (const auto& chunk : testData.requestChunks) {
-		totalBytesParsed += parser.parse(chunk);
+		totalBytesParsed += parser.parse(chunk, testData.isHttps ? DISCOVERY_FLAG_SESSION_SSL_HTTP : DISCOVERY_FLAG_SESSION_UNENCRYPTED_HTTP);
 	}
 
 	EXPECT_EQ(parser.isFinished(), testData.expectFinished);
@@ -82,6 +85,7 @@ TEST_P(HttpRequestParserTest, TestValidRequest) {
 	EXPECT_EQ(parser.result.protocol, testData.protocol);
 	EXPECT_EQ(parser.result.host, testData.host);
 	EXPECT_EQ(parser.result.xForwardedFor, testData.xForwardedFor);
+	EXPECT_EQ(parser.result.isHttps, testData.isHttps);
 }
 
 struct HttpRequestTestInvalidData {
@@ -96,7 +100,7 @@ TEST_P(HttpRequestParserTestInvalid, testInvalidRequest) {
 	HttpRequestParser parser;
 	size_t totalBytesParsed{0};
 	for (const auto& chunk : testData.requestChunks) {
-		totalBytesParsed += parser.parse(chunk);
+		totalBytesParsed += parser.parse(chunk, DISCOVERY_FLAG_SESSION_UNENCRYPTED_HTTP);
 	}
 
 	EXPECT_TRUE(parser.isFinished());
@@ -121,7 +125,7 @@ INSTANTIATE_TEST_SUITE_P(
 				HttpRequestTestData{
 						{"POST /example HTTP/1.0\r\nHost: example.com\r\n\r\n"}, "POST", "/example", "HTTP/1.0", "example.com", {}},
 				HttpRequestTestData{
-						{"GET /example HTTP/1.1\r\nHost: example.com\r\n\r"}, "GET", "/example", "HTTP/1.1", "example.com", {}, false},
+						{"GET /example HTTP/1.1\r\nHost: example.com\r\n\r"}, "GET", "/example", "HTTP/1.1", "example.com", {}, false, false},
 				HttpRequestTestData{
 						{"GET /Hello%20World/index.html HTTP/1.1\r\nHost:  example.com\r\nx-forwarded-for:  127.0.0.1\r\n\r\n"},
 						"GET",
@@ -152,6 +156,18 @@ INSTANTIATE_TEST_SUITE_P(
 						"HTTP/1.1",
 						"example.com",
 						{"192.168.0.1", "10.0.0.1", "2001:0db8:85a3::8a2e:0370:7334"},
+						false,
+						true,
+						163},
+				HttpRequestTestData{
+						{"POST /example/ HTTP/1.1\r\nHost: example.com\r\nUser-Agent: curl/7.81.0\r\nAccept: */*\r\nX-Forwarded-For: "
+						 "192.168.0.1:8080, 10.0.0.1, [2001:0db8:85a3::8a2e:0370:7334]\r\n\r\n{\"name\":\"example\"}\r\n"},
+						"POST",
+						"/example/",
+						"HTTP/1.1",
+						"example.com",
+						{"192.168.0.1", "10.0.0.1", "2001:0db8:85a3::8a2e:0370:7334"},
+						true,
 						true,
 						163},
 				HttpRequestTestData{
@@ -165,9 +181,9 @@ INSTANTIATE_TEST_SUITE_P(
 						"example.com",
 						{"10.0.0.1", "127.0.0.1", "2001:0db8:85a3::8a2e:0370:7335"},
 				},
-				HttpRequestTestData{chunkString("GET / HTTP/1.1\r\n", 1), "GET", "/", "HTTP/1.1", "", {}, false},
-				HttpRequestTestData{{"GET /"}, "GET", "/", "", "", {}, false},
-				HttpRequestTestData{{"", ""}, "", "", "", "", {}, false}));
+				HttpRequestTestData{chunkString("GET / HTTP/1.1\r\n", 1), "GET", "/", "HTTP/1.1", "", {}, false, false},
+				HttpRequestTestData{{"GET /"}, "GET", "/", "", "", {}, false, false},
+				HttpRequestTestData{{"", ""}, "", "", "", "", {}, false, false}));
 
 INSTANTIATE_TEST_SUITE_P(
 		Default,
