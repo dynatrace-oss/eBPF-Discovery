@@ -17,6 +17,7 @@
 #pragma once
 
 #include "ebpfdiscoveryshared/Constants.h"
+#include "ebpfdiscoveryshared/Types.h"
 
 #include <string>
 #include <string_view>
@@ -30,6 +31,7 @@ struct HttpRequest {
 	std::string protocol;
 	std::string host;
 	std::vector<std::string> xForwardedFor;
+	bool isHttps;
 
 	HttpRequest();
 	void clear();
@@ -40,7 +42,7 @@ public:
 	HttpRequestParser();
 
 	// Parse passed data while advancing the state machine
-	size_t parse(std::string_view data);
+	size_t parse(std::string_view data, __u8 discoveryFlags);
 
 	bool isInvalidState() const;
 	bool isFinished() const;

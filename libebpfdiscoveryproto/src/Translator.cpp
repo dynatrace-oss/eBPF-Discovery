@@ -28,6 +28,8 @@ ServicesList internalToProto(const std::vector<std::reference_wrapper<service::S
 
 		protoService->set_pid(service.pid);
 		protoService->set_endpoint(service.endpoint);
+		protoService->set_domain(service.domain);
+		protoService->set_scheme(service.scheme);
 		protoService->set_internalclientsnumber(service.internalClientsNumber);
 		protoService->set_externalclientsnumber(service.externalClientsNumber);
 	}

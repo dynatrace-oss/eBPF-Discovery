@@ -119,7 +119,7 @@ void Discovery::handleBufferLookupSuccess(DiscoverySavedBuffer& savedBuffer, Dis
 }
 
 void Discovery::handleExistingSession(SavedSessionsCacheType::iterator it, std::string_view& bufferView, DiscoveryEvent& event) {
-	savedSessions.update(it, [bufferView = std::move(bufferView)](auto& session) { session.parser.parse(std::move(bufferView)); });
+	savedSessions.update(it, [bufferView = std::move(bufferView), flags = event.flags](auto& session) { session.parser.parse(std::move(bufferView), flags); });
 	if (it->second.parser.isInvalidState()) {
 		bpfDiscoveryDeleteSession(event.key);
 		savedSessions.erase(it);
@@ -138,7 +138,7 @@ void Discovery::handleExistingSession(SavedSessionsCacheType::iterator it, std::
 
 void Discovery::handleNewSession(std::string_view& bufferView, DiscoveryEvent& event) {
 	Session session;
-	session.parser.parse(std::move(bufferView));
+	session.parser.parse(std::move(bufferView), event.flags);
 	if (session.parser.isInvalidState()) {
 		return;
 	}

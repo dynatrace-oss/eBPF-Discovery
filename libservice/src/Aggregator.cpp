@@ -85,6 +85,8 @@ static Service toService(const IpAddressChecker& ipChecker, const httpparser::Ht
 	Service service;
 	service.pid = meta.pid;
 	service.endpoint = getEndpoint(request.host, request.url);
+	service.domain = request.host.substr(0, request.host.find(':'));
+	service.scheme = request.isHttps ? "https" : "http";
 	incrementServiceClientsNumber(ipChecker, service, request, meta);
 	return service;
 }
