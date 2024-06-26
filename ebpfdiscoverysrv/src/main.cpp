@@ -36,7 +36,7 @@ namespace bpflogging = ebpfdiscovery::bpflogging;
 using logging::Logger;
 using logging::LogLevel;
 
-static std::atomic_flag programRunningFlag{ATOMIC_FLAG_INIT};
+static std::atomic<bool> programRunningFlag = false;
 
 static po::options_description getProgramOptions() {
 	po::options_description desc{"Options"};
@@ -64,7 +64,7 @@ static void initLogging(logging::LogLevel logLevel, bool enableStdout, const std
 }
 
 static void handleUnixShutdownSignal(int signal) {
-	programRunningFlag.clear();
+	programRunningFlag = false;
 }
 
 static int libbpfPrintFn(enum libbpf_print_level level, const char* format, va_list args) {
@@ -87,7 +87,7 @@ static void initLibbpf() {
 }
 
 static void periodicTask(const std::chrono::milliseconds interval, std::function<void()> func) {
-	while (programRunningFlag.test()) {
+	while (programRunningFlag) {
 		std::this_thread::sleep_for(interval);
 		func();
 	}
@@ -101,7 +101,7 @@ static std::future<void> setupBpfLogging(logging::LogLevel logLevel, Duration lo
 			auto ret{bpflogging::fetchAndLog(logBuf)};
 			if (ret != 0) {
 				LOG_CRITICAL("Failed to fetch and handle Discovery BPF logging: {}.", std::strerror(-ret));
-				programRunningFlag.clear();
+				programRunningFlag = false;
 			}
 		});
 	}
@@ -109,7 +109,7 @@ static std::future<void> setupBpfLogging(logging::LogLevel logLevel, Duration lo
 }
 
 int main(int argc, char** argv) {
-	programRunningFlag.test_and_set();
+	programRunningFlag = true;
 	std::signal(SIGINT, handleUnixShutdownSignal);
 	std::signal(SIGPIPE, handleUnixShutdownSignal);
 	std::signal(SIGTERM, handleUnixShutdownSignal);
@@ -167,7 +167,7 @@ int main(int argc, char** argv) {
 	}
 
 	if (isLaunchTest) {
-		programRunningFlag.clear();
+		programRunningFlag = false;
 	}
 
 	const int logPerfBufFd{discoveryBpf.getLogPerfBufFd()};
@@ -178,11 +178,11 @@ int main(int argc, char** argv) {
 	}
 
 	auto eventQueuePollInterval{std::chrono::milliseconds(250)};
-	auto featchAndHanleEventsFuture = std::async(std::launch::async, periodicTask, eventQueuePollInterval, [&instance]() {
+	auto featchAndHandleEventsFuture = std::async(std::launch::async, periodicTask, eventQueuePollInterval, [&instance]() {
 		auto ret{instance.fetchAndHandleEvents()};
 		if (ret != 0) {
 			LOG_CRITICAL("Failed to fetch and handle Discovery BPF events: {}.", std::strerror(-ret));
-			programRunningFlag.clear();
+			programRunningFlag = false;
 		}
 	});
 
@@ -192,11 +192,17 @@ int main(int argc, char** argv) {
 	auto logBufFetchInterval{std::chrono::milliseconds(250)};
 	auto logBpfLoggingFuture = setupBpfLogging(logLevel, logBufFetchInterval, logBuf);
 
-	if(outputServicesToStdoutFuture.valid()) outputServicesToStdoutFuture.wait();
-	if(logBpfLoggingFuture.valid()) logBpfLoggingFuture.wait();
-	if(featchAndHanleEventsFuture.valid()) featchAndHanleEventsFuture.wait();
+	if(outputServicesToStdoutFuture.valid()) {
+		outputServicesToStdoutFuture.wait();
+	}
+	if(logBpfLoggingFuture.valid()) {
+		logBpfLoggingFuture.wait();
+	}
+	if(featchAndHandleEventsFuture.valid()) {
+		featchAndHandleEventsFuture.wait();
+	}
 
-	programRunningFlag.clear();
+	programRunningFlag = false;
 
 	LOG_DEBUG("Exiting the program.");
 	discoveryBpf.unload();
