@@ -110,12 +110,14 @@ __attribute__((always_inline)) inline static void fillTrackedSessionAndPushEvent
 		__u64 pidTgid,
 		const char* buf,
 		size_t bytesCount) {
-	fillTrackedSession(ctx, globalStatePtr, sessionPtr, key, pidTgid, buf, bytesCount);
+	// XXX: line below causes invalid bpf_context access off=335 size=1
+	//fillTrackedSession(ctx, globalStatePtr, sessionPtr, key, pidTgid, buf, bytesCount);
 	struct DiscoveryEvent event = {};
 	event.key = *key;
 	event.sourceIP = sessionPtr->sourceIP;
 	event.flags = sessionPtr->flags | DISCOVERY_FLAG_EVENT_NEW_DATA;
-	pushEventToUserspace(ctx, globalStatePtr, &event);
+	// XXX: line below causes invalid bpf_context access off=335 size=1
+	//pushEventToUserspace(ctx, globalStatePtr, &event);
 }
 
 __attribute__((always_inline)) inline static void advanceTrackedSession(
@@ -163,8 +165,11 @@ __attribute__((always_inline)) inline static void handleReadSslHttp(
 
 	if (sessionPtr != NULL && sessionPtr->bufferCount == 0) {
 		advanceTrackedSession(&key, sessionPtr);
-	} else if (dataProbeIsBeginningOfHttpRequest(buf, bytesCount)) {
-		createTrackedSessionSslHttp(allSessionStatePtr, (struct DiscoveryTrackedSessionKey*)&key);
+	// XXX: line below causes invalid bpf_context access off=335 size=1
+	//} else if (dataProbeIsBeginningOfHttpRequest(buf, bytesCount)) {
+	} else if (true) {
+		// XXX: line below causes invalid bpf_context access off=335 size=1
+		//createTrackedSessionSslHttp(allSessionStatePtr, (struct DiscoveryTrackedSessionKey*)&key);
 		sessionPtr = (struct DiscoverySession*)bpf_map_lookup_elem(&trackedSessionsMap, (struct DiscoveryTrackedSessionKey*)&key);
 		if (sessionPtr == NULL) {
 			return;
@@ -187,7 +192,10 @@ __attribute__((always_inline)) inline static void handleNoMoreData(
 		__u64 pidTgid,
 		int fd) {
 	struct DiscoveryTrackedSessionKey key = {.pid = pidTgidToPid(pidTgid), .fd = fd};
-	const struct DiscoverySession* sessionPtr = (struct DiscoverySession*)bpf_map_lookup_elem(&trackedSessionsMap, &key);
+	// XXX: line below causes invalid bpf_context access off=335 size=1
+	//const struct DiscoverySession* sessionPtr = (struct DiscoverySession*)bpf_map_lookup_elem(&trackedSessionsMap, &key);
+	struct DiscoverySession deleteMeSession = {};
+	const struct DiscoverySession* sessionPtr = &deleteMeSession;
 	if (sessionPtr == NULL) {
 		return;
 	}
@@ -198,8 +206,10 @@ __attribute__((always_inline)) inline static void handleNoMoreData(
 	event.key.sessionID = sessionPtr->id;
 	event.key.bufferSeq = sessionPtr->bufferCount;
 	event.flags = DISCOVERY_FLAG_EVENT_DATA_END;
-	pushEventToUserspace(ctx, globalStatePtr, &event);
+	// XXX: line below causes invalid bpf_context access off=335 size=1
+	//pushEventToUserspace(ctx, globalStatePtr, &event);
 
 	DEBUG_PRINTLN("Tracked session ended. (pid:`%d`, fd:`%d`, sessionID:`%d`)", event.key.pid, event.key.fd, event.key.sessionID);
-	bpf_map_delete_elem(&trackedSessionsMap, &key);
+	// XXX: line below causes invalid bpf_context access off=335 size=1
+	//bpf_map_delete_elem(&trackedSessionsMap, &key);
 }

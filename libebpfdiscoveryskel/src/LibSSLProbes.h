@@ -141,14 +141,15 @@ int handleSSLReadExExit(struct pt_regs* ctx, int ret) {
 		return 0;
 	}
 
-	size_t bytesCount;
+	size_t bytesCount = 0;
 	bpf_probe_read_user(&bytesCount, sizeof(size_t), sslReadArgsPtr->readBytes);
 	if (bytesCount <= 0) {
 		handleNoMoreData(ctx, globalStatePtr, allSessionStatePtr, pidTgid, fd);
 		return 0;
 	}
 
-	handleReadSslHttp(ctx, globalStatePtr, allSessionStatePtr, pidTgid, fd, sslReadArgsPtr->buf, bytesCount);
+	// XXX: line below causes invalid bpf_context access off=335 size=1
+	//handleReadSslHttp(ctx, globalStatePtr, allSessionStatePtr, pidTgid, fd, sslReadArgsPtr->buf, bytesCount);
 	DEBUG_PRINTLN("ssl read exit, pid: `%d`, no fd", pidTgidToPid(pidTgid));
 
 	return 0;

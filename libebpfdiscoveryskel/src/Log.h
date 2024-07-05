@@ -36,7 +36,9 @@ struct {
 } logEventsPerfMap SEC(".maps");
 
 __attribute__((always_inline)) inline static int sendDiscoveryLogEvent(struct pt_regs* ctx, struct DiscoveryLogEvent* logEventPtr) {
-	return bpf_perf_event_output(ctx, &logEventsPerfMap, BPF_F_CURRENT_CPU, logEventPtr, sizeof(struct DiscoveryLogEvent));
+	// XXX: line below causes R1 type=mem_or_null expected=ctx
+	// return bpf_perf_event_output(ctx, &logEventsPerfMap, BPF_F_CURRENT_CPU, logEventPtr, sizeof(struct DiscoveryLogEvent));
+	return 0;
 }
 
 __attribute__((always_inline)) inline static enum DiscoveryLogLevel getDiscoveryLogLevel() {
