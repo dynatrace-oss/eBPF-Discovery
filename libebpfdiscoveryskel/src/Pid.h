@@ -22,6 +22,6 @@
 
 #include "bpf/bpf_helpers.h"
 
-__u32 pidTgidToPid(__u64 pidTgid) {
+__attribute__((always_inline)) inline static __u32 pidTgidToPid(__u64 pidTgid) {
 	return pidTgid >> 32;
 }
