@@ -51,7 +51,7 @@ struct {
  * Probe handlers
  */
 
-int handleSSLReadExEntry(struct pt_regs* ctx, void* ssl, char* buf, size_t num, size_t* readBytes) {
+__attribute__((always_inline)) inline static int handleSSLReadExEntry(struct pt_regs* ctx, void* ssl, char* buf, size_t num, size_t* readBytes) {
 	struct DiscoveryGlobalState* globalStatePtr = getGlobalState();
 	if (globalStatePtr == NULL || globalStatePtr->isCollectingDisabled) {
 		return 0;
@@ -73,11 +73,11 @@ int handleSSLReadExEntry(struct pt_regs* ctx, void* ssl, char* buf, size_t num, 
 	return 0;
 }
 
-int handleSSLReadEntry(struct pt_regs* ctx, void* ssl, char* buf, int num) {
+__attribute__((always_inline)) inline static int handleSSLReadEntry(struct pt_regs* ctx, void* ssl, char* buf, int num) {
 	return handleSSLReadExEntry(ctx, ssl, buf, (size_t)num, NULL);
 }
 
-int handleSSLReadExit(struct pt_regs* ctx, int bytesCount) {
+__attribute__((always_inline)) inline static int handleSSLReadExit(struct pt_regs* ctx, int bytesCount) {
 	struct DiscoveryGlobalState* globalStatePtr = getGlobalState();
 	if (globalStatePtr == NULL || globalStatePtr->isCollectingDisabled) {
 		return 0;
@@ -112,7 +112,7 @@ int handleSSLReadExit(struct pt_regs* ctx, int bytesCount) {
 	return 0;
 }
 
-int handleSSLReadExExit(struct pt_regs* ctx, int ret) {
+__attribute__((always_inline)) inline static int handleSSLReadExExit(struct pt_regs* ctx, int ret) {
 	struct DiscoveryGlobalState* globalStatePtr = getGlobalState();
 	if (globalStatePtr == NULL || globalStatePtr->isCollectingDisabled) {
 		return 0;
@@ -154,7 +154,7 @@ int handleSSLReadExExit(struct pt_regs* ctx, int ret) {
 	return 0;
 }
 
-int handleSSLPendingEntry(struct pt_regs* ctx, void* ssl) {
+__attribute__((always_inline)) inline static int handleSSLPendingEntry(struct pt_regs* ctx, void* ssl) {
 	struct DiscoveryGlobalState* globalStatePtr = getGlobalState();
 	if (globalStatePtr == NULL || globalStatePtr->isCollectingDisabled) {
 		return 0;
@@ -173,7 +173,7 @@ int handleSSLPendingEntry(struct pt_regs* ctx, void* ssl) {
 	return 0;
 }
 
-int handleSSLPendingExit(struct pt_regs* ctx, int ret) {
+__attribute__((always_inline)) inline static int handleSSLPendingExit(struct pt_regs* ctx, int ret) {
 	struct DiscoveryGlobalState* globalStatePtr = getGlobalState();
 	if (globalStatePtr == NULL || globalStatePtr->isCollectingDisabled) {
 		return 0;
