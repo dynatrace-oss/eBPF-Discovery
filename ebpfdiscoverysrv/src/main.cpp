@@ -37,6 +37,8 @@ using logging::Logger;
 using logging::LogLevel;
 
 static std::atomic<bool> programRunningFlag = false;
+std::mutex mutex;
+std::condition_variable cv;
 
 static po::options_description getProgramOptions() {
 	po::options_description desc{"Options"};
@@ -65,6 +67,7 @@ static void initLogging(logging::LogLevel logLevel, bool enableStdout, const std
 
 static void handleUnixShutdownSignal(int signal) {
 	programRunningFlag = false;
+	cv.notify_all();
 }
 
 static int libbpfPrintFn(enum libbpf_print_level level, const char* format, va_list args) {
@@ -88,8 +91,11 @@ static void initLibbpf() {
 
 static void periodicTask(const std::chrono::milliseconds interval, std::function<void()> func) {
 	while (programRunningFlag) {
-		std::this_thread::sleep_for(interval);
 		func();
+		{
+			std::unique_lock ul(mutex);
+			cv.wait_for(ul, interval, [] { return !programRunningFlag; });
+		}
 	}
 }
 
@@ -168,6 +174,7 @@ int main(int argc, char** argv) {
 
 	if (isLaunchTest) {
 		programRunningFlag = false;
+		cv.notify_all();
 	}
 
 	const int logPerfBufFd{discoveryBpf.getLogPerfBufFd()};
@@ -183,6 +190,7 @@ int main(int argc, char** argv) {
 		if (ret != 0) {
 			LOG_CRITICAL("Failed to fetch and handle Discovery BPF events: {}.", std::strerror(-ret));
 			programRunningFlag = false;
+			cv.notify_all();
 		}
 	});
 
