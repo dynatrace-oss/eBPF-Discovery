@@ -85,7 +85,17 @@ static Service toService(const IpAddressChecker& ipChecker, const httpparser::Ht
 	Service service;
 	service.pid = meta.pid;
 	service.endpoint = getEndpoint(request.host, request.url);
-	service.domain = request.host.substr(0, request.host.find(':'));
+
+	if (const auto ipv6StartPos = request.host.find('['); ipv6StartPos != std::string::npos) {
+		if (const auto ipv6EndPos = request.host.find(']', ipv6StartPos + 1); ipv6EndPos != std::string::npos) {
+			service.domain = request.host.substr(ipv6StartPos, ipv6EndPos - ipv6StartPos + 1);
+		} else {
+			LOG_TRACE("Incorrect request host IPv6 address: {}", request.host);
+		}
+	} else {
+		service.domain = request.host.substr(0, request.host.find(':'));
+	}
+
 	service.scheme = request.isHttps ? "https" : "http";
 	incrementServiceClientsNumber(ipChecker, service, request, meta);
 	return service;
