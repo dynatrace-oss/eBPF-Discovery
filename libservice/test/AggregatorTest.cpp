@@ -110,11 +110,29 @@ TEST_F(ServiceAggregatorTest, aggregate) {
 		EXPECT_CALL(ipCheckerMock, isV4AddressExternal).WillOnce(testing::Return(true));
 		aggregator.newRequest(request, meta);
 	}
+	// Service 7
+	{
+		const auto [request, meta]{makeRequest(700, "[::1]", "/url123", DISCOVERY_FLAG_SESSION_IPV6 | DISCOVERY_FLAG_SESSION_UNENCRYPTED_HTTP)};
+		EXPECT_CALL(ipCheckerMock, isV6AddressExternal).WillOnce(testing::Return(false));
+		aggregator.newRequest(request, meta);
+	}
+	// Service 8
+	{
+		const auto [request, meta]{makeRequest(800, "[2001:0db8:85a3:0001:0000:0000:0000:0000]", "/url123", DISCOVERY_FLAG_SESSION_IPV6 | DISCOVERY_FLAG_SESSION_SSL_HTTP)};
+		EXPECT_CALL(ipCheckerMock, isV6AddressExternal).WillOnce(testing::Return(true));
+		aggregator.newRequest(request, meta);
+	}
+	// Service 9
+	{
+		const auto [request, meta]{makeRequest(900, "[2001:0db8:85a3:0001::]", "/url123", DISCOVERY_FLAG_SESSION_IPV6 | DISCOVERY_FLAG_SESSION_SSL_HTTP)};
+		EXPECT_CALL(ipCheckerMock, isV6AddressExternal).WillOnce(testing::Return(true));
+		aggregator.newRequest(request, meta);
+	}
 
 
 	{
 		auto services{aggregator.collectServices()};
-		EXPECT_EQ(services.size(), 6);
+		EXPECT_EQ(services.size(), 9);
 
 		Service expectedService1{.pid = 100, .endpoint{"host/url"}, .domain = "host", .scheme = "http", .internalClientsNumber = 0, .externalClientsNumber = 1};
 		Service expectedService2{.pid = 100, .endpoint{"host/url2"}, .domain = "host", .scheme = "http", .internalClientsNumber = 1, .externalClientsNumber = 0};
@@ -122,6 +140,9 @@ TEST_F(ServiceAggregatorTest, aggregate) {
 		Service expectedService4{.pid = 400, .endpoint{"google.com/url123"}, .domain = "google.com", .scheme = "http", .internalClientsNumber = 0, .externalClientsNumber = 1};
 		Service expectedService5{.pid = 500, .endpoint{"8.8.8.8/url123"}, .domain = "8.8.8.8", .scheme = "http", .internalClientsNumber = 0, .externalClientsNumber = 1};
 		Service expectedService6{.pid = 600, .endpoint{"dynatrace.com/url123"}, .domain = "dynatrace.com", .scheme = "https", .internalClientsNumber = 0, .externalClientsNumber = 1};
+		Service expectedService7{.pid = 700, .endpoint{"[::1]/url123"}, .domain = "[::1]", .scheme = "http", .internalClientsNumber = 1, .externalClientsNumber = 0};
+		Service expectedService8{.pid = 800, .endpoint{"[2001:0db8:85a3:0001:0000:0000:0000:0000]/url123"}, .domain = "[2001:0db8:85a3:0001:0000:0000:0000:0000]", .scheme = "https", .internalClientsNumber = 0, .externalClientsNumber = 1};
+		Service expectedService9{.pid = 900, .endpoint{"[2001:0db8:85a3:0001::]/url123"}, .domain = "[2001:0db8:85a3:0001::]", .scheme = "https", .internalClientsNumber = 0, .externalClientsNumber = 1};
 
 		std::vector<Service> servicesCopy;
 		std::transform(services.begin(), services.end(), std::back_inserter(servicesCopy), [](const auto& ref) { return ref.get(); });
@@ -132,6 +153,9 @@ TEST_F(ServiceAggregatorTest, aggregate) {
 		EXPECT_THAT(servicesCopy, testing::Contains(expectedService4));
 		EXPECT_THAT(servicesCopy, testing::Contains(expectedService5));
 		EXPECT_THAT(servicesCopy, testing::Contains(expectedService6));
+		EXPECT_THAT(servicesCopy, testing::Contains(expectedService7));
+		EXPECT_THAT(servicesCopy, testing::Contains(expectedService8));
+		EXPECT_THAT(servicesCopy, testing::Contains(expectedService9));
 	}
 
 	aggregator.clear();
