@@ -131,17 +131,21 @@ static bool attachAndSaveUretprobeToLibFunc(bpf_link** link, bpf_program* prog, 
 }
 
 void DiscoveryBpf::attachSyscallProbes() {
-	skel->links.kprobeSysAccept = attachKprobe(skel->progs.kprobeSysAccept, SYS_PREFIX "sys_accept");
-	skel->links.kretprobeSysAccept = attachKretprobe(skel->progs.kretprobeSysAccept, SYS_PREFIX "sys_accept");
-	skel->links.kprobeSysAccept4 = attachKprobe(skel->progs.kprobeSysAccept4, SYS_PREFIX "sys_accept4");
-	skel->links.kretprobeSysAccept4 = attachKretprobe(skel->progs.kretprobeSysAccept4, SYS_PREFIX "sys_accept4");
-	skel->links.kprobeSysRead = attachKprobe(skel->progs.kprobeSysRead, SYS_PREFIX "sys_read");
-	skel->links.kretprobeSysRead = attachKretprobe(skel->progs.kretprobeSysRead, SYS_PREFIX "sys_read");
-	skel->links.kprobeSysRecv = attachKprobe(skel->progs.kprobeSysRecv, SYS_PREFIX "sys_recv");
-	skel->links.kretprobeSysRecv = attachKretprobe(skel->progs.kretprobeSysRecv, SYS_PREFIX "sys_recv");
-	skel->links.kprobeSysRecvfrom = attachKprobe(skel->progs.kprobeSysRecvfrom, SYS_PREFIX "sys_recvfrom");
-	skel->links.kretprobeSysRecvfrom = attachKretprobe(skel->progs.kretprobeSysRecvfrom, SYS_PREFIX "sys_recvfrom");
-	skel->links.kprobeSysClose = attachKprobe(skel->progs.kprobeSysClose, SYS_PREFIX "sys_close");
+	bool anySuccess = false;
+	anySuccess |= (skel->links.kprobeSysAccept = attachKprobe(skel->progs.kprobeSysAccept, SYS_PREFIX "sys_accept")) != nullptr;
+	anySuccess |= (skel->links.kretprobeSysAccept = attachKretprobe(skel->progs.kretprobeSysAccept, SYS_PREFIX "sys_accept")) != nullptr;
+	anySuccess |= (skel->links.kprobeSysAccept4 = attachKprobe(skel->progs.kprobeSysAccept4, SYS_PREFIX "sys_accept4")) != nullptr;
+	anySuccess |= (skel->links.kretprobeSysAccept4 = attachKretprobe(skel->progs.kretprobeSysAccept4, SYS_PREFIX "sys_accept4")) != nullptr;
+	anySuccess |= (skel->links.kprobeSysRead = attachKprobe(skel->progs.kprobeSysRead, SYS_PREFIX "sys_read")) != nullptr;
+	anySuccess |= (skel->links.kretprobeSysRead = attachKretprobe(skel->progs.kretprobeSysRead, SYS_PREFIX "sys_read")) != nullptr;
+	anySuccess |= (skel->links.kprobeSysRecv = attachKprobe(skel->progs.kprobeSysRecv, SYS_PREFIX "sys_recv")) != nullptr;
+	anySuccess |= (skel->links.kretprobeSysRecv = attachKretprobe(skel->progs.kretprobeSysRecv, SYS_PREFIX "sys_recv")) != nullptr;
+	anySuccess |= (skel->links.kprobeSysRecvfrom = attachKprobe(skel->progs.kprobeSysRecvfrom, SYS_PREFIX "sys_recvfrom")) != nullptr;
+	anySuccess |= (skel->links.kretprobeSysRecvfrom = attachKretprobe(skel->progs.kretprobeSysRecvfrom, SYS_PREFIX "sys_recvfrom")) != nullptr;
+	anySuccess |= (skel->links.kprobeSysClose = attachKprobe(skel->progs.kprobeSysClose, SYS_PREFIX "sys_close")) != nullptr;
+	if(!anySuccess) {
+		throw std::runtime_error("Could not attach any probes");
+	}
 }
 
 bool DiscoveryBpf::tryAttachOpenSSLProbesToLibName(const std::string& libName) {

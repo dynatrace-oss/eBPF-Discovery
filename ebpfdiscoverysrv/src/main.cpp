@@ -170,6 +170,7 @@ int main(int argc, char** argv) {
 		instance.init();
 	} catch (const std::runtime_error& e) {
 		LOG_CRITICAL("Couldn't initialize Discovery: {}", e.what());
+		return EXIT_FAILURE;
 	}
 
 	if (isLaunchTest) {
@@ -182,6 +183,7 @@ int main(int argc, char** argv) {
 	perf_buffer* logBuf{bpflogging::setupLogging(logPerfBufFd)};
 	if (logBuf == nullptr) {
 		LOG_CRITICAL("Could not open perf buffer for Discovery BPF logging: {}.", std::strerror(-errno));
+		return EXIT_FAILURE;
 	}
 
 	auto eventQueuePollInterval{std::chrono::milliseconds(250)};
