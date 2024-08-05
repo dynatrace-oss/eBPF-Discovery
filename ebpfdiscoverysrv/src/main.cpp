@@ -182,7 +182,7 @@ int main(int argc, char** argv) {
 
 	perf_buffer* logBuf{bpflogging::setupLogging(logPerfBufFd)};
 	if (logBuf == nullptr) {
-		LOG_CRITICAL("Could not open perf buffer for Discovery BPF logging: {}.", std::strerror(-errno));
+		LOG_CRITICAL("Could not open perf buffer for Discovery BPF logging: {}.", std::strerror(errno));
 		return EXIT_FAILURE;
 	}
 
