@@ -1,0 +1,81 @@
+# Copyright 2024 Dynatrace LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: Bi-weekly build, test and publish Release
+
+on:
+  schedule:
+    # At 01:00 UTC on Friday
+    - cron: '0 1 * * 5'
+  workflow_dispatch:
+
+env:
+#  The first run of the action should be scheduled for a date that falls on the same weekday as specified in the cron.
+#  For example, if the cron is set to run on Fridays, the first run should be on a Friday.
+#  Additionally, during every second week of the bi-weekly cycle, the action will be skipped.
+  FIRST_RUN_DATE: 2024-09-20
+
+jobs:
+  biweekly-build-test-and-publish-release:
+    runs-on: ubuntu-latest
+    outputs:
+      weekIndex: ${{ steps.biWeeklyTagCreate.outputs.weekIndex }}
+    steps:
+      - name: Checkout source code of the repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create a new tag bi-weekly
+        id: biWeeklyTagCreate
+        run: |
+          currentDate=$(date +%Y-%m-%d)
+          start=$(date -d ${{ env.FIRST_RUN_DATE }} +%s)
+          end=$(date -d $currentDate +%s)
+          weekDiff=$(((end - start) / 60 / 60 / 24 / 7))
+          weekIndex=$((weekDiff % 2))
+          echo "weekIndex=$weekIndex" >> "$GITHUB_OUTPUT"
+          echo "FIRST_RUN_DATE: ${{ env.FIRST_RUN_DATE }}" >> $GITHUB_STEP_SUMMARY
+          echo "currentDate: $currentDate" >> $GITHUB_STEP_SUMMARY
+          echo "weekDiff: $weekDiff" >> $GITHUB_STEP_SUMMARY
+          echo "weekIndex: $weekIndex" >> $GITHUB_STEP_SUMMARY
+          if [ $weekIndex -eq 0 ]; then
+            echo "Second week -> starting action" >> $GITHUB_STEP_SUMMARY
+            git config --global user.email "github-actions[bot]@users.noreply.github.com"
+            git config --global user.name "github-actions[bot]"
+            currentTagValue=$(git describe --abbrev=0 --tags)
+            minor=$(echo $currentTagValue | cut -d '.' -f 2)
+            newTagValue=1.$(($minor+1)).0
+            git tag -a $newTagValue -m "Bi-weekly tagging with $newTagValue"
+            echo "Current tag value: $currentTagValue New tag value: $newTagValue" >> $GITHUB_STEP_SUMMARY
+            git push origin $newTagValue
+          else
+            echo "First week -> ignoring action" >> $GITHUB_STEP_SUMMARY
+            exit 0
+          fi
+
+  action:
+    runs-on: ubuntu-latest
+    needs: [biweekly-build-test-and-publish-release]
+    if: ${{ needs.biweekly-build-test-and-publish-release.outputs.weekIndex == 0 }}
+    steps:
+      - name: Checkout source code of the repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Build, test and publish Release
+        uses: ./.github/actions/build-test-and-publish-release
+        with:
+          pat-github-token: ${{ secrets.GITHUB_TOKEN }}
