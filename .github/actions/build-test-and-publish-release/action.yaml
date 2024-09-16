@@ -42,10 +42,10 @@ runs:
     - name: Build
       uses: ./.github/actions/build
 
-    - name: Unit tests
+    - name: Run unit tests
       uses: ./.github/actions/unit-tests
 
-    - name: Component tests
+    - name: Run component tests
       uses: ./.github/actions/component-tests
 
     - name: Create artifact directory

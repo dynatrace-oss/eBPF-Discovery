@@ -37,7 +37,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Bi-weekly new tag
+      - name: Create a new tag bi-weekly
         id: biWeeklyTagCreate
         run: |
           currentDate=$(date +%Y-%m-%d)
