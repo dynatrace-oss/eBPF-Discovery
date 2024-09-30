@@ -21,8 +21,40 @@ on:
       - main
 
 jobs:
-  main-push-build-test-and-publish-release:
+  main-create-timestamp-and-tag:
     runs-on: ubuntu-latest
+    steps:
+      - name: "Checkout source code of the repository"
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: "Create timestamp"
+        id: create_timestamp
+        uses: ./.github/actions/create-timestamp
+
+      - name: "Set Git identity"
+        run: |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+
+      - name: "Create a new tag"
+        run: |
+          currentTagValue=$(git describe --abbrev=0 --tags)
+          minor=$(echo $currentTagValue | cut -d '.' -f 2)
+          patch=$(echo $currentTagValue | cut -d '.' -f 3)
+          newTagValue=1.$(($minor)).$((patch+1))
+          git tag -a $newTagValue -m "Main push tagging with $newTagValue"
+          echo "Current tag value: $currentTagValue New tag value: $newTagValue" >> $GITHUB_STEP_SUMMARY
+          git push origin $newTagValue
+
+  main-push-build-test-and-publish-release:
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        runner: [ubuntu-latest, Linux-ARM-Runner]
+        arch: [x86_64, arm]
+    needs: main-create-timestamp-and-tag
     steps:
       - name: "Checkout source code of the repository"
         uses: actions/checkout@v4
@@ -34,17 +66,8 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global user.name "github-actions[bot]"
 
-      - name: "Set new version tag"
-        run: |
-          currentTagValue=$(git describe --abbrev=0 --tags)
-          minor=$(echo $currentTagValue | cut -d '.' -f 2)
-          patch=$(echo $currentTagValue | cut -d '.' -f 3)
-          newTagValue=1.$(($minor)).$((patch+1))
-          git tag -a $newTagValue -m "Main push tagging with $newTagValue"
-          echo "Current tag value: $currentTagValue New tag value: $newTagValue" >> $GITHUB_STEP_SUMMARY
-          git push origin $newTagValue
-
       - name: "Build, test and publish Release"
         uses: ./.github/actions/build-test-and-publish-release
         with:
           pat-github-token: ${{ secrets.GITHUB_TOKEN }}
+          arch: ${{ matrix.arch }}

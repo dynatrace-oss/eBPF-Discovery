@@ -28,12 +28,12 @@ env:
   FIRST_RUN_DATE: 2024-09-20
 
 jobs:
-  biweekly-build-test-and-publish-release:
+  biweekly-create-tag:
     runs-on: ubuntu-latest
     outputs:
-      weekIndex: ${{ steps.biWeeklyTagCreate.outputs.weekIndex }}
+      weekIndex: ${{ steps.biweekly_tag_create.outputs.weekIndex }}
     steps:
-      - name: Checkout source code of the repository
+      - name: "Checkout source code of the repository"
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -66,10 +66,23 @@ jobs:
             exit 0
           fi
 
-  action:
+  biweekly-create-timestamp:
     runs-on: ubuntu-latest
-    needs: [biweekly-build-test-and-publish-release]
+    needs: biweekly-create-tag
     if: ${{ needs.biweekly-build-test-and-publish-release.outputs.weekIndex == 0 }}
+    steps:
+      - name: "Create timestamp"
+        id: create_timestamp
+        uses: ./.github/actions/create-timestamp
+
+  biweekly-build-test-and-publish-release:
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        runner: [ubuntu-latest, Linux-ARM-Runner]
+        arch: [x86_64, arm]
+    needs: [biweekly-create-tag, biweekly-create-timestamp]
+    if: ${{ needs.biweekly-create-tag.outputs.weekIndex == 0 }}
     steps:
       - name: "Checkout source code of the repository"
         uses: actions/checkout@v4
@@ -80,3 +93,4 @@ jobs:
         uses: ./.github/actions/build-test-and-publish-release
         with:
           pat-github-token: ${{ secrets.GITHUB_TOKEN }}
+          arch: ${{ matrix.arch }}

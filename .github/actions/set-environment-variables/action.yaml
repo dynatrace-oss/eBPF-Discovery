@@ -38,8 +38,7 @@ runs:
         fi
         printf "PROJECT_VERSION=%s\n" "${newestVersion}" >> $GITHUB_ENV
         
-        newestVersionWithTimestamp="${newestVersion}"."$(date +%Y%m%d-%H%M%S)"
-        printf "ARTIFACT_VERSION=%s\n" "${newestVersionWithTimestamp}" >> $GITHUB_ENV
+        printf "ARTIFACT_VERSION=%s\n" "${newestVersion}.${{ env.TIMESTAMP }}" >> $GITHUB_ENV
         
         buildPath="${{ github.workspace }}/cmake-build-${buildType,,}"
         printf "BUILD_PATH=%s\n" "${buildPath}" >> $GITHUB_ENV
