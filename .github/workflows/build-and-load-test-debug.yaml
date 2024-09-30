@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: Build and load test Debug
+name: "Build and load-test Debug"
 
 on:
   schedule:
@@ -22,24 +22,24 @@ jobs:
   build-and-load-test-debug:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout source code of the repository
+      - name: "Checkout source code of the repository"
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Set environment variables
+      - name: "Set environment variables"
         uses: ./.github/actions/set-environment-variables
         with:
           build-type: Debug
 
-      - name: Build docker image
+      - name: "Build docker image"
         uses: ./.github/actions/build-docker-image
 
-      - name: Configure
+      - name: "Configure"
         uses: ./.github/actions/configure
 
-      - name: Build
+      - name: "Build"
         uses: ./.github/actions/build
 
-      - name: Load tests
-        uses: ./.github/actions/load-tests
+      - name: "Run load tests"
+        uses: ./.github/actions/run-load-tests

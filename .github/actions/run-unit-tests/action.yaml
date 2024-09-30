@@ -12,21 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: Component tests
-description: Run component tests
+name: "Run unit tests"
+description: "Runs unit tests"
 
 runs:
-  using: composite
+  using: "composite"
   steps:
-    - name: Install requirements
+    - name: "Run unit tests"
       shell: bash
-      run: |
-        python -m venv testvenv
-        source testvenv/bin/activate
-        pip install -r "${{ env.COMPONENT_TESTING_PATH }}/requirements.txt"
-    - name: Create logs directory
-      shell: bash
-      run: mkdir logs
-    - name: Run tests
-      shell: bash
-      run: sudo testvenv/bin/pytest ${{ env.COMPONENT_TESTING_PATH }} -s -v --discovery_path="${{ env.DISCOVERY_BIN_PATH }}" --log_dir="${{ github.workspace }}/logs"
+      run: >-
+        docker run -i --rm
+        -w ${{ github.workspace }}
+        --user=$(id -u):$(id -g)
+        -v /home/runner:/home/runner
+        -v /etc/passwd:/etc/passwd
+        ${{ env.IMAGE_NAME }}:latest
+        ctest --test-dir ${{ env.BUILD_PATH }}
+        --output-on-failure
+        

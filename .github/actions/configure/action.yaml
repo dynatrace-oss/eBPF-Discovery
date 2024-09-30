@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: Configure
-description: Configure build environment
+name: "Configure"
+description: "Configure build environment"
 
 runs:
-  using: composite
+  using: "composite"
   steps:
-    - name: Configure
+    - name: "Configure"
       shell: bash
       run: >-
         docker run -i --rm

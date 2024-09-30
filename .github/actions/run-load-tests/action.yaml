@@ -1,0 +1,41 @@
+# Copyright 2023 Dynatrace LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: "Run load tests"
+description: "Runs load tests"
+
+runs:
+  using: "composite"
+  steps:
+    - name: "Create venv and install requirements"
+      shell: bash
+      run: |
+        python -m venv testvenv
+        source testvenv/bin/activate
+        pip install -r "${{ env.LOAD_TESTING_PATH }}/requirements.txt"
+    - name: "Create logs directory"
+      shell: bash
+      run: mkdir logs
+    - name: "Run tests"
+      shell: bash
+      run: |
+        source testvenv/bin/activate
+        cd ${{ env.LOAD_TESTING_PATH }}
+        /bin/bash test_load.sh ${{ env.DISCOVERY_BIN_PATH }} ${{ github.workspace }}/logs 5 5 30m
+      continue-on-error: true
+    - name: "Upload log archive"
+      uses: actions/upload-artifact@v3
+      with:
+        name: "log-archive"
+        path: ${{ github.workspace }}/logs
