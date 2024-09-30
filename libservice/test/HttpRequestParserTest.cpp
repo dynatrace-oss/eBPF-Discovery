@@ -26,77 +26,77 @@ public:
 
 TEST_F(HttpRequestParserTest, testParseXForwardedFor) {
 	std::string dataToTest = "fe80:0000:0000:0000:0000:0000:0000:0005";
-	parseXForwardedFor(dataToTest);
-	EXPECT_EQ(result.xForwardedFor.size(), 1);
-	EXPECT_EQ("fe80:0000:0000:0000:0000:0000:0000:0005", result.xForwardedFor[0]);
+	parseClientIPValue(dataToTest);
+	EXPECT_EQ(result.clientIp.size(), 1);
+	EXPECT_EQ("fe80:0000:0000:0000:0000:0000:0000:0005", result.clientIp[0]);
 
-	result.xForwardedFor.clear();
+	result.clientIp.clear();
 
 	dataToTest = "203.0.113.195, 70.41.3.18, 150.172.238.178";
-	parseXForwardedFor(dataToTest);
-	EXPECT_EQ(result.xForwardedFor.size(), 3);
-	EXPECT_EQ("203.0.113.195", result.xForwardedFor[0]);
-	EXPECT_EQ("70.41.3.18", result.xForwardedFor[1]);
-	EXPECT_EQ("150.172.238.178", result.xForwardedFor[2]);
+	parseClientIPValue(dataToTest);
+	EXPECT_EQ(result.clientIp.size(), 3);
+	EXPECT_EQ("203.0.113.195", result.clientIp[0]);
+	EXPECT_EQ("70.41.3.18", result.clientIp[1]);
+	EXPECT_EQ("150.172.238.178", result.clientIp[2]);
 
-	result.xForwardedFor.clear();
+	result.clientIp.clear();
 
 	dataToTest = "203.0.113.195";
-	parseXForwardedFor(dataToTest);
-	EXPECT_EQ(result.xForwardedFor.size(), 1);
-	EXPECT_EQ("203.0.113.195", result.xForwardedFor[0]);
+	parseClientIPValue(dataToTest);
+	EXPECT_EQ(result.clientIp.size(), 1);
+	EXPECT_EQ("203.0.113.195", result.clientIp[0]);
 
-	result.xForwardedFor.clear();
+	result.clientIp.clear();
 
 	dataToTest = "2001:db8:85a3:8d3:1319:8a2e:370:7348";
-	parseXForwardedFor(dataToTest);
-	EXPECT_EQ(result.xForwardedFor.size(), 1);
-	EXPECT_EQ("2001:db8:85a3:8d3:1319:8a2e:370:7348", result.xForwardedFor[0]);
+	parseClientIPValue(dataToTest);
+	EXPECT_EQ(result.clientIp.size(), 1);
+	EXPECT_EQ("2001:db8:85a3:8d3:1319:8a2e:370:7348", result.clientIp[0]);
 
-	result.xForwardedFor.clear();
+	result.clientIp.clear();
 
 	dataToTest = "203.0.113.195:41237, 198.51.100.100:38523";
-	parseXForwardedFor(dataToTest);
-	EXPECT_EQ(result.xForwardedFor.size(), 2);
-	EXPECT_EQ("203.0.113.195", result.xForwardedFor[0]);
-	EXPECT_EQ("198.51.100.100", result.xForwardedFor[1]);
+	parseClientIPValue(dataToTest);
+	EXPECT_EQ(result.clientIp.size(), 2);
+	EXPECT_EQ("203.0.113.195", result.clientIp[0]);
+	EXPECT_EQ("198.51.100.100", result.clientIp[1]);
 
-	result.xForwardedFor.clear();
+	result.clientIp.clear();
 
 	dataToTest = "[2001:db8::1a2b:3c4d]:41237, 198.51.100.100:26321";
-	parseXForwardedFor(dataToTest);
-	EXPECT_EQ(result.xForwardedFor.size(), 2);
-	EXPECT_EQ("2001:db8::1a2b:3c4d", result.xForwardedFor[0]);
-	EXPECT_EQ("198.51.100.100", result.xForwardedFor[1]);
+	parseClientIPValue(dataToTest);
+	EXPECT_EQ(result.clientIp.size(), 2);
+	EXPECT_EQ("2001:db8::1a2b:3c4d", result.clientIp[0]);
+	EXPECT_EQ("198.51.100.100", result.clientIp[1]);
 
-	result.xForwardedFor.clear();
+	result.clientIp.clear();
 
 	dataToTest = "[2001:db8::aa:bb]";
-	parseXForwardedFor(dataToTest);
-	EXPECT_EQ(result.xForwardedFor.size(), 1);
-	EXPECT_EQ("2001:db8::aa:bb", result.xForwardedFor[0]);
+	parseClientIPValue(dataToTest);
+	EXPECT_EQ(result.clientIp.size(), 1);
+	EXPECT_EQ("2001:db8::aa:bb", result.clientIp[0]);
 
-	result.xForwardedFor.clear();
+	result.clientIp.clear();
 
 	dataToTest = "203.0.113.195, 2001:db8:85a3:8d3:1319:8a2e:370:7348";
-	parseXForwardedFor(dataToTest);
-	EXPECT_EQ(result.xForwardedFor.size(), 2);
-	EXPECT_EQ("203.0.113.195", result.xForwardedFor[0]);
-	EXPECT_EQ("2001:db8:85a3:8d3:1319:8a2e:370:7348", result.xForwardedFor[1]);
+	parseClientIPValue(dataToTest);
+	EXPECT_EQ(result.clientIp.size(), 2);
+	EXPECT_EQ("203.0.113.195", result.clientIp[0]);
+	EXPECT_EQ("2001:db8:85a3:8d3:1319:8a2e:370:7348", result.clientIp[1]);
 
-	result.xForwardedFor.clear();
+	result.clientIp.clear();
 
 	dataToTest = "203.0.113.195,2001:db8:85a3:8d3:1319:8a2e:370:7348,198.51.100.178";
-	parseXForwardedFor(dataToTest);
-	EXPECT_EQ(result.xForwardedFor.size(), 3);
-	EXPECT_EQ("203.0.113.195", result.xForwardedFor[0]);
-	EXPECT_EQ("2001:db8:85a3:8d3:1319:8a2e:370:7348", result.xForwardedFor[1]);
-	EXPECT_EQ("198.51.100.178", result.xForwardedFor[2]);
+	parseClientIPValue(dataToTest);
+	EXPECT_EQ(result.clientIp.size(), 3);
+	EXPECT_EQ("203.0.113.195", result.clientIp[0]);
+	EXPECT_EQ("2001:db8:85a3:8d3:1319:8a2e:370:7348", result.clientIp[1]);
+	EXPECT_EQ("198.51.100.178", result.clientIp[2]);
 
-	result.xForwardedFor.clear();
+	result.clientIp.clear();
 
 	dataToTest = "[2001:db8::1]:30943";
-	parseXForwardedFor(dataToTest);
-	EXPECT_EQ(result.xForwardedFor.size(), 1);
-	EXPECT_EQ("2001:db8::1", result.xForwardedFor[0]);
+	parseClientIPValue(dataToTest);
+	EXPECT_EQ(result.clientIp.size(), 1);
+	EXPECT_EQ("2001:db8::1", result.clientIp[0]);
 }

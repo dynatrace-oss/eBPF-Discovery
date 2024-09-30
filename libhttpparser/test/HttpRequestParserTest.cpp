@@ -84,7 +84,7 @@ TEST_P(HttpRequestParserTest, TestValidRequest) {
 	EXPECT_EQ(parser.result.url, testData.url);
 	EXPECT_EQ(parser.result.protocol, testData.protocol);
 	EXPECT_EQ(parser.result.host, testData.host);
-	EXPECT_EQ(parser.result.xForwardedFor, testData.xForwardedFor);
+	EXPECT_EQ(parser.result.clientIp, testData.xForwardedFor);
 	EXPECT_EQ(parser.result.isHttps, testData.isHttps);
 }
 

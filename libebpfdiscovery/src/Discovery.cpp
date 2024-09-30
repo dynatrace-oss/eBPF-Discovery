@@ -158,32 +158,32 @@ void Discovery::handleNewSession(std::string_view& bufferView, DiscoveryEvent& e
 
 void Discovery::handleNewRequest(const Session& session, const service::DiscoverySessionMeta& meta) {
 	const auto& request{session.parser.result};
-	const auto xForwardedForClient{request.xForwardedFor.empty() ? "" : ", X-Forwarded-For client: " + request.xForwardedFor.front()};
+	const auto clientIP{request.clientIp.empty() ? "" : request.clientIPKey + ": " + request.clientIp.front()};
 	if (discoveryFlagsSessionIsIPv4(meta.flags)) {
 		LOG_DEBUG(
-				"Handling new request. (method: {}, host: {}, url: {}{}, sourceIPv4: {}, pid: {})",
+				"Handling new request. (method: {}, host: {}, url: {}, client IP: {}, sourceIPv4: {}, pid: {})",
 				request.method,
 				request.host,
 				request.url,
-				xForwardedForClient,
+				clientIP,
 				service::ipv4ToString(meta.sourceIP.data),
 				meta.pid);
 	} else if (discoveryFlagsSessionIsIPv6(meta.flags)) {
 		LOG_DEBUG(
-				"Handling new request. (method: {}, host: {}, url: {}{}, sourceIPv6: {}, pid: {})",
+				"Handling new request. (method: {}, host: {}, url: {}, client IP: {}, sourceIPv6: {}, pid: {})",
 				request.method,
 				request.host,
 				request.url,
-				xForwardedForClient,
+				clientIP,
 				service::ipv6ToString(meta.sourceIP.data),
 				meta.pid);
 	} else {
 		LOG_DEBUG(
-				"Handling new request. (method: {}, host: {}, url: {}{}, pid: {})",
+				"Handling new request. (method: {}, host: {}, client IP: {}{}, pid: {})",
 				request.method,
 				request.host,
 				request.url,
-				xForwardedForClient,
+				clientIP,
 				meta.pid);
 	}
 	serviceAggregator.newRequest(request, meta);

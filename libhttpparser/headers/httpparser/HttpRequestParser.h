@@ -30,7 +30,8 @@ struct HttpRequest {
 	std::string url;
 	std::string protocol;
 	std::string host;
-	std::vector<std::string> xForwardedFor;
+	std::string clientIPKey;
+	std::vector<std::string> clientIp;
 	bool isHttps;
 
 	HttpRequest();
@@ -84,10 +85,10 @@ protected:
 	void handleCharHeaderValue(const char ch);
 	void handleCharHeadersEnd(const char ch);
 
-	bool isCurrentHeaderKeyHost();
-	bool isCurrentHeaderKeyXForwardedFor();
+	[[nodiscard]] bool isCurrentHeaderKeyHost() const;
+	[[nodiscard]] bool isCurrentHeaderKeyClientIp() const;
 
-	void parseXForwardedFor(const std::string& data);
+	void parseClientIPValue(const std::string& data);
 
 	struct HttpHeader {
 		std::string key;
