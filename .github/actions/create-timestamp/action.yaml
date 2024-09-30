@@ -1,4 +1,4 @@
-# Copyright 2023 Dynatrace LLC
+# Copyright 2024 Dynatrace LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,21 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: "Run component tests"
-description: "Runs component tests"
+name: "Create timestamp"
+description: "Creates a timestamp in %Y%m%d-%H%M%S format, used in versioning"
+outputs:
+  timestamp:
+    description: "Timestamp in %Y%m%d-%H%M%S format, used in versioning"
+    value: ${{ steps.create-timestamp.outputs.timestamp }}
 
 runs:
   using: "composite"
   steps:
-    - name: "Install requirements"
+    - name: "Create timestamp"
+      id: create-timestamp
       shell: bash
-      run: |
-        python -m venv testvenv
-        source testvenv/bin/activate
-        pip install -r "${{ env.COMPONENT_TESTING_PATH }}/requirements.txt"
-    - name: "Create logs directory"
-      shell: bash
-      run: mkdir logs
-    - name: "Run tests"
-      shell: bash
-      run: sudo testvenv/bin/pytest ${{ env.COMPONENT_TESTING_PATH }} -s -v --discovery_path="${{ env.DISCOVERY_BIN_PATH }}" --log_dir="${{ github.workspace }}/logs"
+      run: printf "timestamp=%s\n" "$(date +%Y%m%d-%H%M%S)" >> "$GITHUB_OUTPUT"

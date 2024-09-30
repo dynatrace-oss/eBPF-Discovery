@@ -19,6 +19,12 @@ inputs:
   pat-github-token:
     description: "Personal Access Token for GitHub"
     required: true
+  arch:
+    description: "Architecture, x86_64 or arm"
+    required: true
+  timestamp:
+    description: "Timestamp in %Y%m%d-%H%M%S format, used in versioning"
+    required: true
 
 runs:
   using: "composite"
@@ -32,6 +38,7 @@ runs:
       uses: ./.github/actions/set-environment-variables
       with:
         build-type: Release
+        timestamp: ${{ inputs.timestamp }}
 
     - name: "Build docker image"
       uses: ./.github/actions/build-docker-image
@@ -82,4 +89,4 @@ runs:
       shell: bash
       run: |
         cd ${{ env.ARTIFACT_PATH }}
-        echo ${{ inputs.pat-github-token }} | docker run --rm -i -v $(pwd):/workspace ghcr.io/oras-project/oras:v1.0.1 push -u ${{ github.actor }} --password-stdin ${{ env.GITHUB_OCI_REGISTRY_ADDRESS }}/${{ env.LOWERCASE_REPOSITORY_NAME }}-linux-x86_64:${{ env.ARTIFACT_VERSION }},latest ${{ env.ARTIFACT_VERSION }}.zip
+        echo ${{ inputs.pat-github-token }} | docker run --rm -i -v $(pwd):/workspace ghcr.io/oras-project/oras:v1.0.1 push -u ${{ github.actor }} --password-stdin ${{ env.GITHUB_OCI_REGISTRY_ADDRESS }}/${{ env.LOWERCASE_REPOSITORY_NAME }}-linux-${{ inputs.arch }}:${{ env.ARTIFACT_VERSION }},latest ${{ env.ARTIFACT_VERSION }}.zip
