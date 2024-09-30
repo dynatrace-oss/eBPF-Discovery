@@ -25,6 +25,7 @@ RUN apt-get update -y && \
     # update links to clang as default compiler
     update-alternatives --install /usr/bin/cc cc /usr/lib/llvm-17/bin/clang 800 && \
     update-alternatives --install /usr/bin/c++ c++ /usr/lib/llvm-17/bin/clang++ 800 && \
+    pip3 install --upgrade pip && \
     pip3 install conan==1.62.0 cmake==3.22.3
 
 ENV PATH="/usr/lib/llvm-17/bin:$PATH"
