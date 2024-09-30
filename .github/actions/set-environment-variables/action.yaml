@@ -12,18 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: Set environment variables
-description: Set environment variables required for other actions
+name: "Set environment variables"
+description: "Set environment variables required for other actions"
 
 inputs:
   build-type:
-    description: Release or Debug
+    description: "Release or Debug"
     required: true
 
 runs:
-  using: composite
+  using: "composite"
   steps:
-    - name: Set environment variables
+    - name: "Set environment variables"
       shell: bash
       run: |
         buildType=${{ inputs.build-type }}

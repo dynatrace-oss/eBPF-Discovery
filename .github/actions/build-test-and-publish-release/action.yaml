@@ -12,73 +12,73 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: 'Build, test and publish Release'
-description: 'Builds, tests, and publishes a release'
+name: "Build, test and publish Release"
+description: "Builds, tests, and publishes a release"
 
 inputs:
   pat-github-token:
-    description: 'Personal Access Token for GitHub'
+    description: "Personal Access Token for GitHub"
     required: true
 
 runs:
-  using: 'composite'
+  using: "composite"
   steps:
-    - name: Checkout source code of the repository
+    - name: "Checkout source code of the repository"
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
 
-    - name: Set environment variables
+    - name: "Set environment variables"
       uses: ./.github/actions/set-environment-variables
       with:
         build-type: Release
 
-    - name: Build docker image
+    - name: "Build docker image"
       uses: ./.github/actions/build-docker-image
 
-    - name: Configure
+    - name: "Configure"
       uses: ./.github/actions/configure
 
-    - name: Build
+    - name: "Build"
       uses: ./.github/actions/build
 
-    - name: Run unit tests
-      uses: ./.github/actions/unit-tests
+    - name: "Run unit tests"
+      uses: ./.github/actions/run-unit-tests
 
-    - name: Run component tests
-      uses: ./.github/actions/component-tests
+    - name: "Run component tests"
+      uses: ./.github/actions/run-component-tests
 
-    - name: Create artifact directory
+    - name: "Create artifact directory"
       shell: bash
       run: mkdir ${{ env.ARTIFACT_PATH }}
 
-    - name: Move license to artifact directory
+    - name: "Move license to artifact directory"
       shell: bash
       run: mv ${{ github.workspace }}/LICENSE ${{ env.ARTIFACT_PATH }}/LICENSE
 
-    - name: Move third party licenses to artifact directory
+    - name: "Move third party licenses to artifact directory"
       shell: bash
       run: mv ${{ env.BUILD_PATH }}/licenses ${{ env.ARTIFACT_PATH }}/third_party
 
-    - name: Move protobuf model to artifact directory
+    - name: "Move protobuf model to artifact directory"
       shell: bash
       run: mv ${{ env.BUILD_PATH }}/libebpfdiscoveryproto/ebpfdiscoveryproto ${{ env.ARTIFACT_PATH }}/ebpfdiscoveryproto
 
-    - name: Move binaries to artifact directory
+    - name: "Move binaries to artifact directory"
       shell: bash
       run: mv ${{ env.BUILD_PATH }}/bin ${{ env.ARTIFACT_PATH }}/bin
 
-    - name: Remove test binaries from artifact directory
+    - name: "Remove test binaries from artifact directory"
       shell: bash
       run: find ${{ env.ARTIFACT_PATH }}/* -name 'test*' -exec rm {} \;
 
-    - name: Zip artifact directory contents
+    - name: "Zip artifact directory contents"
       shell: bash
       run: |
         cd ${{ env.ARTIFACT_PATH }}
         zip -r ${{ env.ARTIFACT_VERSION }}.zip .
 
-    - name: Publish zip to GitHub OCI registry
+    - name: "Publish zip to GitHub OCI registry"
       shell: bash
       run: |
         cd ${{ env.ARTIFACT_PATH }}

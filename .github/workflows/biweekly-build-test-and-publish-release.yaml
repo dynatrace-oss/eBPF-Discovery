@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: Bi-weekly build, test and publish Release
+name: "Bi-weekly build, test and publish Release"
+# The workflow publishes Release with a new minor version every two weeks
 
 on:
   schedule:
@@ -37,7 +38,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Create a new tag bi-weekly
+      - name: "Create a new tag bi-weekly"
         id: biWeeklyTagCreate
         run: |
           currentDate=$(date +%Y-%m-%d)
@@ -70,12 +71,12 @@ jobs:
     needs: [biweekly-build-test-and-publish-release]
     if: ${{ needs.biweekly-build-test-and-publish-release.outputs.weekIndex == 0 }}
     steps:
-      - name: Checkout source code of the repository
+      - name: "Checkout source code of the repository"
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Build, test and publish Release
+      - name: "Build, test and publish Release"
         uses: ./.github/actions/build-test-and-publish-release
         with:
           pat-github-token: ${{ secrets.GITHUB_TOKEN }}

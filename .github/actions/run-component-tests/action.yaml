@@ -12,30 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: Load tests
-description: Run load tests
+name: "Run component tests"
+description: "Runs component tests"
 
 runs:
-  using: composite
+  using: "composite"
   steps:
-    - name: Create venv and install requirements
+    - name: "Install requirements"
       shell: bash
       run: |
         python -m venv testvenv
         source testvenv/bin/activate
-        pip install -r "${{ env.LOAD_TESTING_PATH }}/requirements.txt"
-    - name: Create logs directory
+        pip install -r "${{ env.COMPONENT_TESTING_PATH }}/requirements.txt"
+    - name: "Create logs directory"
       shell: bash
       run: mkdir logs
-    - name: Run tests
+    - name: "Run tests"
       shell: bash
-      run: |
-        source testvenv/bin/activate
-        cd ${{ env.LOAD_TESTING_PATH }}
-        /bin/bash test_load.sh ${{ env.DISCOVERY_BIN_PATH }} ${{ github.workspace }}/logs 5 5 30m
-      continue-on-error: true
-    - name: Upload log archive
-      uses: actions/upload-artifact@v3
-      with:
-        name: log-archive
-        path: ${{ github.workspace }}/logs
+      run: sudo testvenv/bin/pytest ${{ env.COMPONENT_TESTING_PATH }} -s -v --discovery_path="${{ env.DISCOVERY_BIN_PATH }}" --log_dir="${{ github.workspace }}/logs"

@@ -24,27 +24,27 @@ jobs:
       matrix:
         runner: [ubuntu-latest, Linux-ARM-Runner]
     steps:
-      - name: Checkout source code of the repository
+      - name: "Checkout source code of the repository"
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Set environment variables
+      - name: "Set environment variables"
         uses: ./.github/actions/set-environment-variables
         with:
           build-type: Debug
 
-      - name: Build docker image
+      - name: "Build docker image"
         uses: ./.github/actions/build-docker-image
 
-      - name: Configure
+      - name: "Configure"
         uses: ./.github/actions/configure
 
-      - name: Build
+      - name: "Build"
         uses: ./.github/actions/build
 
-      - name: Unit tests
-        uses: ./.github/actions/unit-tests
+      - name: "Run unit tests"
+        uses: ./.github/actions/run-unit-tests
 
-      - name: Component tests
-        uses: ./.github/actions/component-tests
+      - name: "Run component tests"
+        uses: ./.github/actions/run-component-tests

@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: Build
-description: Build eBPF Discovery and its tests
+name: "Build"
+description: "Build eBPF Discovery and its tests"
 
 runs:
-  using: composite
+  using: "composite"
   steps:
-    - name: Build
+    - name: "Build"
       shell: bash
       run: >-
         docker run -i --rm

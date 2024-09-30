@@ -12,15 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: Build docker image
-description: Build docker image used for running configuration, build and tests
+name: "Build docker image"
+description: "Build docker image used for running configuration, build and tests"
 
 runs:
-  using: composite
+  using: "composite"
   steps:
-    - name: Configure Docker Buildx
+    - name: "Configure Docker Buildx"
       uses: docker/setup-buildx-action@v3
-    - name: Build docker image
+    - name: "Build docker image"
       uses: docker/build-push-action@v5
       with:
         context: .
