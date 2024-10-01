@@ -251,7 +251,7 @@ void HttpRequestParser::handleCharHeaderNewline(const char ch) {
 		return;
 	}
 
-	if (isCurrentHeaderKeyClientIp()) {
+	if (isCurrentHeaderKeyClientIp() && result.clientIPKey == currentHeader.key) {
 		parseClientIPValue(currentHeader.value);
 	}
 
@@ -387,10 +387,6 @@ static std::optional<std::string> getTextBetweenSquareBrackets(const std::string
 }
 
 void HttpRequestParser::parseClientIPValue(const std::string& data) {
-	if (!result.clientIp.empty()) {
-		// Client IP already read (probably multiple header parameters describing client IP were found in request)
-		return;
-	}
 	std::vector<std::string> addresses;
 	boost::split(addresses, data, boost::is_any_of(","), boost::token_compress_on);
 	for (auto& address : addresses) {
