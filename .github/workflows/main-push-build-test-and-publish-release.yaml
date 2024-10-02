@@ -17,12 +17,12 @@ name: "Main push build, test and publish Release"
 
 on:
   push:
-    branches:
-      - main
 
 jobs:
   main-create-timestamp-and-tag:
     runs-on: ubuntu-latest
+    outputs:
+      timestamp: ${{ steps.create_timestamp.outputs.timestamp }}
     steps:
       - name: "Checkout source code of the repository"
         uses: actions/checkout@v4
@@ -66,8 +66,7 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global user.name "github-actions[bot]"
 
-      - name: "Build, test and publish Release"
-        uses: ./.github/actions/build-test-and-publish-release
-        with:
-          pat-github-token: ${{ secrets.GITHUB_TOKEN }}
-          arch: ${{ matrix.arch }}
+      - name: "Debug"
+        env:
+            TIMESTAMP: ${{needs.main-create-timestamp-and-tag.outputs.timestamp}}
+        run: echo "${TIMESTAMP}"

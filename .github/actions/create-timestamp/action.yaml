@@ -20,4 +20,4 @@ runs:
   steps:
     - name: "Create timestamp"
       shell: bash
-      run: printf "TIMESTAMP=%s\n" "$(date +%Y%m%d-%H%M%S)" >> $GITHUB_ENV
+      run: printf "timestamp=%s\n" "$(date +%Y%m%d-%H%M%S)" >> "$GITHUB_OUTPUT"
