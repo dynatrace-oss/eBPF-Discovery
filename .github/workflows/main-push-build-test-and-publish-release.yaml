@@ -31,7 +31,7 @@ jobs:
 
       - name: "Create timestamp"
         id: create_timestamp
-        uses: ./.github/actions/create-timestamp
+        run: printf "timestamp=%s\n" "$(date +%Y%m%d-%H%M%S)" >> "$GITHUB_OUTPUT"
 
       - name: "Set Git identity"
         run: |
@@ -69,4 +69,6 @@ jobs:
       - name: "Debug"
         env:
             TIMESTAMP: ${{needs.main-create-timestamp-and-tag.outputs.timestamp}}
-        run: echo "${TIMESTAMP}"
+        run: |
+          echo "${TIMESTAMP}"
+          echo $TIMESTAMP
