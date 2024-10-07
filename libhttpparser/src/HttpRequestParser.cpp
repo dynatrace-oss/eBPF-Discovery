@@ -79,7 +79,7 @@ void HttpRequest::clear() {
 	isHttps = false;
 }
 
-HttpRequestParser::HttpRequestParser() : state{State::METHOD}, length{0} {
+HttpRequestParser::HttpRequestParser() : state{State::METHOD}, length{0}, isClientIpRead{false} {
 }
 
 size_t HttpRequestParser::parse(std::string_view data, __u8 discoveryFlags) {
@@ -251,7 +251,8 @@ void HttpRequestParser::handleCharHeaderNewline(const char ch) {
 		return;
 	}
 
-	if (isCurrentHeaderKeyClientIp() && result.clientIPKey == currentHeader.key) {
+	if (isCurrentHeaderKeyClientIp() && !isClientIpRead) {
+		isClientIpRead = true;
 		parseClientIPValue(currentHeader.value);
 	}
 
@@ -307,7 +308,7 @@ void HttpRequestParser::handleCharSpaceBeforeHeaderValue(const char ch) {
 
 	if (isCurrentHeaderKeyHost()) {
 		result.host.push_back(ch);
-	} else if (isCurrentHeaderKeyClientIp()) {
+	} else if (isCurrentHeaderKeyClientIp() && !isClientIpRead) {
 		result.clientIPKey = currentHeader.key;
 		currentHeader.value.push_back(ch);
 	}

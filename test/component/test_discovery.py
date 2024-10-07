@@ -41,9 +41,16 @@ def test_request_forwarded_to_public_ip(run_ebpf_discovery, run_http_service, cl
                                                    expected_internal_clients=0,
                                                    expected_external_clients=expected_external)
 
-def test_request_public_ip_rproxy_remote_address(run_ebpf_discovery, run_http_service):
+def test_request_multiple_headers_private_ip_first(run_ebpf_discovery, run_http_service):
     url = run_http_service + "/forwarded"
-    send_http_requests(url, 1, "113.56.1.57:8080", "rproxy_remote_address")
+    send_http_requests(url, 1, "113.56.1.57:8080", "rproxy_remote_address", {"x-forwarded-for" : "127.0.0.1:8080"})
+    assert discovered_service_has_expected_clients(run_ebpf_discovery, url,
+                                                   expected_internal_clients=1,
+                                                   expected_external_clients=0)
+
+def test_request_multiple_headers_public_ip_first(run_ebpf_discovery, run_http_service):
+    url = run_http_service + "/forwarded"
+    send_http_requests(url, 1, "127.0.0.1:8080", "x-forwarded-for", {"rproxy_remote_address" : "113.56.1.57:8080"})
     assert discovered_service_has_expected_clients(run_ebpf_discovery, url,
                                                    expected_internal_clients=0,
                                                    expected_external_clients=1)

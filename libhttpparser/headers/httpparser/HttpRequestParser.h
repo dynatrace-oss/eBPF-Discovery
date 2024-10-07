@@ -97,6 +97,7 @@ protected:
 
 	HttpHeader currentHeader;
 	size_t length;
+	bool isClientIpRead;
 };
 
 } // namespace httpparser
