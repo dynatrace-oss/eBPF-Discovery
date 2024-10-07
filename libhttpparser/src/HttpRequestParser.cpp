@@ -251,7 +251,7 @@ void HttpRequestParser::handleCharHeaderNewline(const char ch) {
 		return;
 	}
 
-	if (isCurrentHeaderKeyClientIp() && !isClientIpRead) {
+	if (isCurrentHeaderKeyClientIp() && result.clientIPKey == currentHeader.key) {
 		isClientIpRead = true;
 		parseClientIPValue(currentHeader.value);
 	}
@@ -308,8 +308,10 @@ void HttpRequestParser::handleCharSpaceBeforeHeaderValue(const char ch) {
 
 	if (isCurrentHeaderKeyHost()) {
 		result.host.push_back(ch);
-	} else if (isCurrentHeaderKeyClientIp() && !isClientIpRead) {
-		result.clientIPKey = currentHeader.key;
+	} else if (isCurrentHeaderKeyClientIp()) {
+		if (result.clientIPKey.empty()) {
+			result.clientIPKey = currentHeader.key;
+		}
 		currentHeader.value.push_back(ch);
 	}
 
