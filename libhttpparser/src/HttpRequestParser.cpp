@@ -32,7 +32,7 @@ static constexpr std::string_view VALID_URL_SPECIAL_CHARS{"-._~:/?#[]@!$&'()*+,;
 static constexpr std::string_view VALID_HEADER_KEY_SPECIAL_CHARS{"!#$%&'*+-.^_`|~"};
 static constexpr std::string_view VALID_HEADER_VALUE_SPECIAL_CHARS{"`~!@#$%^&*()-_=+[]{}\\|;'<>,.?/ "};
 static constexpr std::string_view VALID_HOST_HEADER_VALUE_SPECIAL_CHARS{"-.:[]"};
-static constexpr std::string_view VALID_IP_FOR_HEADER_VALUE_SPECIAL_CHARS{"-.:[], "};
+static constexpr std::string_view VALID_CLIENT_IP_HEADER_VALUE_SPECIAL_CHARS{"-.:[], "};
 
 static constexpr std::string_view GET{"GET"};
 static constexpr std::string_view POST{"POST"};
@@ -61,7 +61,7 @@ inline static bool isValidHostHeaderValueChar(const char ch) {
 }
 
 inline static bool isValidIpForHeaderValueChar(const char ch) {
-	return std::isalnum(ch) || constants::VALID_IP_FOR_HEADER_VALUE_SPECIAL_CHARS.find(ch) != std::string_view::npos;
+	return std::isalnum(ch) || constants::VALID_CLIENT_IP_HEADER_VALUE_SPECIAL_CHARS.find(ch) != std::string_view::npos;
 }
 
 HttpRequest::HttpRequest() {

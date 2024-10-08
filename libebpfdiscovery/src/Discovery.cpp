@@ -179,7 +179,7 @@ void Discovery::handleNewRequest(const Session& session, const service::Discover
 				meta.pid);
 	} else {
 		LOG_DEBUG(
-				"Handling new request. (method: {}, host: {}, client IP: {}{}, pid: {})",
+				"Handling new request. (method: {}, host: {}, url: {}, client IP: {}, pid: {})",
 				request.method,
 				request.host,
 				request.url,
