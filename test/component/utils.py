@@ -22,13 +22,14 @@ from pyroute2 import IPRoute
 from urllib.parse import urlparse
 
 
-def send_http_requests(url: str, requests_num: int, x_forwarded_for: str | None = None):
-    headers = {}
-    if x_forwarded_for:
-        headers.update({"X-Forwarded-For": x_forwarded_for})
+def send_http_requests(url: str, requests_num: int, client_ip_value: str | None = None, client_ip_key: str = "X-Forwarded-For",
+                       headers : dict | None = None):
+    if headers is None:
+        headers = {}
+    if client_ip_value:
+        headers.update({client_ip_key: client_ip_value})
     for i in range(requests_num):
         requests.get(url, verify=False, headers=headers)
-
 
 def is_responsive(url: str) -> bool:
     try:
@@ -69,21 +70,19 @@ def get_discovered_service_json(discovery: subprocess.Popen, url: str) -> dict |
     return None
 
 
-def discovered_service_has_clients(discovery: subprocess.Popen, url: str, internal_clients_number: int,
-                                   external_clients_number: int) -> bool:
+def discovered_service_has_expected_clients(discovery: subprocess.Popen, url: str, expected_internal_clients: int,
+                                            expected_external_clients: int) -> bool:
     service = get_discovered_service_json(discovery, url)
     if not service:
         logging.warning("No discovered service for endpoint {}".format(url))
         return False
-    if internal_clients_number:
-        if service.get("internalClientsNumber", 0) != internal_clients_number:
+    if service.get("internalClientsNumber", 0) != expected_internal_clients:
             logging.warning("Internal clients number mismatch ({}!={}) for endpoint {}"
-                            .format(service.get("internalClientsNumber", "0"), internal_clients_number, url))
+                            .format(service.get("internalClientsNumber", "0"), expected_internal_clients, url))
             return False
-    if external_clients_number:
-        if service.get("externalClientsNumber", 0) != external_clients_number:
+    if service.get("externalClientsNumber", 0) != expected_external_clients:
             logging.warning("External clients number mismatch ({}!={}) for endpoint {}"
-                            .format(service.get("externalClientsNumber", "0"), external_clients_number, url))
+                            .format(service.get("externalClientsNumber", "0"), expected_external_clients, url))
             return False
     return True
 

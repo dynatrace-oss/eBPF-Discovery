@@ -58,8 +58,8 @@ static void incrementServiceClientsNumber(
 	bool isExternal{false};
 	std::string clientAddr;
 	try {
-		if (!request.xForwardedFor.empty()) {
-			clientAddr = request.xForwardedFor.front();
+		if (!request.clientIp.empty()) {
+			clientAddr = request.clientIp.front();
 			isExternal = isClientExternal(ipChecker, clientAddr);
 		} else if (discoveryFlagsSessionIsIPv4(meta.flags)) {
 			clientAddr = ipv4ToString(meta.sourceIP.data);

@@ -32,7 +32,7 @@ static constexpr std::string_view VALID_URL_SPECIAL_CHARS{"-._~:/?#[]@!$&'()*+,;
 static constexpr std::string_view VALID_HEADER_KEY_SPECIAL_CHARS{"!#$%&'*+-.^_`|~"};
 static constexpr std::string_view VALID_HEADER_VALUE_SPECIAL_CHARS{"`~!@#$%^&*()-_=+[]{}\\|;'<>,.?/ "};
 static constexpr std::string_view VALID_HOST_HEADER_VALUE_SPECIAL_CHARS{"-.:[]"};
-static constexpr std::string_view VALID_X_FORWARDED_FOR_HEADER_VALUE_SPECIAL_CHARS{"-.:[], "};
+static constexpr std::string_view VALID_CLIENT_IP_HEADER_VALUE_SPECIAL_CHARS{"-.:[], "};
 
 static constexpr std::string_view GET{"GET"};
 static constexpr std::string_view POST{"POST"};
@@ -40,8 +40,8 @@ static constexpr std::string_view POST{"POST"};
 [[maybe_unused]] static constexpr std::string_view HOST{"Host"};
 static constexpr std::string_view HOST_LOWER{"host"};
 
-static constexpr std::string_view X_FORWARDED_FOR{"X-Forwarded-For"};
-static constexpr std::string_view X_FORWARDED_FOR_LOWER{"x-forwarded-for"};
+static std::list<std::string_view> HEADER_CLIENT_IP_KEYS {"rproxy_remote_address", "true-client-ip", "x-client-ip", "x-forwarded-for", "x-http-client-ip"};
+static constexpr uint MAX_HEADER_KEY_LENGTH = 21;
 } // namespace constants
 
 inline static bool isValidUrlChar(const char ch) {
@@ -60,8 +60,8 @@ inline static bool isValidHostHeaderValueChar(const char ch) {
 	return std::isalnum(ch) || constants::VALID_HOST_HEADER_VALUE_SPECIAL_CHARS.find(ch) != std::string_view::npos;
 }
 
-inline static bool isValidXForwardedForHeaderValueChar(const char ch) {
-	return std::isalnum(ch) || constants::VALID_X_FORWARDED_FOR_HEADER_VALUE_SPECIAL_CHARS.find(ch) != std::string_view::npos;
+inline static bool isValidIpForHeaderValueChar(const char ch) {
+	return std::isalnum(ch) || constants::VALID_CLIENT_IP_HEADER_VALUE_SPECIAL_CHARS.find(ch) != std::string_view::npos;
 }
 
 HttpRequest::HttpRequest() {
@@ -75,11 +75,11 @@ void HttpRequest::clear() {
 	url.clear();
 	protocol.clear();
 	host.clear();
-	xForwardedFor.clear();
+	clientIp.clear();
 	isHttps = false;
 }
 
-HttpRequestParser::HttpRequestParser() : state{State::METHOD}, length{0} {
+HttpRequestParser::HttpRequestParser() : state{State::METHOD}, length{0}, isClientIpRead{false} {
 }
 
 size_t HttpRequestParser::parse(std::string_view data, __u8 discoveryFlags) {
@@ -251,8 +251,9 @@ void HttpRequestParser::handleCharHeaderNewline(const char ch) {
 		return;
 	}
 
-	if (isCurrentHeaderKeyXForwardedFor()) {
-		parseXForwardedFor(currentHeader.value);
+	if (isCurrentHeaderKeyClientIp() && result.clientIPKey == currentHeader.key) {
+		isClientIpRead = true;
+		parseClientIPValue(currentHeader.value);
 	}
 
 	currentHeader = {};
@@ -276,7 +277,7 @@ void HttpRequestParser::handleCharHeaderKey(const char ch) {
 			return;
 		}
 
-		if (currentHeader.key.size() < constants::X_FORWARDED_FOR.size()) {
+		if (currentHeader.key.size() < constants::MAX_HEADER_KEY_LENGTH) {
 			currentHeader.key.push_back(std::tolower(ch));
 		}
 
@@ -288,7 +289,7 @@ void HttpRequestParser::handleCharHeaderKey(const char ch) {
 		return;
 	}
 
-	if (isCurrentHeaderKeyXForwardedFor() && !currentHeader.value.empty()) {
+	if (isCurrentHeaderKeyClientIp() && !currentHeader.value.empty()) {
 		currentHeader.value.push_back(',');
 	}
 
@@ -307,7 +308,10 @@ void HttpRequestParser::handleCharSpaceBeforeHeaderValue(const char ch) {
 
 	if (isCurrentHeaderKeyHost()) {
 		result.host.push_back(ch);
-	} else if (isCurrentHeaderKeyXForwardedFor()) {
+	} else if (isCurrentHeaderKeyClientIp()) {
+		if (result.clientIPKey.empty()) {
+			result.clientIPKey = currentHeader.key;
+		}
 		currentHeader.value.push_back(ch);
 	}
 
@@ -325,8 +329,8 @@ void HttpRequestParser::handleCharHeaderValue(const char ch) {
 		return;
 	}
 
-	if (ch != '\r' && isCurrentHeaderKeyXForwardedFor()) {
-		if (!isValidXForwardedForHeaderValueChar(ch)) {
+	if (ch != '\r' && isCurrentHeaderKeyClientIp()) {
+		if (!isValidIpForHeaderValueChar(ch)) {
 			setInvalidState();
 			return;
 		}
@@ -359,12 +363,12 @@ void HttpRequestParser::handleCharHeadersEnd(const char ch) {
 	return;
 }
 
-inline bool HttpRequestParser::isCurrentHeaderKeyHost() {
+bool HttpRequestParser::isCurrentHeaderKeyHost() const {
 	return currentHeader.key == constants::HOST_LOWER;
 }
 
-inline bool HttpRequestParser::isCurrentHeaderKeyXForwardedFor() {
-	return currentHeader.key == constants::X_FORWARDED_FOR_LOWER;
+bool HttpRequestParser::isCurrentHeaderKeyClientIp() const {
+	return std::find(constants::HEADER_CLIENT_IP_KEYS.begin(),constants::HEADER_CLIENT_IP_KEYS.end(), currentHeader.key) != constants::HEADER_CLIENT_IP_KEYS.end();
 }
 
 void HttpRequestParser::reset() {
@@ -385,7 +389,7 @@ static std::optional<std::string> getTextBetweenSquareBrackets(const std::string
 	return input.substr(firstBracketPos + 1, lastBracketPos - firstBracketPos - 1);
 }
 
-void HttpRequestParser::parseXForwardedFor(const std::string& data) {
+void HttpRequestParser::parseClientIPValue(const std::string& data) {
 	std::vector<std::string> addresses;
 	boost::split(addresses, data, boost::is_any_of(","), boost::token_compress_on);
 	for (auto& address : addresses) {
@@ -401,7 +405,7 @@ void HttpRequestParser::parseXForwardedFor(const std::string& data) {
 		}
 	}
 
-	std::copy(addresses.begin(), addresses.end(), std::back_inserter(result.xForwardedFor));
+	std::copy(addresses.begin(), addresses.end(), std::back_inserter(result.clientIp));
 }
 
 } // namespace httpparser
