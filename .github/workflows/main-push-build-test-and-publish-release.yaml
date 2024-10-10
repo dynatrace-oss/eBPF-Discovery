@@ -55,7 +55,7 @@ jobs:
     strategy:
       matrix:
         runner: [ubuntu-latest, Linux-ARM-Runner]
-        arch: [x86_64, arm]
+        arch: [x86_64, arm_64]
     needs: main-create-timestamp-and-tag
     steps:
       - name: "Checkout source code of the repository"
