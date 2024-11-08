@@ -18,9 +18,6 @@
 
 #include <bpf/libbpf.h>
 
-#include <atomic>
-#include <thread>
-
 namespace ebpfdiscovery::bpflogging {
 
 perf_buffer* setupLogging(int logPerfBufFd);
