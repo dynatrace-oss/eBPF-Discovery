@@ -21,9 +21,7 @@
 #include "ebpfdiscoveryshared/Types.h"
 #include "httpparser/HttpRequestParser.h"
 
-#include <atomic>
 #include <cstdint>
-#include <mutex>
 #include <unordered_map>
 #include <vector>
 

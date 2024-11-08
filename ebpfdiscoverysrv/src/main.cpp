@@ -22,6 +22,7 @@
 #include <boost/program_options.hpp>
 
 #include <atomic>
+#include <mutex>
 #include <filesystem>
 #include <iostream>
 #include <csignal>
