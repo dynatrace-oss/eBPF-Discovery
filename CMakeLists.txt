@@ -126,7 +126,6 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/third_party/libbpf-boo
 
 add_subdirectory(third_party)
 add_subdirectory(libebpfdiscovery)
-add_subdirectory(libebpfdiscoveryproto)
 add_subdirectory(libebpfdiscoveryshared)
 add_subdirectory(libebpfdiscoveryskel)
 add_subdirectory(libhttpparser)

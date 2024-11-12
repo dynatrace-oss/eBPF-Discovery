@@ -14,17 +14,22 @@
  * limitations under the License.
  */
 
-syntax = "proto3";
+#pragma once
 
-message ServicesList {
-  repeated Service service = 1;
-}
+#include <boost/json.hpp>
+#include <boost/describe.hpp>
+#include <string_view>
 
-message Service {
-  uint32 pid = 1;
-  string endpoint = 2;
-  string domain = 3;
-  string scheme = 4;
-  uint32 internalClientsNumber = 5;
-  uint32 externalClientsNumber = 6;
+namespace boost::json {
+	  template<typename T>
+    void tag_invoke(json::value_from_tag, json::value& v, std::reference_wrapper<T> const& wrapped) {
+        v = json::value_from(wrapped.get());
+    }
+} // namespace boost::json
+
+template<typename T>
+boost::json::object toJson(std::string_view key, T convertibleValue) {
+	boost::json::object outJson{};
+	outJson[key] = boost::json::value_from(convertibleValue);
+	return outJson; 
 }

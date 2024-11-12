@@ -14,15 +14,16 @@
  * limitations under the License.
  */
 
-#include "ebpfdiscoveryproto/Translator.h"
-
+#include "ebpfdiscovery/Json.h"
 #include <gtest/gtest.h>
 
-using namespace proto;
+#include <iostream>
+#include <string>
+#include <vector>
 
-class ProtobufTranslatorTest : public testing::Test {};
+class Json : public testing::Test {};
 
-TEST_F(ProtobufTranslatorTest, successfulTranslationToJson) {
+TEST_F(Json, servicesToJson) {
 
 	std::vector<std::reference_wrapper<service::Service>> internalServices;
 	service::Service service1{.pid = 1, .endpoint = "/endpoint/1", .internalClientsNumber = 1, .externalClientsNumber = 2};
@@ -38,13 +39,18 @@ TEST_F(ProtobufTranslatorTest, successfulTranslationToJson) {
 	internalServices.push_back(service4);
 	internalServices.push_back(service5);
 
-	const auto proto{internalToProto(internalServices)};
-	const auto result{protoToJson(proto)};
-	const std::string expected{"{\"service\":[{\"pid\":1,\"endpoint\":\"/endpoint/"
-							   "1\",\"internalClientsNumber\":1,\"externalClientsNumber\":2},{\"pid\":2,\"endpoint\":\"/endpoint/"
-							   "1\",\"internalClientsNumber\":1,\"externalClientsNumber\":2},{\"pid\":3,\"endpoint\":\"/endpoint/"
-							   "2\",\"internalClientsNumber\":1,\"externalClientsNumber\":2},{\"pid\":4,\"endpoint\":\"google.com/"
-							   "endpoint/3\",\"domain\":\"google.com\",\"scheme\":\"http\",\"internalClientsNumber\":1,\"externalClientsNumber\":2},{\"pid\":5,\"endpoint\":\"dynatrace.com/"
-							   "endpoint/4\",\"domain\":\"dynatrace.com\",\"scheme\":\"https\",\"internalClientsNumber\":1,\"externalClientsNumber\":2}]}"};
-	EXPECT_EQ(result, expected);
+	boost::json::object outJson{};
+	outJson["service"] = boost::json::value_from(internalServices);
+
+	std::stringstream buffer;
+	buffer << outJson;
+	// clang-format off
+	const std::string expected{"{\"service\":["
+		"{\"pid\":1,\"endpoint\":\"/endpoint/1\",\"domain\":\"\",\"scheme\":\"\",\"internalClientsNumber\":1,\"externalClientsNumber\":2},"
+		"{\"pid\":2,\"endpoint\":\"/endpoint/1\",\"domain\":\"\",\"scheme\":\"\",\"internalClientsNumber\":1,\"externalClientsNumber\":2},"
+		"{\"pid\":3,\"endpoint\":\"/endpoint/2\",\"domain\":\"\",\"scheme\":\"\",\"internalClientsNumber\":1,\"externalClientsNumber\":2},"
+		"{\"pid\":4,\"endpoint\":\"google.com/endpoint/3\",\"domain\":\"google.com\",\"scheme\":\"http\",\"internalClientsNumber\":1,\"externalClientsNumber\":2},"
+		"{\"pid\":5,\"endpoint\":\"dynatrace.com/endpoint/4\",\"domain\":\"dynatrace.com\",\"scheme\":\"https\",\"internalClientsNumber\":1,\"externalClientsNumber\":2}]}"};
+	// clang-format on
+	EXPECT_EQ(buffer.str(), expected);
 }

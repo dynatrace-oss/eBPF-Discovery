@@ -18,6 +18,7 @@
 
 #include <cstdint>
 #include <string>
+#include <boost/describe.hpp>
 
 namespace service {
 
@@ -34,5 +35,7 @@ struct Service {
 			   externalClientsNumber == other.externalClientsNumber;
 	}
 };
+
+BOOST_DESCRIBE_STRUCT(Service, (), (pid, endpoint, domain, scheme, internalClientsNumber, externalClientsNumber))
 
 } // namespace service

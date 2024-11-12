@@ -17,7 +17,7 @@
 #include "ebpfdiscovery/Discovery.h"
 
 #include "ebpfdiscovery/Session.h"
-#include "ebpfdiscoveryproto/Translator.h"
+#include "ebpfdiscovery/Json.h"
 #include "logging/Logger.h"
 #include "service/IpAddress.h"
 
@@ -32,6 +32,7 @@
 #include <string>
 #include <string_view>
 #include <thread>
+#include <iostream>
 
 namespace ebpfdiscovery {
 
@@ -62,9 +63,8 @@ void Discovery::outputServicesToStdout() {
 		return;
 	}
 
-	const auto servicesProto{proto::internalToProto(services)};
-	const auto servicesJson{proto::protoToJson(servicesProto)};
-	std::cout << servicesJson << std::endl;
+
+	std::cout << toJson("services",services) << std::endl;
 	serviceAggregator.clear();
 }
 
