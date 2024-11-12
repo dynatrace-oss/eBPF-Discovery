@@ -20,3 +20,7 @@ add_executable(${TARGET} ${SOURCES})
 target_link_libraries(${TARGET} PRIVATE ebpfdiscovery)
 target_link_options(${TARGET} PRIVATE "-static-libgcc" "-static-libstdc++")
 target_compile_definitions(${TARGET} PUBLIC PROJECT_VERSION="${PROJECT_VERSION}")
+
+if (BUILD_TESTS)
+	add_test(NAME binary_dependencies COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/test/dependencies.sh $<TARGET_FILE:${TARGET}>)
+endif ()

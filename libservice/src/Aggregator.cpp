@@ -91,13 +91,13 @@ static void incrementServiceClientsNumber(
 				if (isIpv6) {
 					std::array<uint8_t, service::ipv6NetworkPrefixBytesLen> networkIPv6{};
 					std::memcpy(networkIPv6.data(), std::get<in6_addr>(clientAddrBinary).s6_addr, service::ipv6NetworkPrefixBytesLen);
-					service.detectedExternalIPv6Networks[networkIPv6] = currentTime;
+					service.externalIPv6ClientsNets[networkIPv6] = currentTime;
 				} else {
 					uint32_t network24 = (std::get<in_addr>(clientAddrBinary).s_addr & 0xFFFFFF);
-					service.detectedExternalIPv4_24Networks[network24] = currentTime;
+					service.externalIPv4_24ClientNets[network24] = currentTime;
 
 					uint32_t network16 = (std::get<in_addr>(clientAddrBinary).s_addr & 0xFFFF);
-					service.detectedExternalIPv4_16Networks[network16] = currentTime;
+					service.externalIPv4_16ClientNets[network16] = currentTime;
 				}
 			} catch (const std::bad_variant_access& e) {
 				LOG_TRACE("Bad variant access during network counters processing: {} (client address: {})", e.what(), clientAddr);
@@ -137,9 +137,9 @@ void Aggregator::clear() {
 	std::lock_guard<std::mutex> lock(servicesMutex);
 	if (enableNetworkCounters) {
 		for (auto it = services.begin(); it != services.end();) {
-			if (it->second.detectedExternalIPv4_16Networks.empty() &&
-				it->second.detectedExternalIPv4_24Networks.empty() &&
-				it->second.detectedExternalIPv6Networks.empty()) {
+			if (it->second.externalIPv4_16ClientNets.empty() &&
+				it->second.externalIPv4_24ClientNets.empty() &&
+				it->second.externalIPv6ClientsNets.empty()) {
 				it = services.erase(it);
 			} else {
 				it->second.externalClientsNumber = 0;
@@ -170,6 +170,7 @@ void Aggregator::newRequest(const httpparser::HttpRequest& request, const Discov
 std::vector<std::reference_wrapper<Service>> Aggregator::collectServices() {
 	std::lock_guard<std::mutex> lock(servicesMutex);
 	std::vector<std::reference_wrapper<Service>> servicesVec;
+
 	servicesVec.reserve(services.size());
 
 	for (auto& pair : services) {
@@ -183,36 +184,28 @@ void Aggregator::networkCountersCleaning() {
 	std::lock_guard<std::mutex> lock(servicesMutex);
 	for (auto& service : services) {
 		auto currentTime = getCurrentTime();
-		for (auto detectedExternalIPv416NetworksIt = service.second.detectedExternalIPv4_16Networks.begin(); detectedExternalIPv416NetworksIt != service.second.detectedExternalIPv4_16Networks.end();) {
+		for (auto detectedExternalIPv416NetworksIt = service.second.externalIPv4_16ClientNets.begin(); detectedExternalIPv416NetworksIt != service.second.externalIPv4_16ClientNets.end();) {
 			if (currentTime - detectedExternalIPv416NetworksIt->second >= retentionTime) {
-				detectedExternalIPv416NetworksIt = service.second.detectedExternalIPv4_16Networks.erase(detectedExternalIPv416NetworksIt);
+				detectedExternalIPv416NetworksIt = service.second.externalIPv4_16ClientNets.erase(detectedExternalIPv416NetworksIt);
 			} else {
 				++detectedExternalIPv416NetworksIt;
 			}
 		}
-		for (auto detectedExternalIPv424NetworksIt = service.second.detectedExternalIPv4_24Networks.begin(); detectedExternalIPv424NetworksIt != service.second.detectedExternalIPv4_24Networks.end();) {
+		for (auto detectedExternalIPv424NetworksIt = service.second.externalIPv4_24ClientNets.begin(); detectedExternalIPv424NetworksIt != service.second.externalIPv4_24ClientNets.end();) {
 			if (currentTime - detectedExternalIPv424NetworksIt->second >= retentionTime) {
-				detectedExternalIPv424NetworksIt = service.second.detectedExternalIPv4_24Networks.erase(detectedExternalIPv424NetworksIt);
+				detectedExternalIPv424NetworksIt = service.second.externalIPv4_24ClientNets.erase(detectedExternalIPv424NetworksIt);
 			} else {
 				++detectedExternalIPv424NetworksIt;
 			}
 		}
-		for (auto detectedExternalIPv6NetworksIt = service.second.detectedExternalIPv6Networks.begin(); detectedExternalIPv6NetworksIt != service.second.detectedExternalIPv6Networks.end();) {
-			if (currentTime - detectedExternalIPv6NetworksIt->second >= retentionTime) {
-				detectedExternalIPv6NetworksIt = service.second.detectedExternalIPv6Networks.erase(detectedExternalIPv6NetworksIt);
+		for (auto externalIPv6ClientsNetsIt = service.second.externalIPv6ClientsNets.begin(); externalIPv6ClientsNetsIt != service.second.externalIPv6ClientsNets.end();) {
+			if (currentTime - externalIPv6ClientsNetsIt->second >= retentionTime) {
+				externalIPv6ClientsNetsIt = service.second.externalIPv6ClientsNets.erase(externalIPv6ClientsNetsIt);
 			} else {
-				++detectedExternalIPv6NetworksIt;
+				++externalIPv6ClientsNetsIt;
 			}
 		}
 	}
-}
-
-std::mutex& Aggregator::getServicesMutex() {
-	return servicesMutex;
-}
-
-bool Aggregator::getEnableNetworkCounters() const {
-	return enableNetworkCounters;
 }
 
 std::chrono::time_point<std::chrono::steady_clock> Aggregator::getCurrentTime() const {

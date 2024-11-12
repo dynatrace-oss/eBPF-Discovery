@@ -16,6 +16,8 @@
 
 #pragma once
 
+#include <boost/describe.hpp>
+#include <boost/json.hpp>
 #include <chrono>
 #include <cstdint>
 #include <iostream>
@@ -26,7 +28,7 @@
 namespace service {
 
 struct ArrayHasher {
-	template<size_t N>
+	template <size_t N>
 	std::size_t operator()(const std::array<uint8_t, N>& array) const {
 		std::size_t hash = 0;
 		for (auto element : array) {
@@ -39,6 +41,11 @@ struct ArrayHasher {
 
 static constexpr uint8_t ipv6NetworkPrefixBytesLen = 6;
 struct Service {
+
+	using IPv6NetworksMap_t = std::
+			unordered_map<std::array<uint8_t, ipv6NetworkPrefixBytesLen>, std::chrono::time_point<std::chrono::steady_clock>, ArrayHasher>;
+	using IPv4NetworksMap_t = std::unordered_map<uint32_t, std::chrono::time_point<std::chrono::steady_clock>>;
+
 	uint32_t pid;
 	std::string endpoint;
 	std::string domain;
@@ -46,16 +53,47 @@ struct Service {
 	uint32_t internalClientsNumber{0u};
 	uint32_t externalClientsNumber{0u};
 
-	std::unordered_map<uint32_t, std::chrono::time_point<std::chrono::steady_clock>> detectedExternalIPv4_16Networks;
-	std::unordered_map<uint32_t, std::chrono::time_point<std::chrono::steady_clock>> detectedExternalIPv4_24Networks;
-	std::unordered_map<std::array<uint8_t, ipv6NetworkPrefixBytesLen>, std::chrono::time_point<std::chrono::steady_clock>, ArrayHasher> detectedExternalIPv6Networks;
+	IPv4NetworksMap_t externalIPv4_16ClientNets;
+	IPv4NetworksMap_t externalIPv4_24ClientNets;
+	IPv6NetworksMap_t externalIPv6ClientsNets;
 
 	bool operator==(const Service& other) const {
-		return pid == other.pid && endpoint == other.endpoint && domain == other.domain && scheme == other.scheme && internalClientsNumber == other.internalClientsNumber &&
-				externalClientsNumber == other.externalClientsNumber &&
-			   detectedExternalIPv4_16Networks == other.detectedExternalIPv4_16Networks &&
-			   detectedExternalIPv4_24Networks == other.detectedExternalIPv4_24Networks && detectedExternalIPv6Networks == other.detectedExternalIPv6Networks;
+		return pid == other.pid && endpoint == other.endpoint && domain == other.domain && scheme == other.scheme &&
+			   internalClientsNumber == other.internalClientsNumber && externalClientsNumber == other.externalClientsNumber &&
+			   externalIPv4_16ClientNets == other.externalIPv4_16ClientNets &&
+			   externalIPv4_24ClientNets == other.externalIPv4_24ClientNets && externalIPv6ClientsNets == other.externalIPv6ClientsNets;
 	}
 };
 
+BOOST_DESCRIBE_STRUCT(
+		Service,
+		(),
+		(pid,
+		 endpoint,
+		 domain,
+		 scheme,
+		 internalClientsNumber,
+		 externalClientsNumber,
+		 externalIPv4_16ClientNets,
+		 externalIPv4_24ClientNets,
+		 externalIPv6ClientsNets))
+
 } // namespace service
+
+namespace boost::json {
+inline void tag_invoke(value_from_tag, value& v, const service::Service::IPv6NetworksMap_t& map) {
+	if (map.empty()) {
+		v = value{};
+	} else {
+		v = json::value_from(map.size());
+	}
+}
+
+inline void tag_invoke(value_from_tag, value& v, const service::Service::IPv4NetworksMap_t& map) {
+	if (map.empty()) {
+		v = value{};
+	} else {
+		v = json::value_from(map.size());
+	}
+}
+} // namespace boost::json
