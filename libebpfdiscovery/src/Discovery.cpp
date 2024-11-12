@@ -35,7 +35,7 @@
 
 namespace ebpfdiscovery {
 
-Discovery::Discovery(const DiscoveryBpfFds& bpfFds) : bpfFds{bpfFds}, savedSessions{DISCOVERY_MAX_SESSIONS} {
+Discovery::Discovery(const DiscoveryBpfFds& bpfFds, const bool _enableNetworkCounters) : bpfFds{bpfFds}, savedSessions{DISCOVERY_MAX_SESSIONS}, serviceAggregator{ipChecker, _enableNetworkCounters} {
 }
 
 void Discovery::init() {
@@ -62,9 +62,17 @@ void Discovery::outputServicesToStdout() {
 		return;
 	}
 
-	const auto servicesProto{proto::internalToProto(services)};
-	const auto servicesJson{proto::protoToJson(servicesProto)};
-	std::cout << servicesJson << std::endl;
+	ServicesList servicesProto{};
+	bool isListEmpty = false;
+	{
+		std::lock_guard<std::mutex> lock(serviceAggregator.getServicesMutex());
+		std::tie(servicesProto, isListEmpty) = proto::internalToProto(services, serviceAggregator.getEnableNetworkCounters());
+	}
+	if (!isListEmpty) {
+		const auto servicesJson{proto::protoToJson(servicesProto)};
+		std::cout << servicesJson << std::endl;
+	}
+
 	serviceAggregator.clear();
 }
 
@@ -215,6 +223,9 @@ void Discovery::saveSession(const DiscoverySavedSessionKey& sessionKey, const Se
 
 int Discovery::bpfDiscoveryDeleteSession(const DiscoveryTrackedSessionKey& trackedSessionKey) {
 	return bpf_map_delete_elem(bpfFds.trackedSessionsMap, &trackedSessionKey);
+}
+void Discovery::networkCountersCleaning() {
+	serviceAggregator.networkCountersCleaning();
 }
 
 } // namespace ebpfdiscovery

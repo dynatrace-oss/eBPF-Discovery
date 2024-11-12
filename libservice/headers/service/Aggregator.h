@@ -51,14 +51,22 @@ private:
 	using ServiceStorage = std::unordered_map<ServiceKey, Service>;
 
 public:
-	Aggregator(const service::IpAddressChecker& ipChecker);
+	Aggregator(const service::IpAddressChecker& ipChecker, bool _enableNetworkCounters);
 
 	void clear();
 	void newRequest(const httpparser::HttpRequest& request, const DiscoverySessionMeta& meta);
 	std::vector<std::reference_wrapper<Service>> collectServices();
+	void networkCountersCleaning();
+	std::mutex& getServicesMutex();
+	bool getEnableNetworkCounters() const;
+
+protected:
+	virtual std::chrono::time_point<std::chrono::steady_clock> getCurrentTime() const;
 
 private:
 	const IpAddressChecker& ipChecker;
+
+	std::mutex servicesMutex{};
 	ServiceStorage services;
 };
 

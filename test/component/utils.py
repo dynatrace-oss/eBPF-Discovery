@@ -71,7 +71,9 @@ def get_discovered_service_json(discovery: subprocess.Popen, url: str) -> dict |
 
 
 def discovered_service_has_expected_clients(discovery: subprocess.Popen, url: str, expected_internal_clients: int,
-                                            expected_external_clients: int) -> bool:
+                                            expected_external_clients: int,
+                                            expected_external_ipv4_16_networks: int, expected_external_ipv4_24_networks: int,
+                                            expected_external_ipv6_networks: int) -> bool:
     service = get_discovered_service_json(discovery, url)
     if not service:
         logging.warning("No discovered service for endpoint {}".format(url))
@@ -84,6 +86,18 @@ def discovered_service_has_expected_clients(discovery: subprocess.Popen, url: st
             logging.warning("External clients number mismatch ({}!={}) for endpoint {}"
                             .format(service.get("externalClientsNumber", "0"), expected_external_clients, url))
             return False
+    if service.get("externalIPv4_16ClientNets", 0) != expected_external_ipv4_16_networks:
+        logging.warning("externalIPv4_16ClientNets number mismatch ({}!={}) for endpoint {}"
+                        .format(service.get("externalIPv4_16ClientNets", "0"), expected_external_ipv4_16_networks, url))
+        return False
+    if service.get("externalIPv4_24ClientNets", 0) != expected_external_ipv4_24_networks:
+        logging.warning("externalIPv4_24ClientNets number mismatch ({}!={}) for endpoint {}"
+                        .format(service.get("externalIPv4_24ClientNets", "0"), expected_external_ipv4_24_networks, url))
+        return False
+    if service.get("externalIPv6ClientsNets", 0) != expected_external_ipv6_networks:
+        logging.warning("externalIPv6ClientsNets number mismatch ({}!={}) for endpoint {}"
+                        .format(service.get("externalIPv6ClientsNets", "0"), expected_external_ipv6_networks, url))
+        return False
     return True
 
 

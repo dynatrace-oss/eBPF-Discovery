@@ -16,10 +16,25 @@
 
 #pragma once
 
+#include <chrono>
 #include <cstdint>
+#include <iostream>
 #include <string>
+#include <unordered_map>
+#include <vector>
 
 namespace service {
+
+struct ArrayHasher {
+	template<size_t N>
+	std::size_t operator()(const std::array<uint8_t, N>& array) const {
+		std::size_t hash = 0;
+		for (auto element : array) {
+			hash ^= std::hash<int>{}(element) + 0x9e3779b9 + (hash << 6) + (hash >> 2);
+		}
+		return hash;
+	}
+};
 
 struct Service {
 	uint32_t pid;
@@ -29,9 +44,14 @@ struct Service {
 	uint32_t internalClientsNumber{0u};
 	uint32_t externalClientsNumber{0u};
 
+	std::unordered_map<std::array<uint8_t, 2>, std::chrono::time_point<std::chrono::steady_clock>, ArrayHasher> detectedExternalIPv416Networks;
+	std::unordered_map<std::array<uint8_t, 3>, std::chrono::time_point<std::chrono::steady_clock>, ArrayHasher> detectedExternalIPv424Networks;
+	std::unordered_map<std::array<uint8_t, 10>, std::chrono::time_point<std::chrono::steady_clock>, ArrayHasher> detectedExternalIPv6Networks;
+
 	bool operator==(const Service& other) const {
 		return pid == other.pid && endpoint == other.endpoint && domain == other.domain && scheme == other.scheme && internalClientsNumber == other.internalClientsNumber &&
-			   externalClientsNumber == other.externalClientsNumber;
+				externalClientsNumber == other.externalClientsNumber && detectedExternalIPv416Networks == other.detectedExternalIPv416Networks &&
+				detectedExternalIPv424Networks == other.detectedExternalIPv424Networks && detectedExternalIPv6Networks == other.detectedExternalIPv6Networks;
 	}
 };
 

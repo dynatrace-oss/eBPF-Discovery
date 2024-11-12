@@ -23,7 +23,7 @@
 
 namespace proto {
 
-ServicesList internalToProto(const std::vector<std::reference_wrapper<service::Service>>& services);
+std::pair<ServicesList, bool> internalToProto(const std::vector<std::reference_wrapper<service::Service>>& services, const bool enableNetworkCounters);
 
 std::string protoToJson(const ServicesList& protoServices);
 

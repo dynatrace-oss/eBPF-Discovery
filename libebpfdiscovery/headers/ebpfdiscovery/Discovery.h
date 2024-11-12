@@ -39,7 +39,7 @@ using httpparser::HttpRequestParser;
 
 class Discovery {
 public:
-	Discovery(const DiscoveryBpfFds& bpfFds);
+	Discovery(const DiscoveryBpfFds& bpfFds, const bool _enableNetworkCounters);
 	Discovery(const Discovery&) = delete;
 	Discovery& operator=(const Discovery&) = delete;
 
@@ -47,6 +47,8 @@ public:
 
 	int fetchAndHandleEvents();
 	void outputServicesToStdout();
+
+	void networkCountersCleaning();
 
 private:
 	using SavedSessionsCacheType = LRUCache<DiscoverySavedSessionKey, Session, DiscoverySavedSessionKeyHash>;
@@ -73,7 +75,7 @@ private:
 	SavedSessionsCacheType savedSessions;
 	service::NetlinkCalls netlinkCalls;
 	service::IpAddressNetlinkChecker ipChecker{netlinkCalls};
-	service::Aggregator serviceAggregator{ipChecker};
+	service::Aggregator serviceAggregator;
 };
 
 } // namespace ebpfdiscovery
