@@ -51,6 +51,7 @@ elseif (${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm")
     set(ARCH "arm")
 elseif (${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64")
     set(ARCH "arm64")
+    set(PLATFORM_SPECIFIC_C_FLAGS "-march=armv8-a")
 elseif (${CMAKE_SYSTEM_PROCESSOR} MATCHES "ppc64le")
     set(ARCH "powerpc")
 elseif (${CMAKE_SYSTEM_PROCESSOR} MATCHES "mips")
@@ -63,10 +64,11 @@ endif ()
 
 set(COMMON_C_FLAGS ${COMMON_C_FLAGS} -D__TARGET_ARCH_${ARCH})
 add_compile_options(${COMMON_C_FLAGS})
+add_compile_options(${PLATFORM_SPECIFIC_C_FLAGS})
 
 set(BPF_C_FLAGS ${BPF_C_FLAGS} ${COMMON_C_FLAGS} -D__TARGET_BPF)
 
-set(EXTRA_COMPILE_FLAGS -Wall -Wextra -Wno-unused-parameter -Wno-unused-value -Wno-missing-field-initializers)
+set(EXTRA_COMPILE_FLAGS -Wall -Wextra -Wno-unused-parameter -Wno-unused-value -Wno-missing-field-initializers ${PLATFORM_SPECIFIC_C_FLAGS})
 # Set DEBUG macro in debug build
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     set(EXTRA_COMPILE_FLAGS ${EXTRA_COMPILE_FLAGS} -DDEBUG)
