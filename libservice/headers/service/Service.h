@@ -36,6 +36,7 @@ struct ArrayHasher {
 	}
 };
 
+static constexpr uint8_t ipv6NetworkPrefixBytesLen = 6;
 struct Service {
 	uint32_t pid;
 	std::string endpoint;
@@ -44,9 +45,9 @@ struct Service {
 	uint32_t internalClientsNumber{0u};
 	uint32_t externalClientsNumber{0u};
 
-	std::unordered_map<std::array<uint8_t, 2>, std::chrono::time_point<std::chrono::steady_clock>, ArrayHasher> detectedExternalIPv416Networks;
-	std::unordered_map<std::array<uint8_t, 3>, std::chrono::time_point<std::chrono::steady_clock>, ArrayHasher> detectedExternalIPv424Networks;
-	std::unordered_map<std::array<uint8_t, 10>, std::chrono::time_point<std::chrono::steady_clock>, ArrayHasher> detectedExternalIPv6Networks;
+	std::unordered_map<uint32_t, std::chrono::time_point<std::chrono::steady_clock>> detectedExternalIPv416Networks;
+	std::unordered_map<uint32_t, std::chrono::time_point<std::chrono::steady_clock>> detectedExternalIPv424Networks;
+	std::unordered_map<std::array<uint8_t, ipv6NetworkPrefixBytesLen>, std::chrono::time_point<std::chrono::steady_clock>, ArrayHasher> detectedExternalIPv6Networks;
 
 	bool operator==(const Service& other) const {
 		return pid == other.pid && endpoint == other.endpoint && domain == other.domain && scheme == other.scheme && internalClientsNumber == other.internalClientsNumber &&

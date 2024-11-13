@@ -89,8 +89,8 @@ static void incrementServiceClientsNumber(
 		if (enableNetworkCounters) {
 			try {
 				if (isIpv6) {
-					std::array<uint8_t, 10> networkIPv6{};
-					std::memcpy(networkIPv6.data(), std::get<in6_addr>(clientAddrBinary).s6_addr, 10);
+					std::array<uint8_t, service::ipv6NetworkPrefixBytesLen> networkIPv6{};
+					std::memcpy(networkIPv6.data(), std::get<in6_addr>(clientAddrBinary).s6_addr, service::ipv6NetworkPrefixBytesLen);
 
 					if (auto it = service.detectedExternalIPv6Networks.find(networkIPv6); it != service.detectedExternalIPv6Networks.end()) {
 						it->second = currentTime;
@@ -98,14 +98,14 @@ static void incrementServiceClientsNumber(
 						service.detectedExternalIPv6Networks[networkIPv6] = currentTime;
 					}
 				} else {
-					std::array<uint8_t, 3> network24 = {static_cast<uint8_t>(std::get<in_addr>(clientAddrBinary).s_addr & 0xFF), static_cast<uint8_t>((std::get<in_addr>(clientAddrBinary).s_addr >> 8) & 0xFF), static_cast<uint8_t>((std::get<in_addr>(clientAddrBinary).s_addr >> 16) & 0xFF)};
+					uint32_t network24 = (std::get<in_addr>(clientAddrBinary).s_addr & 0xFFFFFF);
 					if (auto it = service.detectedExternalIPv424Networks.find(network24); it != service.detectedExternalIPv424Networks.end()) {
 						it->second = currentTime;
 					} else {
 						service.detectedExternalIPv424Networks[network24] = currentTime;
 					}
 
-					std::array<uint8_t, 2> network16 =  {network24[0], network24[1]};
+					uint32_t network16 = (std::get<in_addr>(clientAddrBinary).s_addr & 0xFFFF);
 					if (auto it = service.detectedExternalIPv416Networks.find(network16); it != service.detectedExternalIPv416Networks.end()) {
 						it->second = currentTime;
 					} else {

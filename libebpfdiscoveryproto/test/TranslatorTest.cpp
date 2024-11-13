@@ -32,11 +32,11 @@ TEST_F(ProtobufTranslatorTest, successfulTranslationToJson) {
 	service::Service service4{.pid = 4, .endpoint = "google.com/endpoint/3", .domain = "google.com", .scheme = "http", .internalClientsNumber = 1, .externalClientsNumber = 2};
 	service::Service service5{.pid = 5, .endpoint = "dynatrace.com/endpoint/4", .domain = "dynatrace.com", .scheme = "https", .internalClientsNumber = 1, .externalClientsNumber = 2};
 
-	internalServices.push_back(service1);
-	internalServices.push_back(service2);
-	internalServices.push_back(service3);
-	internalServices.push_back(service4);
-	internalServices.push_back(service5);
+	internalServices.emplace_back(service1);
+	internalServices.emplace_back(service2);
+	internalServices.emplace_back(service3);
+	internalServices.emplace_back(service4);
+	internalServices.emplace_back(service5);
 
 	const auto proto{internalToProto(internalServices, false)};
 	ASSERT_FALSE(proto.second);
@@ -51,18 +51,18 @@ TEST_F(ProtobufTranslatorTest, successfulTranslationToJson) {
 }
 
 TEST_F(ProtobufTranslatorTest, successfulTranslationToJsonNetworkCounters) {
-	std::unordered_map<std::array<uint8_t, 2>, std::chrono::time_point<std::chrono::steady_clock>, service::ArrayHasher> detectedExternalIPv416Networks = {
-			{{0xAC, 0x8F}, std::chrono::steady_clock::now()},
-			{{0xAC, 0xC7}, std::chrono::steady_clock::now()}
+	std::unordered_map<uint32_t, std::chrono::time_point<std::chrono::steady_clock>> detectedExternalIPv416Networks = {
+			{0xAC8F, std::chrono::steady_clock::now()},
+			{0xACC7, std::chrono::steady_clock::now()}
 	};
-	std::unordered_map<std::array<uint8_t, 3>, std::chrono::time_point<std::chrono::steady_clock>, service::ArrayHasher> detectedExternalIPv424Networks = {
-			{{0xAC, 0x8F, 0x04}, std::chrono::steady_clock::now()},
-			{{0xAC, 0x8F, 0x06}, std::chrono::steady_clock::now()},
-			{{0xAC, 0xC7, 0x2D}, std::chrono::steady_clock::now()}
+	std::unordered_map<uint32_t, std::chrono::time_point<std::chrono::steady_clock>> detectedExternalIPv424Networks = {
+			{0xAC8F04, std::chrono::steady_clock::now()},
+			{0xAC8F06, std::chrono::steady_clock::now()},
+			{0xACC72D, std::chrono::steady_clock::now()}
 	};
-	std::unordered_map<std::array<uint8_t, 10>, std::chrono::time_point<std::chrono::steady_clock>, service::ArrayHasher> detectedExternalIPv6Networks = {
-			{{0x20, 0x01, 0x48, 0x60, 0x48, 0x60, 0x00, 0x00, 0x00, 0x00}, std::chrono::steady_clock::now()},
-			{{0x12, 0x34, 0x23, 0x45, 0x34, 0x56, 0x45, 0x67, 0x56, 0x78}, std::chrono::steady_clock::now()}
+	std::unordered_map<std::array<uint8_t, service::ipv6NetworkPrefixBytesLen>, std::chrono::time_point<std::chrono::steady_clock>, service::ArrayHasher> detectedExternalIPv6Networks = {
+			{{0x20, 0x01, 0x48, 0x60, 0x48, 0x60}, std::chrono::steady_clock::now()},
+			{{0x12, 0x34, 0x23, 0x45, 0x34, 0x56}, std::chrono::steady_clock::now()}
 	};
 
 	std::vector<std::reference_wrapper<service::Service>> internalServices;
@@ -73,11 +73,11 @@ TEST_F(ProtobufTranslatorTest, successfulTranslationToJsonNetworkCounters) {
 	service::Service service4{.pid = 4, .endpoint = "google.com/endpoint/3", .domain = "google.com", .scheme = "http", .internalClientsNumber = 1, .externalClientsNumber = 2, .detectedExternalIPv6Networks = detectedExternalIPv6Networks};
 	service::Service service5{.pid = 5, .endpoint = "dynatrace.com/endpoint/4", .domain = "dynatrace.com", .scheme = "https", .internalClientsNumber = 1, .externalClientsNumber = 2, .detectedExternalIPv6Networks = detectedExternalIPv6Networks};
 
-	internalServices.push_back(service1);
-	internalServices.push_back(service2);
-	internalServices.push_back(service3);
-	internalServices.push_back(service4);
-	internalServices.push_back(service5);
+	internalServices.emplace_back(service1);
+	internalServices.emplace_back(service2);
+	internalServices.emplace_back(service3);
+	internalServices.emplace_back(service4);
+	internalServices.emplace_back(service5);
 
 	const auto proto{internalToProto(internalServices, true)};
 	ASSERT_FALSE(proto.second);

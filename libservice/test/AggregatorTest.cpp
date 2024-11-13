@@ -231,18 +231,18 @@ TEST_F(ServiceAggregatorTest, aggregateNetworkCounters) {
 		aggregator.newRequest(request.first, request.second);
 	}
 
-	const std::unordered_map<std::array<uint8_t, 2>, std::chrono::time_point<std::chrono::steady_clock>, service::ArrayHasher> detectedExternalIPv416Networks = {
-			{{0xAC, 0x8F}, std::chrono::time_point<std::chrono::steady_clock>{}},
-			{{0xAC, 0xC7}, std::chrono::time_point<std::chrono::steady_clock>{}}
+	const std::unordered_map<uint32_t, std::chrono::time_point<std::chrono::steady_clock>> detectedExternalIPv416Networks = {
+			{0x8FAC, std::chrono::time_point<std::chrono::steady_clock>{}},
+			{0xC7AC, std::chrono::time_point<std::chrono::steady_clock>{}}
 	};
-	const std::unordered_map<std::array<uint8_t, 3>, std::chrono::time_point<std::chrono::steady_clock>, service::ArrayHasher> detectedExternalIPv424Networks = {
-			{{0xAC, 0x8F, 0x04}, std::chrono::time_point<std::chrono::steady_clock>{}},
-			{{0xAC, 0x8F, 0x06}, std::chrono::time_point<std::chrono::steady_clock>{}},
-			{{0xAC, 0xC7, 0x2D}, std::chrono::time_point<std::chrono::steady_clock>{}}
+	const std::unordered_map<uint32_t, std::chrono::time_point<std::chrono::steady_clock>> detectedExternalIPv424Networks = {
+			{0x048FAC, std::chrono::time_point<std::chrono::steady_clock>{}},
+			{0x068FAC, std::chrono::time_point<std::chrono::steady_clock>{}},
+			{0x2DC7AC, std::chrono::time_point<std::chrono::steady_clock>{}}
 	};
-	const std::unordered_map<std::array<uint8_t, 10>, std::chrono::time_point<std::chrono::steady_clock>, service::ArrayHasher> detectedExternalIPv6Networks = {
-			{{0x20, 0x01, 0x48, 0x60, 0x48, 0x60, 0x00, 0x00, 0x00, 0x00}, std::chrono::time_point<std::chrono::steady_clock>{}},
-			{{0x12, 0x34, 0x23, 0x45, 0x34, 0x56, 0x45, 0x67, 0x56, 0x78}, std::chrono::time_point<std::chrono::steady_clock>{}}
+	const std::unordered_map<std::array<uint8_t, service::ipv6NetworkPrefixBytesLen>, std::chrono::time_point<std::chrono::steady_clock>, service::ArrayHasher> detectedExternalIPv6Networks = {
+			{{0x20, 0x01, 0x48, 0x60, 0x48, 0x60}, std::chrono::time_point<std::chrono::steady_clock>{}},
+			{{0x12, 0x34, 0x23, 0x45, 0x34, 0x56}, std::chrono::time_point<std::chrono::steady_clock>{}}
 	};
 
 	{

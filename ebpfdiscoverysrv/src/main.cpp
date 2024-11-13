@@ -27,7 +27,6 @@
 #include <csignal>
 #include <future>
 #include <chrono>
-#include <thread>
 
 #include <sys/stat.h>
 
