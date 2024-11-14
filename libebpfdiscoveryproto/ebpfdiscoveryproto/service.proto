@@ -27,4 +27,7 @@ message Service {
   string scheme = 4;
   uint32 internalClientsNumber = 5;
   uint32 externalClientsNumber = 6;
+  uint32 externalIPv4_16ClientNets = 7;
+  uint32 externalIPv4_24ClientNets = 8;
+  uint32 externalIPv6ClientsNets = 9;
 }

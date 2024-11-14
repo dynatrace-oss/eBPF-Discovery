@@ -20,11 +20,17 @@
 
 namespace proto {
 
-ServicesList internalToProto(const std::vector<std::reference_wrapper<service::Service>>& services) {
+std::pair<ServicesList, bool> internalToProto(const std::vector<std::reference_wrapper<service::Service>>& services, const bool enableNetworkCounters) {
 	ServicesList protoServicesList;
+	bool isListEmpty = true;
 	for (const auto& serviceRef : services) {
-		const auto protoService{protoServicesList.add_service()};
 		const auto& service{serviceRef.get()};
+
+		if (service.internalClientsNumber == 0 && service.externalClientsNumber == 0) {
+			continue;
+		}
+
+		const auto protoService{protoServicesList.add_service()};
 
 		protoService->set_pid(service.pid);
 		protoService->set_endpoint(service.endpoint);
@@ -32,8 +38,15 @@ ServicesList internalToProto(const std::vector<std::reference_wrapper<service::S
 		protoService->set_scheme(service.scheme);
 		protoService->set_internalclientsnumber(service.internalClientsNumber);
 		protoService->set_externalclientsnumber(service.externalClientsNumber);
+		if (enableNetworkCounters) {
+			protoService->set_externalipv4_16clientnets(service.detectedExternalIPv4_16Networks.size());
+			protoService->set_externalipv4_24clientnets(service.detectedExternalIPv4_24Networks.size());
+			protoService->set_externalipv6clientsnets(service.detectedExternalIPv6Networks.size());
+		}
+
+		isListEmpty = false;
 	}
-	return protoServicesList;
+	return {protoServicesList, isListEmpty};
 }
 
 std::string protoToJson(const ServicesList& protoServices) {

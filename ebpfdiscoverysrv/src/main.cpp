@@ -27,7 +27,6 @@
 #include <csignal>
 #include <future>
 #include <chrono>
-#include <thread>
 
 #include <sys/stat.h>
 
@@ -52,6 +51,7 @@ static po::options_description getProgramOptions() {
       ("log-no-stdout", po::bool_switch()->default_value(false), "Disable logging to stdout")
       ("version", "Display program version")
       ("interval", po::value<int>()->default_value(60), "Services reporting time interval (in seconds)")
+      ("enable-network-counters", po::bool_switch()->default_value(false), "Enable network counters")
   ;
 	// clang-format on
 
@@ -164,8 +164,10 @@ int main(int argc, char** argv) {
 		return EXIT_FAILURE;
 	}
 
+	const bool enableNetworkCounters{vm["enable-network-counters"].as<bool>()};
+
 	const auto bpfFds{discoveryBpf.getFds()};
-	ebpfdiscovery::Discovery instance(bpfFds);
+	ebpfdiscovery::Discovery instance(bpfFds, enableNetworkCounters);
 	try {
 		instance.init();
 	} catch (const std::runtime_error& e) {
@@ -196,6 +198,14 @@ int main(int argc, char** argv) {
 		}
 	});
 
+	std::future<void> networkCountersCleaningFuture{};
+	if (enableNetworkCounters) {
+		auto networkCountersCleaningInterval{std::chrono::minutes(1)};
+		networkCountersCleaningFuture = std::async(std::launch::async, periodicTask, networkCountersCleaningInterval, [&instance]() {
+			instance.networkCountersCleaning();
+		});
+	}
+
 	auto outputServicesToStdoutInterval{std::chrono::seconds(vm["interval"].as<int>())};
 	auto outputServicesToStdoutFuture = std::async(std::launch::async, periodicTask, outputServicesToStdoutInterval, [&](){ instance.outputServicesToStdout(); });
 
@@ -210,6 +220,9 @@ int main(int argc, char** argv) {
 	}
 	if(featchAndHandleEventsFuture.valid()) {
 		featchAndHandleEventsFuture.wait();
+	}
+	if(enableNetworkCounters && networkCountersCleaningFuture.valid()) {
+		networkCountersCleaningFuture.wait();
 	}
 
 	programRunningFlag = false;

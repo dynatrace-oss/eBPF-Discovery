@@ -105,6 +105,32 @@ def run_ebpf_discovery(discovery_path, log_dir):
     assert not exit_code, "eBPF Discovery returned exit code: {}".format(exit_code)
 
 
+@pytest.fixture(scope="function")
+def run_ebpf_discovery_with_network_counters(discovery_path, log_dir):
+    args = (discovery_path, "--interval", "2", "--log-no-stdout", "--log-dir", log_dir,
+            "--log-level", "debug", "--enable-network-counters")
+    discovery = subprocess.Popen(args, stdout=subprocess.PIPE)
+    sleep(0.2)  # delay to avoid sending requests before ebpf_discovery is responsive
+    yield discovery
+
+    discovery.terminate()
+    while discovery.poll() is None:
+        sleep(0.2)
+
+    log_files = glob.glob(log_dir + f'/*{discovery.pid}.log')
+    assert log_files != [], "eBPF Discovery didn't produce any log files"
+
+    print() # https://github.com/pytest-dev/pytest/issues/8574
+    logging.info("eBPF Discovery produced logs:")
+    for file in log_files:
+        with open(file, 'r') as f:
+            content = f.read()
+            logging.info("{} content:\n{}".format(file, content.strip()))
+
+    exit_code = discovery.returncode
+    assert not exit_code, "eBPF Discovery returned exit code: {}".format(exit_code)
+
+
 @pytest.fixture(scope="function", params=["http", "https"])
 def run_http_service(request, http_server_port):
     ip_addr = "127.0.0.1"
