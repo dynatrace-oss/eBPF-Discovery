@@ -66,9 +66,9 @@ TEST_F(ProtobufTranslatorTest, successfulTranslationToJsonNetworkCounters) {
 	};
 
 	std::vector<std::reference_wrapper<service::Service>> internalServices;
-	service::Service service1{.pid = 1, .endpoint = "/endpoint/1", .internalClientsNumber = 1, .externalClientsNumber = 3, .detectedExternalIPv416Networks = detectedExternalIPv416Networks, .detectedExternalIPv424Networks = detectedExternalIPv424Networks};
-	service::Service service2{.pid = 2, .endpoint = "/endpoint/1", .internalClientsNumber = 1, .externalClientsNumber = 3, .detectedExternalIPv416Networks = detectedExternalIPv416Networks, .detectedExternalIPv424Networks = detectedExternalIPv424Networks};
-	service::Service service3{.pid = 3, .endpoint = "/endpoint/2", .internalClientsNumber = 1, .externalClientsNumber = 3, .detectedExternalIPv416Networks = detectedExternalIPv416Networks, .detectedExternalIPv424Networks = detectedExternalIPv424Networks};
+	service::Service service1{.pid = 1, .endpoint = "/endpoint/1", .internalClientsNumber = 1, .externalClientsNumber = 3, .detectedExternalIPv4_16Networks = detectedExternalIPv416Networks, .detectedExternalIPv4_24Networks = detectedExternalIPv424Networks};
+	service::Service service2{.pid = 2, .endpoint = "/endpoint/1", .internalClientsNumber = 1, .externalClientsNumber = 3, .detectedExternalIPv4_16Networks = detectedExternalIPv416Networks, .detectedExternalIPv4_24Networks = detectedExternalIPv424Networks};
+	service::Service service3{.pid = 3, .endpoint = "/endpoint/2", .internalClientsNumber = 1, .externalClientsNumber = 3, .detectedExternalIPv4_16Networks = detectedExternalIPv416Networks, .detectedExternalIPv4_24Networks = detectedExternalIPv424Networks};
 
 	service::Service service4{.pid = 4, .endpoint = "google.com/endpoint/3", .domain = "google.com", .scheme = "http", .internalClientsNumber = 1, .externalClientsNumber = 2, .detectedExternalIPv6Networks = detectedExternalIPv6Networks};
 	service::Service service5{.pid = 5, .endpoint = "dynatrace.com/endpoint/4", .domain = "dynatrace.com", .scheme = "https", .internalClientsNumber = 1, .externalClientsNumber = 2, .detectedExternalIPv6Networks = detectedExternalIPv6Networks};

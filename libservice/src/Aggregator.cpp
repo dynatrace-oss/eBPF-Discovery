@@ -28,16 +28,16 @@ static std::string getEndpoint(const std::string& host, const std::string& url) 
 	return host + url;
 }
 
-static bool isIpv4ClientExternal(const IpAddressChecker& ipChecker, const std::variant<in_addr, in6_addr>& clientAddrBinary) {
-	return ipChecker.isV4AddressExternal(std::get<in_addr>(clientAddrBinary).s_addr);
+static bool isIpv4ClientExternal(const IpAddressChecker& ipChecker, const in_addr& clientAddrBinary) {
+	return ipChecker.isV4AddressExternal(clientAddrBinary.s_addr);
 }
 
-static bool isIpv6ClientExternal(const IpAddressChecker& ipChecker, const std::variant<in_addr, in6_addr>& clientAddrBinary) {
-	return ipChecker.isV6AddressExternal(std::get<in6_addr>(clientAddrBinary));
+static bool isIpv6ClientExternal(const IpAddressChecker& ipChecker, const in6_addr& clientAddrBinary) {
+	return ipChecker.isV6AddressExternal(clientAddrBinary);
 }
 
 static bool isClientExternal(const IpAddressChecker& ipChecker, const std::variant<in_addr, in6_addr>& clientAddrBinary, bool isIpv6) {
-	return isIpv6 ? isIpv6ClientExternal(ipChecker, clientAddrBinary) : isIpv4ClientExternal(ipChecker, clientAddrBinary);
+	return isIpv6 ? isIpv6ClientExternal(ipChecker, std::get<in6_addr>(clientAddrBinary)) : isIpv4ClientExternal(ipChecker, std::get<in_addr>(clientAddrBinary));
 }
 
 static bool enableNetworkCounters;
@@ -91,26 +91,13 @@ static void incrementServiceClientsNumber(
 				if (isIpv6) {
 					std::array<uint8_t, service::ipv6NetworkPrefixBytesLen> networkIPv6{};
 					std::memcpy(networkIPv6.data(), std::get<in6_addr>(clientAddrBinary).s6_addr, service::ipv6NetworkPrefixBytesLen);
-
-					if (auto it = service.detectedExternalIPv6Networks.find(networkIPv6); it != service.detectedExternalIPv6Networks.end()) {
-						it->second = currentTime;
-					} else {
-						service.detectedExternalIPv6Networks[networkIPv6] = currentTime;
-					}
+					service.detectedExternalIPv6Networks[networkIPv6] = currentTime;
 				} else {
 					uint32_t network24 = (std::get<in_addr>(clientAddrBinary).s_addr & 0xFFFFFF);
-					if (auto it = service.detectedExternalIPv424Networks.find(network24); it != service.detectedExternalIPv424Networks.end()) {
-						it->second = currentTime;
-					} else {
-						service.detectedExternalIPv424Networks[network24] = currentTime;
-					}
+					service.detectedExternalIPv4_24Networks[network24] = currentTime;
 
 					uint32_t network16 = (std::get<in_addr>(clientAddrBinary).s_addr & 0xFFFF);
-					if (auto it = service.detectedExternalIPv416Networks.find(network16); it != service.detectedExternalIPv416Networks.end()) {
-						it->second = currentTime;
-					} else {
-						service.detectedExternalIPv416Networks[network16] = currentTime;
-					}
+					service.detectedExternalIPv4_16Networks[network16] = currentTime;
 				}
 			} catch (const std::bad_variant_access& e) {
 				LOG_TRACE("Bad variant access during network counters processing: {} (client address: {})", e.what(), clientAddr);
@@ -150,8 +137,8 @@ void Aggregator::clear() {
 	std::lock_guard<std::mutex> lock(servicesMutex);
 	if (enableNetworkCounters) {
 		for (auto it = services.begin(); it != services.end();) {
-			if (it->second.detectedExternalIPv416Networks.empty() &&
-				it->second.detectedExternalIPv424Networks.empty() &&
+			if (it->second.detectedExternalIPv4_16Networks.empty() &&
+				it->second.detectedExternalIPv4_24Networks.empty() &&
 				it->second.detectedExternalIPv6Networks.empty()) {
 				it = services.erase(it);
 			} else {
@@ -192,25 +179,26 @@ std::vector<std::reference_wrapper<Service>> Aggregator::collectServices() {
 	return servicesVec;
 }
 void Aggregator::networkCountersCleaning() {
+	const auto retentionTime = std::chrono::hours(1);
 	std::lock_guard<std::mutex> lock(servicesMutex);
 	for (auto& service : services) {
 		auto currentTime = getCurrentTime();
-		for (auto detectedExternalIPv416NetworksIt = service.second.detectedExternalIPv416Networks.begin(); detectedExternalIPv416NetworksIt != service.second.detectedExternalIPv416Networks.end();) {
-			if (currentTime - detectedExternalIPv416NetworksIt->second >= std::chrono::hours(1)) {
-				detectedExternalIPv416NetworksIt = service.second.detectedExternalIPv416Networks.erase(detectedExternalIPv416NetworksIt);
+		for (auto detectedExternalIPv416NetworksIt = service.second.detectedExternalIPv4_16Networks.begin(); detectedExternalIPv416NetworksIt != service.second.detectedExternalIPv4_16Networks.end();) {
+			if (currentTime - detectedExternalIPv416NetworksIt->second >= retentionTime) {
+				detectedExternalIPv416NetworksIt = service.second.detectedExternalIPv4_16Networks.erase(detectedExternalIPv416NetworksIt);
 			} else {
 				++detectedExternalIPv416NetworksIt;
 			}
 		}
-		for (auto detectedExternalIPv424NetworksIt = service.second.detectedExternalIPv424Networks.begin(); detectedExternalIPv424NetworksIt != service.second.detectedExternalIPv424Networks.end();) {
-			if (currentTime - detectedExternalIPv424NetworksIt->second >= std::chrono::hours(1)) {
-				detectedExternalIPv424NetworksIt = service.second.detectedExternalIPv424Networks.erase(detectedExternalIPv424NetworksIt);
+		for (auto detectedExternalIPv424NetworksIt = service.second.detectedExternalIPv4_24Networks.begin(); detectedExternalIPv424NetworksIt != service.second.detectedExternalIPv4_24Networks.end();) {
+			if (currentTime - detectedExternalIPv424NetworksIt->second >= retentionTime) {
+				detectedExternalIPv424NetworksIt = service.second.detectedExternalIPv4_24Networks.erase(detectedExternalIPv424NetworksIt);
 			} else {
 				++detectedExternalIPv424NetworksIt;
 			}
 		}
 		for (auto detectedExternalIPv6NetworksIt = service.second.detectedExternalIPv6Networks.begin(); detectedExternalIPv6NetworksIt != service.second.detectedExternalIPv6Networks.end();) {
-			if (currentTime - detectedExternalIPv6NetworksIt->second >= std::chrono::hours(1)) {
+			if (currentTime - detectedExternalIPv6NetworksIt->second >= retentionTime) {
 				detectedExternalIPv6NetworksIt = service.second.detectedExternalIPv6Networks.erase(detectedExternalIPv6NetworksIt);
 			} else {
 				++detectedExternalIPv6NetworksIt;

@@ -26,7 +26,7 @@ using namespace service;
 namespace service {
 void PrintTo(const Service& service, std::ostream* os) {
 	*os << "(" << service.pid << ", " << service.endpoint << ", " << service.internalClientsNumber << ", " << service.externalClientsNumber
-		<< ", " << service.detectedExternalIPv416Networks.size() << ", " << service.detectedExternalIPv424Networks.size() << ", " << service.detectedExternalIPv6Networks.size()
+		<< ", " << service.detectedExternalIPv4_16Networks.size() << ", " << service.detectedExternalIPv4_24Networks.size() << ", " << service.detectedExternalIPv6Networks.size()
 		<< ")";
 }
 } // namespace service
@@ -249,8 +249,8 @@ TEST_F(ServiceAggregatorTest, aggregateNetworkCounters) {
 		auto services{aggregator.collectServices()};
 		EXPECT_EQ(services.size(), 2);
 
-		Service expectedService{.pid = 100, .endpoint{"host/url"}, .domain = "host", .scheme = "http", .internalClientsNumber = 0, .externalClientsNumber = 5, .detectedExternalIPv416Networks = detectedExternalIPv416Networks, .detectedExternalIPv424Networks = detectedExternalIPv424Networks, .detectedExternalIPv6Networks = detectedExternalIPv6Networks};
-		Service expectedService2{.pid = 200, .endpoint{"host/url"}, .domain = "host", .scheme = "https", .internalClientsNumber = 0, .externalClientsNumber = 5, .detectedExternalIPv416Networks = detectedExternalIPv416Networks, .detectedExternalIPv424Networks = detectedExternalIPv424Networks, .detectedExternalIPv6Networks = detectedExternalIPv6Networks};
+		Service expectedService{.pid = 100, .endpoint{"host/url"}, .domain = "host", .scheme = "http", .internalClientsNumber = 0, .externalClientsNumber = 5, .detectedExternalIPv4_16Networks = detectedExternalIPv416Networks, .detectedExternalIPv4_24Networks = detectedExternalIPv424Networks, .detectedExternalIPv6Networks = detectedExternalIPv6Networks};
+		Service expectedService2{.pid = 200, .endpoint{"host/url"}, .domain = "host", .scheme = "https", .internalClientsNumber = 0, .externalClientsNumber = 5, .detectedExternalIPv4_16Networks = detectedExternalIPv416Networks, .detectedExternalIPv4_24Networks = detectedExternalIPv424Networks, .detectedExternalIPv6Networks = detectedExternalIPv6Networks};
 
 		std::vector<Service> servicesCopy;
 		std::transform(services.begin(), services.end(), std::back_inserter(servicesCopy), [](const auto& ref) { return ref.get(); });
@@ -269,8 +269,8 @@ TEST_F(ServiceAggregatorTest, aggregateNetworkCounters) {
 
 		for (const auto& service : collectedServices) {
 			EXPECT_EQ(service.get().externalClientsNumber, 0);
-			EXPECT_EQ(service.get().detectedExternalIPv416Networks.size(), 2);
-			EXPECT_EQ(service.get().detectedExternalIPv424Networks.size(), 3);
+			EXPECT_EQ(service.get().detectedExternalIPv4_16Networks.size(), 2);
+			EXPECT_EQ(service.get().detectedExternalIPv4_24Networks.size(), 3);
 			EXPECT_EQ(service.get().detectedExternalIPv6Networks.size(), 2);
 		}
 	}

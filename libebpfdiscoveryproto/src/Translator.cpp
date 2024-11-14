@@ -39,8 +39,8 @@ std::pair<ServicesList, bool> internalToProto(const std::vector<std::reference_w
 		protoService->set_internalclientsnumber(service.internalClientsNumber);
 		protoService->set_externalclientsnumber(service.externalClientsNumber);
 		if (enableNetworkCounters) {
-			protoService->set_externalipv4_16clientnets(service.detectedExternalIPv416Networks.size());
-			protoService->set_externalipv4_24clientnets(service.detectedExternalIPv424Networks.size());
+			protoService->set_externalipv4_16clientnets(service.detectedExternalIPv4_16Networks.size());
+			protoService->set_externalipv4_24clientnets(service.detectedExternalIPv4_24Networks.size());
 			protoService->set_externalipv6clientsnets(service.detectedExternalIPv6Networks.size());
 		}
 

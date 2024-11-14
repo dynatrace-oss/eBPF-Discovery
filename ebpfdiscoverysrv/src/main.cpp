@@ -221,7 +221,7 @@ int main(int argc, char** argv) {
 	if(featchAndHandleEventsFuture.valid()) {
 		featchAndHandleEventsFuture.wait();
 	}
-	if(!enableNetworkCounters && networkCountersCleaningFuture.valid()) {
+	if(enableNetworkCounters && networkCountersCleaningFuture.valid()) {
 		networkCountersCleaningFuture.wait();
 	}
 
