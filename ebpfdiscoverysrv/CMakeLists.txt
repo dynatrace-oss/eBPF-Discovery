@@ -20,3 +20,7 @@ add_executable(${TARGET} ${SOURCES})
 target_link_libraries(${TARGET} PRIVATE ebpfdiscovery)
 target_link_options(${TARGET} PRIVATE "-static-libgcc" "-static-libstdc++")
 target_compile_definitions(${TARGET} PUBLIC PROJECT_VERSION="${PROJECT_VERSION}")
+
+add_custom_command(TARGET ${TARGET} POST_BUILD
+    COMMAND objdump -p $<TARGET_FILE:${TARGET}>
+)
