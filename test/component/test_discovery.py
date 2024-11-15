@@ -102,8 +102,8 @@ def test_request_forwarded_to_local_interface_with_public_ip(network_interfaces,
                                                    expected_external_ipv4_24_networks=0,
                                                    expected_external_ipv6_networks=0)
 
-@pytest.mark.parametrize('network_interfaces', [[('dummy', 'eth16', '113.56.3.22', 16)]], indirect=True)
-def test_request_forwarded_to_public_ip_matching_local_interface_mask(network_interfaces, run_ebpf_discovery, run_http_service):
+@pytest.mark.parametrize('network_interfaces', [[('dummy', 'eth16', '113.56.3.22', 24)]], indirect=True)
+def test_request_forwarded_to_public_ip_not_matching_local_interface_mask(network_interfaces, run_ebpf_discovery, run_http_service):
     url = run_http_service + "/forwarded"
     send_http_requests(url, 1, "113.56.1.57:8080")
     assert discovered_service_has_expected_clients(run_ebpf_discovery, url,

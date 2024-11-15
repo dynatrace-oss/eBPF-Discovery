@@ -16,21 +16,20 @@
 
 #pragma once
 
-#include <string>
 #include <netinet/in.h>
-#include <linux/netfilter.h>
 #include <optional>
+#include <string>
 
 #include "IpAddressChecker.h"
-#include "NetlinkCalls.h"
+#include "InterfacesReader.h"
 
 namespace service {
 
-class IpAddressNetlinkChecker : public IpAddressChecker {
+class IpAddressCheckerImpl : public IpAddressChecker {
 public:
-	explicit IpAddressNetlinkChecker(const NetlinkCalls& calls);
+	explicit IpAddressCheckerImpl(InterfacesReader& calls);
 
-	bool isV4AddressExternal(IPv4int addr) const override;
+	bool isV4AddressExternal(in_addr_t addr) const override;
 
 	bool isV6AddressExternal(const in6_addr& addr) const override;
 
@@ -42,24 +41,14 @@ private:
 	ipv6Range parseIpv6Range(const std::string& range) const;
 	bool isInRange(const in6_addr& addr, const std::string& range) const;
 	bool checkSubnet(const in6_addr& addrToCheck, const in6_addr& interfaceIpv6Addr, const in6_addr& interfaceMask) const;
+	bool checkSubnetIpv4(const in_addr_t& addrToCheck, const in_addr_t& interfaceIpv4Addr, const in_addr_t& interfaceMask) const;
 	bool ipv6AddressContainsMappedIpv4Address(const in6_addr& addr) const;
 	std::optional<IPv4int> getMappedIPv4Addr(const in6_addr& addr) const;
 
 	void readNetworks();
 
-	void printNetworkInterfacesInfo();
-
-	bool isLocalBridge(int index) const {
-		if (const auto it{isLocalBridgeMap.find(index)}; it != isLocalBridgeMap.end()) {
-			return it->second;
-		}
-
-		return false;
-	}
-
-	const NetlinkCalls& netlink;
-	IpInterfaces ipInterfaces;
-	std::vector<NetlinkCalls::Ipv6Network> ipv6Networks;
+	InterfacesReader& interfacesReader;
+	std::vector<Ipv6Network> ipv6Networks;
 	std::unordered_map<int, bool> isLocalBridgeMap;
 };
 } // namespace service

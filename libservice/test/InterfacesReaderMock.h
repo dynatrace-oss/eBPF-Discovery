@@ -18,15 +18,16 @@
 
 #include <gmock/gmock.h>
 
-#include "service/NetlinkCalls.h"
+#include "service/InterfacesReader.h"
 
 namespace service {
 
-class NetlinkCallsMock : public NetlinkCalls {
+class InterfacesReaderMock : public InterfacesReader {
 public:
-	MOCK_CONST_METHOD0(collectIpInterfaces, IpInterfaces());
-	MOCK_CONST_METHOD0(collectBridgeIndices, BridgeIndices());
 	MOCK_CONST_METHOD0(collectIpv6Networks, std::vector<Ipv6Network>());
+	MOCK_CONST_METHOD0(getIpV4Interfaces, std::vector<Ipv4Network>());
+	MOCK_CONST_METHOD0(getIpV6Interfaces, std::vector<Ipv6Network>());
+	MOCK_METHOD(void, collectAllIpInterfaces, (), (override));
 };
 
 } // namespace service

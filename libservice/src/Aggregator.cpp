@@ -18,7 +18,7 @@
 
 #include "logging/Logger.h"
 #include "service/IpAddress.h"
-#include "service/IpAddressNetlinkChecker.h"
+#include "service/IpAddressCheckerImpl.h"
 
 #include <arpa/inet.h>
 

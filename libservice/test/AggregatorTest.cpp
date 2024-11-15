@@ -16,7 +16,7 @@
 
 #include "service/Aggregator.h"
 
-#include "service/IpAddressNetlinkChecker.h"
+#include "service/IpAddressCheckerImpl.h"
 
 #include <algorithm>
 #include <gmock/gmock.h>
@@ -61,7 +61,7 @@ struct ServiceAggregatorTest : public testing::Test {
 		return {request, meta};
 	}
 
-	const NetlinkCalls netlink;
+	const InterfacesReader netlink;
 	IpAddressCheckerMock ipCheckerMock;
 };
 
