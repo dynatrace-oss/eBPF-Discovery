@@ -21,8 +21,9 @@
 #include <arpa/inet.h>
 #include <boost/algorithm/string/join.hpp>
 #include <boost/range/adaptor/transformed.hpp>
-#include <iostream>
 #include <ifaddrs.h>
+#include <iostream>
+#include <service/IpAddress.h>
 
 namespace service {
 
@@ -32,10 +33,10 @@ IpAddressCheckerImpl::IpAddressCheckerImpl(InterfacesReader& calls) : interfaces
 
 void IpAddressCheckerImpl::readNetworks() {
 	interfacesReader.collectAllIpInterfaces();
-	interfacesReader.printNetworkInterfacesInfo();
+	interfacesReader.printNetworksInfo();
 }
 
-bool IpAddressCheckerImpl::isV4AddressExternal(in_addr_t addr) const {
+bool IpAddressCheckerImpl::isV4AddressExternal(const in_addr& addr) const {
 	// Special-Purpose IP Address Registries (https://datatracker.ietf.org/doc/html/rfc6890)
 	static const struct {
 		uint32_t network;
@@ -60,20 +61,23 @@ bool IpAddressCheckerImpl::isV4AddressExternal(in_addr_t addr) const {
 			{0xffffffff, 0xffffffff}  // 255.255.255.255/32
 	};
 
-
 	for (const auto& [network, mask] : reservedRanges) {
-		if ((htonl(addr) & mask) == network) {
-			LOG_DEBUG("Address {} internal, belonging to reserved range (network, mask): {}, {}", addr, network, mask);
+		if ((ntohl(addr.s_addr) & mask) == network) {
+			LOG_DEBUG("Address {} internal, belonging to reserved range (network, mask): {:#x}, {:#x}",
+				ipv4InAdrToString(addr),
+				network,
+				mask);
 			return false;
 		}
 	}
 
-	for (auto& ipv4Network : interfacesReader.getIpV4Interfaces()) {
-		for (auto ipAddress : ipv4Network.networkIpv4Addr) {
-			if (checkSubnetIpv4(addr, ipAddress, ipv4Network.networkMask)) {
-			LOG_DEBUG("Address {} internal, belonging to reserved local interface (addr, mask): {}, {}", addr, ipAddress, ipv4Network.networkMask);
-				return false;
-			}
+	for (const auto& ipv4Network : interfacesReader.getIpV4Interfaces()) {
+		if (checkSubnetIpv4(addr, ipv4Network.networkIpv4Addr, ipv4Network.networkMask)) {
+		LOG_DEBUG("Address {} internal, belonging to local interface (addr, mask): {}, {}",
+			ipv4InAdrToString(addr),
+			ipv4InAdrToString(ipv4Network.networkIpv4Addr),
+			ipv4InAdrToString(ipv4Network.networkMask));
+			return false;
 		}
 	}
 
@@ -149,15 +153,15 @@ bool IpAddressCheckerImpl::checkSubnet(
 }
 
 bool IpAddressCheckerImpl::checkSubnetIpv4(
-		const in_addr_t& addrToCheck, const in_addr_t& interfaceIpv4Addr, const in_addr_t& interfaceMask) const {
-		if ((addrToCheck & interfaceMask) != (interfaceIpv4Addr & interfaceMask)) {
+		const in_addr& addrToCheck, const in_addr& interfaceIpv4Addr, const in_addr& interfaceMask) const {
+		if ((addrToCheck.s_addr & interfaceMask.s_addr) != (interfaceIpv4Addr.s_addr & interfaceMask.s_addr)) {
 			return false;
 		}
 	return true;
 }
 bool IpAddressCheckerImpl::isV6AddressExternal(const in6_addr& addr) const {
 	if (auto mappedV4Addr = getMappedIPv4Addr(addr); mappedV4Addr) {
-		return isV4AddressExternal(*mappedV4Addr);
+		return isV4AddressExternal(static_cast<in_addr>(*mappedV4Addr));
 	}
 
 	for (auto& ipv6Network : interfacesReader.getIpV6Interfaces()) {

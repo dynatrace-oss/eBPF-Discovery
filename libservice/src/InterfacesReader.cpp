@@ -28,19 +28,18 @@
 
 namespace service {
 
-void InterfacesReader::printNetworkInterfacesInfo() {
-	LOG_INFO("{} network IPv4 interfaces have been discovered:", ipv4Interfaces.size());
-	for (const auto& ifce : ipv4Interfaces) {
-		std::string ipAddresses{boost::algorithm::join(
-				ifce.networkIpv4Addr | boost::adaptors::transformed([](auto ip) {
-					char buff[16];
-					return std::string{inet_ntop(AF_INET, &ip, buff, sizeof(buff))};
-				}),
-				", ")};
-	LOG_INFO("IP addresses: {}", ipAddresses);
+void InterfacesReader::printNetworksInfo() {
+	LOG_INFO("{} IPv4 networks have been discovered:", ipv4Networks.size());
+	for (const auto& ipv4Network : ipv4Networks) {
+
+		char ipv4NetworkAddrString[INET_ADDRSTRLEN];
+		char ipv4NetworkMaskString[INET_ADDRSTRLEN];
+		inet_ntop(AF_INET, &(ipv4Network.networkIpv4Addr), ipv4NetworkAddrString, INET_ADDRSTRLEN);
+		inet_ntop(AF_INET, &(ipv4Network.networkMask), ipv4NetworkMaskString, INET_ADDRSTRLEN);
+		LOG_INFO("Detected IPv4 network: {}, Mask: {}", ipv4NetworkAddrString, ipv4NetworkMaskString);
 	}
-	LOG_INFO("{} IPv6 networks have been discovered:", ipv6Interfaces.size());
-	for (const auto& ipv6Network : ipv6Interfaces) {
+	LOG_INFO("{} IPv6 networks have been discovered:", ipv6Networks.size());
+	for (const auto& ipv6Network : ipv6Networks) {
 		char ipv6NetworkAddrString[INET6_ADDRSTRLEN];
 		char ipv6NetworkMaskString[INET6_ADDRSTRLEN];
 		inet_ntop(AF_INET6, &(ipv6Network.networkIpv6Addr), ipv6NetworkAddrString, INET6_ADDRSTRLEN);
@@ -63,28 +62,28 @@ void InterfacesReader::collectAllIpInterfaces() {
 			const in6_addr networkIpv6Addr = reinterpret_cast<sockaddr_in6*>(ifa->ifa_addr)->sin6_addr;
 			const in6_addr networkMask = reinterpret_cast<sockaddr_in6*>(ifa->ifa_netmask)->sin6_addr;
 
-			ipv6Interfaces.emplace_back(Ipv6Network{networkIpv6Addr, networkMask});
+			ipv6Networks.emplace_back(Ipv6Network{networkIpv6Addr, networkMask});
 			continue;
 		}
 		if (ifa->ifa_addr->sa_family == AF_INET) {
-			auto address = reinterpret_cast<sockaddr_in*>(ifa->ifa_addr)->sin_addr.s_addr;
-			auto mask = reinterpret_cast<sockaddr_in*>(ifa->ifa_netmask)->sin_addr.s_addr;
-			std::optional<in_addr_t> broadcast{};
+			auto address = reinterpret_cast<sockaddr_in*>(ifa->ifa_addr)->sin_addr;
+			auto mask = reinterpret_cast<sockaddr_in*>(ifa->ifa_netmask)->sin_addr;
+			std::optional<in_addr> broadcast{};
 			if (ifa->ifa_flags & IFF_BROADCAST) {
-				broadcast = std::optional<in_addr_t>(reinterpret_cast<sockaddr_in*>(ifa->ifa_ifu.ifu_broadaddr)->sin_addr.s_addr);
+				broadcast = std::optional<in_addr>(reinterpret_cast<sockaddr_in*>(ifa->ifa_ifu.ifu_broadaddr)->sin_addr);
 			}
-			ipv4Interfaces.emplace_back(Ipv4Network{{address}, mask, broadcast});
+			ipv4Networks.emplace_back(Ipv4Network{{address}, mask, broadcast});
 		}
 	}
 	freeifaddrs(ifAddressStruct);
 }
 
 std::vector<Ipv4Network> InterfacesReader::getIpV4Interfaces() const {
-	return ipv4Interfaces;
+	return ipv4Networks;
 }
 
 std::vector<Ipv6Network> InterfacesReader::getIpV6Interfaces() const {
-	return ipv6Interfaces;
+	return ipv6Networks;
 }
 
 } // namespace service

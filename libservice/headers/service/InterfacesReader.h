@@ -34,24 +34,24 @@ struct Ipv6Network {
 };
 
 struct Ipv4Network {
-		std::vector<in_addr_t> networkIpv4Addr;
-		in_addr_t networkMask;
-		std::optional<in_addr_t> broadcastAddr;
+		in_addr networkIpv4Addr;
+		in_addr networkMask;
+		std::optional<in_addr> broadcastAddr;
 };
 
 
 class InterfacesReader {
 public:
 	virtual ~InterfacesReader() = default;
-	void printNetworkInterfacesInfo();
+	void printNetworksInfo();
 	[[nodiscard]] virtual std::vector<Ipv4Network> getIpV4Interfaces() const;
 	[[nodiscard]] virtual std::vector<Ipv6Network> getIpV6Interfaces() const;
 
 	virtual void collectAllIpInterfaces();
 
 private:
-	std::vector<Ipv4Network> ipv4Interfaces;
-	std::vector<Ipv6Network> ipv6Interfaces;
+	std::vector<Ipv4Network> ipv4Networks;
+	std::vector<Ipv6Network> ipv6Networks;
 
 };
 

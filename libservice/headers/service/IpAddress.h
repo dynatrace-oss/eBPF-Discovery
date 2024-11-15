@@ -26,6 +26,7 @@ using IPv4bytes = uint8_t[4];
 using IPv6bytes = uint8_t[16];
 
 std::string ipv4ToString(const IPv4bytes addr);
+std::string ipv4InAdrToString(const in_addr& addr);
 std::string ipv6ToString(const IPv6bytes addr);
 
 } // namespace service

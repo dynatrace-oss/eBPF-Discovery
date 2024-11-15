@@ -29,7 +29,7 @@ class IpAddressCheckerImpl : public IpAddressChecker {
 public:
 	explicit IpAddressCheckerImpl(InterfacesReader& calls);
 
-	bool isV4AddressExternal(in_addr_t addr) const override;
+	bool isV4AddressExternal(const in_addr& addr) const override;
 
 	bool isV6AddressExternal(const in6_addr& addr) const override;
 
@@ -41,7 +41,7 @@ private:
 	ipv6Range parseIpv6Range(const std::string& range) const;
 	bool isInRange(const in6_addr& addr, const std::string& range) const;
 	bool checkSubnet(const in6_addr& addrToCheck, const in6_addr& interfaceIpv6Addr, const in6_addr& interfaceMask) const;
-	bool checkSubnetIpv4(const in_addr_t& addrToCheck, const in_addr_t& interfaceIpv4Addr, const in_addr_t& interfaceMask) const;
+	bool checkSubnetIpv4(const in_addr& addrToCheck, const in_addr& interfaceIpv4Addr, const in_addr& interfaceMask) const;
 	bool ipv6AddressContainsMappedIpv4Address(const in6_addr& addr) const;
 	std::optional<IPv4int> getMappedIPv4Addr(const in6_addr& addr) const;
 
@@ -49,6 +49,5 @@ private:
 
 	InterfacesReader& interfacesReader;
 	std::vector<Ipv6Network> ipv6Networks;
-	std::unordered_map<int, bool> isLocalBridgeMap;
 };
 } // namespace service

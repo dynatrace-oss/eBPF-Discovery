@@ -29,7 +29,7 @@ class IpAddressChecker {
 public:
 	virtual ~IpAddressChecker() = default;
 
-	[[nodiscard]] virtual bool isV4AddressExternal(in_addr_t addr) const = 0;
+	[[nodiscard]] virtual bool isV4AddressExternal(const in_addr& addr) const = 0;
 
 	[[nodiscard]] virtual bool isV6AddressExternal(const in6_addr& addr) const = 0;
 };
