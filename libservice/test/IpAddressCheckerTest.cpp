@@ -254,7 +254,7 @@ TEST_F(IpAddressCheckerTest, LocalIfceIpSrc) {
 	EXPECT_CALL(netlinkMock, collectAllIpInterfaces);
 	EXPECT_CALL(netlinkMock,getIpV4Interfaces )
 			.WillOnce(Return(std::vector<Ipv4Network>{
-						{{getV4AddrBinary("115.89.3.7")},0x0000ffff, {}}
+						{{getV4AddrBinary("115.89.3.7")},{0x0000ffff}, {}}
 					}));
 
 	IpAddressCheckerImpl ipAddressNetlinkChecker{netlinkMock};
