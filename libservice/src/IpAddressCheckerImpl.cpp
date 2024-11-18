@@ -27,7 +27,7 @@
 
 namespace service {
 
-IpAddressCheckerImpl::IpAddressCheckerImpl(InterfacesReader& calls) : interfacesReader{calls} {
+IpAddressCheckerImpl::IpAddressCheckerImpl(InterfacesReader& interfaceReader) : interfacesReader{interfaceReader} {
 	readNetworks();
 }
 
@@ -153,10 +153,10 @@ bool IpAddressCheckerImpl::checkSubnet(
 }
 
 bool IpAddressCheckerImpl::checkSubnetIpv4(
-		const in_addr& addrToCheck, const in_addr& interfaceIpv4Addr, const in_addr& interfaceMask) const {
-		if ((addrToCheck.s_addr & interfaceMask.s_addr) != (interfaceIpv4Addr.s_addr & interfaceMask.s_addr)) {
-			return false;
-		}
+	const in_addr& addrToCheck, const in_addr& interfaceIpv4Addr, const in_addr& interfaceMask) const {
+	if ((addrToCheck.s_addr & interfaceMask.s_addr) != (interfaceIpv4Addr.s_addr & interfaceMask.s_addr)) {
+		return false;
+	}
 	return true;
 }
 bool IpAddressCheckerImpl::isV6AddressExternal(const in6_addr& addr) const {

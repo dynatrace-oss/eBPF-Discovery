@@ -31,7 +31,6 @@ namespace service {
 void InterfacesReader::printNetworksInfo() {
 	LOG_INFO("{} IPv4 networks have been discovered:", ipv4Networks.size());
 	for (const auto& ipv4Network : ipv4Networks) {
-
 		char ipv4NetworkAddrString[INET_ADDRSTRLEN];
 		char ipv4NetworkMaskString[INET_ADDRSTRLEN];
 		inet_ntop(AF_INET, &(ipv4Network.networkIpv4Addr), ipv4NetworkAddrString, INET_ADDRSTRLEN);

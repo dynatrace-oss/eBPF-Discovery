@@ -27,7 +27,7 @@ namespace service {
 
 class IpAddressCheckerImpl : public IpAddressChecker {
 public:
-	explicit IpAddressCheckerImpl(InterfacesReader& calls);
+	explicit IpAddressCheckerImpl(InterfacesReader& interfaceReader);
 
 	bool isV4AddressExternal(const in_addr& addr) const override;
 
