@@ -47,13 +47,14 @@ class Aggregator {
 private:
 	using ServiceKey = std::pair<uint32_t, std::string>;
 	using ServiceStorage = std::unordered_map<ServiceKey, Service>;
+	using ServicesList = std::vector<std::reference_wrapper<Service>>;
 
 public:
 	Aggregator(const service::IpAddressChecker& ipChecker);
 
 	void clear();
 	void newRequest(const httpparser::HttpRequest& request, const DiscoverySessionMeta& meta);
-	std::vector<std::reference_wrapper<Service>> collectServices();
+	ServicesList collectServices();
 
 private:
 	const IpAddressChecker& ipChecker;

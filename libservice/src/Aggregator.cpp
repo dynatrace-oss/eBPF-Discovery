@@ -122,8 +122,8 @@ void Aggregator::newRequest(const httpparser::HttpRequest& request, const Discov
 	services[key] = std::move(newService);
 }
 
-std::vector<std::reference_wrapper<Service>> Aggregator::collectServices() {
-	std::vector<std::reference_wrapper<Service>> servicesVec;
+ServicesList Aggregator::collectServices() {
+	ServicesList servicesVec;
 	servicesVec.reserve(services.size());
 
 	for (auto& pair : services) {
