@@ -18,7 +18,7 @@
 
 #include "logging/Logger.h"
 #include "service/IpAddress.h"
-#include "service/IpAddressNetlinkChecker.h"
+#include "service/IpAddressCheckerImpl.h"
 
 #include <arpa/inet.h>
 
@@ -29,7 +29,7 @@ static std::string getEndpoint(const std::string& host, const std::string& url) 
 }
 
 static bool isIpv4ClientExternal(const IpAddressChecker& ipChecker, const in_addr& clientAddrBinary) {
-	return ipChecker.isV4AddressExternal(clientAddrBinary.s_addr);
+	return ipChecker.isV4AddressExternal(clientAddrBinary);
 }
 
 static bool isIpv6ClientExternal(const IpAddressChecker& ipChecker, const in6_addr& clientAddrBinary) {

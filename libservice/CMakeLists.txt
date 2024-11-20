@@ -15,8 +15,8 @@
 list(APPEND SOURCES
         src/Aggregator.cpp
         src/IpAddress.cpp
-        src/IpAddressNetlinkChecker.cpp
-        src/NetlinkCalls.cpp
+        src/IpAddressCheckerImpl.cpp
+        src/InterfacesReader.cpp
         src/NetlinkSocket.cpp)
 
 set(TARGET service)

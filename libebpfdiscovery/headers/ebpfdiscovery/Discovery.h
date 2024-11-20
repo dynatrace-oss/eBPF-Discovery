@@ -22,7 +22,7 @@
 #include "ebpfdiscoveryshared/Types.h"
 #include "httpparser/HttpRequestParser.h"
 #include "service/Aggregator.h"
-#include "service/IpAddressNetlinkChecker.h"
+#include "service/IpAddressCheckerImpl.h"
 
 #include <atomic>
 #include <chrono>
@@ -73,8 +73,8 @@ private:
 	DiscoveryBpfFds bpfFds;
 
 	SavedSessionsCacheType savedSessions;
-	service::NetlinkCalls netlinkCalls;
-	service::IpAddressNetlinkChecker ipChecker{netlinkCalls};
+	service::InterfacesReader interfacesReader;
+	service::IpAddressCheckerImpl ipChecker{interfacesReader};
 	service::Aggregator serviceAggregator;
 };
 

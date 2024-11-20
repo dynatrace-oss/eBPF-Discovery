@@ -29,6 +29,10 @@ std::string ipv4ToString(const IPv4bytes addr) {
 	return std::string(ipAddress);
 }
 
+std::string ipv4InAdrToString(const in_addr& addr) {
+	return ipv4ToString(reinterpret_cast<const IPv4bytes&>(addr));
+}
+
 std::string ipv6ToString(const IPv6bytes addr) {
 	char ipAddress[INET6_ADDRSTRLEN];
 	const auto res{inet_ntop(AF_INET6, addr, ipAddress, sizeof(ipAddress))};

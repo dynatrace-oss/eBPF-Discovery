@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#include "NetlinkCallsMock.h"
-#include "service/IpAddressNetlinkChecker.h"
+#include "InterfacesReaderMock.h"
+#include "service/IpAddressCheckerImpl.h"
 
 #include <arpa/inet.h>
 #include <gmock/gmock.h>
@@ -26,243 +26,240 @@ using namespace ::testing;
 
 class IpAddressCheckerTest : public Test {
 public:
-	NiceMock<NetlinkCallsMock> netlinkMock;
+	NiceMock<InterfacesReaderMock> netlinkMock;
 };
+
+static in_addr getV4AddrBinary(const std::string& addr) {
+	in_addr clientAddrBinary{};
+	inet_pton(AF_INET, addr.c_str(), &clientAddrBinary);
+	return clientAddrBinary;
+}
 
 // 0.0.0.0/8
 TEST_F(IpAddressCheckerTest, Test0_0_0_0_8) {
-	IpAddressNetlinkChecker ipAddressNetlinkChecker{netlinkMock};
+	IpAddressCheckerImpl ipAddressNetlinkChecker{netlinkMock};
 
 	// Range boundaries
-	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(inet_addr("0.0.0.0")));
-	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(inet_addr("0.255.255.255")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(getV4AddrBinary("0.0.0.0")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(getV4AddrBinary("0.255.255.255")));
 
 	// Middle of the range
-	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(inet_addr("0.54.189.245")));
-	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(inet_addr("0.128.0.1")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(getV4AddrBinary("0.54.189.245")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(getV4AddrBinary("0.128.0.1")));
 }
 
 // 10.0.0.0/8
 TEST_F(IpAddressCheckerTest, Test10_0_0_0_8) {
-	IpAddressNetlinkChecker ipAddressNetlinkChecker{netlinkMock};
+	IpAddressCheckerImpl ipAddressNetlinkChecker{netlinkMock};
 
 	// Range boundaries
-	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(inet_addr("10.0.0.0")));
-	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(inet_addr("10.255.255.255")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(getV4AddrBinary("10.0.0.0")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(getV4AddrBinary("10.255.255.255")));
 
 	// Middle of the range
-	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(inet_addr("10.54.189.245")));
-	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(inet_addr("10.128.0.1")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(getV4AddrBinary("10.54.189.245")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(getV4AddrBinary("10.128.0.1")));
 }
 
 // 100.64.0.0/10
 TEST_F(IpAddressCheckerTest, Test100_64_0_0_10) {
-	IpAddressNetlinkChecker ipAddressNetlinkChecker{netlinkMock};
+	IpAddressCheckerImpl ipAddressNetlinkChecker{netlinkMock};
 
 	// Range boundaries
-	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(inet_addr("100.64.0.0")));
-	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(inet_addr("100.127.255.255")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(getV4AddrBinary("100.64.0.0")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(getV4AddrBinary("100.127.255.255")));
 
 	// Middle of the range
-	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(inet_addr("100.64.128.0")));
-	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(inet_addr("100.66.0.1")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(getV4AddrBinary("100.64.128.0")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(getV4AddrBinary("100.66.0.1")));
 }
 
 // 127.0.0.0/8
 TEST_F(IpAddressCheckerTest, Test127_0_0_0_8) {
-	IpAddressNetlinkChecker ipAddressNetlinkChecker{netlinkMock};
+	IpAddressCheckerImpl ipAddressNetlinkChecker{netlinkMock};
 
 	// Range boundaries
-	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(inet_addr("127.0.0.0")));
-	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(inet_addr("127.255.255.255")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(getV4AddrBinary("127.0.0.0")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(getV4AddrBinary("127.255.255.255")));
 
 	// Middle of the range
-	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(inet_addr("127.0.0.1")));
-	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(inet_addr("127.128.0.1")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(getV4AddrBinary("127.0.0.1")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(getV4AddrBinary("127.128.0.1")));
 }
 
 // 169.254.0.0/16
 TEST_F(IpAddressCheckerTest, Test169_254_0_0_16) {
-	IpAddressNetlinkChecker ipAddressNetlinkChecker{netlinkMock};
+	IpAddressCheckerImpl ipAddressNetlinkChecker{netlinkMock};
 
 	// Range boundaries
-	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(inet_addr("169.254.0.0")));
-	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(inet_addr("169.254.255.255")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(getV4AddrBinary("169.254.0.0")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(getV4AddrBinary("169.254.255.255")));
 
 	// Middle of the range
-	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(inet_addr("169.254.128.0")));
-	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(inet_addr("169.254.192.1")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(getV4AddrBinary("169.254.128.0")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(getV4AddrBinary("169.254.192.1")));
 }
 
 // 172.16.0.0/12
 TEST_F(IpAddressCheckerTest, Test172_16_0_0_12) {
-	IpAddressNetlinkChecker ipAddressNetlinkChecker{netlinkMock};
+	IpAddressCheckerImpl ipAddressNetlinkChecker{netlinkMock};
 
 	// Range boundaries
-	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(inet_addr("172.16.0.0")));
-	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(inet_addr("172.31.255.255")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(getV4AddrBinary("172.16.0.0")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(getV4AddrBinary("172.31.255.255")));
 
 	// Middle of the range
-	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(inet_addr("172.20.0.0")));
-	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(inet_addr("172.24.0.1")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(getV4AddrBinary("172.20.0.0")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(getV4AddrBinary("172.24.0.1")));
 }
 
 // 192.0.0.0/24
 TEST_F(IpAddressCheckerTest, Test192_0_0_0_24) {
-	IpAddressNetlinkChecker ipAddressNetlinkChecker{netlinkMock};
+	IpAddressCheckerImpl ipAddressNetlinkChecker{netlinkMock};
 
 	// Range boundaries
-	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(inet_addr("192.0.0.0")));
-	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(inet_addr("192.0.0.255")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(getV4AddrBinary("192.0.0.0")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(getV4AddrBinary("192.0.0.255")));
 
 	// Middle of the range
-	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(inet_addr("192.0.0.128")));
-	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(inet_addr("192.0.0.1")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(getV4AddrBinary("192.0.0.128")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(getV4AddrBinary("192.0.0.1")));
 }
 
 // 192.0.2.0/24
 TEST_F(IpAddressCheckerTest, Test192_0_2_0_24) {
-	IpAddressNetlinkChecker ipAddressNetlinkChecker{netlinkMock};
+	IpAddressCheckerImpl ipAddressNetlinkChecker{netlinkMock};
 
 	// Range boundaries
-	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(inet_addr("192.0.2.0")));
-	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(inet_addr("192.0.2.255")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(getV4AddrBinary("192.0.2.0")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(getV4AddrBinary("192.0.2.255")));
 
 	// Middle of the range
-	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(inet_addr("192.0.2.128")));
-	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(inet_addr("192.0.2.1")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(getV4AddrBinary("192.0.2.128")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(getV4AddrBinary("192.0.2.1")));
 }
 
 // 192.88.99.0/24
 TEST_F(IpAddressCheckerTest, Test192_88_99_0_24) {
-	IpAddressNetlinkChecker ipAddressNetlinkChecker{netlinkMock};
+	IpAddressCheckerImpl ipAddressNetlinkChecker{netlinkMock};
 
 	// Range boundaries
-	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(inet_addr("192.88.99.0")));
-	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(inet_addr("192.88.99.255")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(getV4AddrBinary("192.88.99.0")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(getV4AddrBinary("192.88.99.255")));
 
 	// Middle of the range
-	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(inet_addr("192.88.99.128")));
-	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(inet_addr("192.88.99.1")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(getV4AddrBinary("192.88.99.128")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(getV4AddrBinary("192.88.99.1")));
 }
 
 // 192.168.0.0/
 TEST_F(IpAddressCheckerTest, Test192_168_0_0_16) {
-	IpAddressNetlinkChecker ipAddressNetlinkChecker{netlinkMock};
+	IpAddressCheckerImpl ipAddressNetlinkChecker{netlinkMock};
 
 	// Range boundaries
-	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(inet_addr("192.168.0.0")));
-	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(inet_addr("192.168.255.255")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(getV4AddrBinary("192.168.0.0")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(getV4AddrBinary("192.168.255.255")));
 
 	// Middle of the range
-	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(inet_addr("192.168.128.0")));
-	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(inet_addr("192.168.192.1")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(getV4AddrBinary("192.168.128.0")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(getV4AddrBinary("192.168.192.1")));
 }
 
 // 198.18.0.0/15
 TEST_F(IpAddressCheckerTest, Test198_18_0_0_15) {
-	IpAddressNetlinkChecker ipAddressNetlinkChecker{netlinkMock};
+	IpAddressCheckerImpl ipAddressNetlinkChecker{netlinkMock};
 
 	// Range boundaries
-	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(inet_addr("198.18.0.0")));
-	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(inet_addr("198.19.255.255")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(getV4AddrBinary("198.18.0.0")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(getV4AddrBinary("198.19.255.255")));
 
 	// Middle of the range
-	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(inet_addr("198.18.128.0")));
-	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(inet_addr("198.18.192.1")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(getV4AddrBinary("198.18.128.0")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(getV4AddrBinary("198.18.192.1")));
 }
 
 // 198.51.100.0/24
 TEST_F(IpAddressCheckerTest, Test198_51_100_0_24) {
-	IpAddressNetlinkChecker ipAddressNetlinkChecker{netlinkMock};
+	IpAddressCheckerImpl ipAddressNetlinkChecker{netlinkMock};
 
 	// Range boundaries
-	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(inet_addr("198.51.100.0")));
-	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(inet_addr("198.51.100.255")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(getV4AddrBinary("198.51.100.0")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(getV4AddrBinary("198.51.100.255")));
 
 	// Middle of the range
-	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(inet_addr("198.51.100.128")));
-	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(inet_addr("198.51.100.1")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(getV4AddrBinary("198.51.100.128")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(getV4AddrBinary("198.51.100.1")));
 }
 
 // 203.0.113.0/24
 TEST_F(IpAddressCheckerTest, Test203_0_113_0_24) {
-	IpAddressNetlinkChecker ipAddressNetlinkChecker{netlinkMock};
+	IpAddressCheckerImpl ipAddressNetlinkChecker{netlinkMock};
 
 	// Range boundaries
-	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(inet_addr("203.0.113.0")));
-	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(inet_addr("203.0.113.255")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(getV4AddrBinary("203.0.113.0")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(getV4AddrBinary("203.0.113.255")));
 
 	// Middle of the range
-	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(inet_addr("203.0.113.128")));
-	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(inet_addr("203.0.113.1")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(getV4AddrBinary("203.0.113.128")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(getV4AddrBinary("203.0.113.1")));
 }
 
 // 224.0.0.0/4
 TEST_F(IpAddressCheckerTest, Test224_0_0_0_4) {
-	IpAddressNetlinkChecker ipAddressNetlinkChecker{netlinkMock};
+	IpAddressCheckerImpl ipAddressNetlinkChecker{netlinkMock};
 
 	// Range boundaries
-	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(inet_addr("224.0.0.0")));
-	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(inet_addr("239.255.255.255")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(getV4AddrBinary("224.0.0.0")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(getV4AddrBinary("239.255.255.255")));
 
 	// Middle of the range
-	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(inet_addr("225.128.0.0")));
-	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(inet_addr("230.0.0.1")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(getV4AddrBinary("225.128.0.0")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(getV4AddrBinary("230.0.0.1")));
 }
 
 // 233.252.0.0/24
 TEST_F(IpAddressCheckerTest, Test233_252_0_0_24) {
-	IpAddressNetlinkChecker ipAddressNetlinkChecker{netlinkMock};
+	IpAddressCheckerImpl ipAddressNetlinkChecker{netlinkMock};
 
 	// Range boundaries
-	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(inet_addr("233.252.0.0")));
-	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(inet_addr("233.252.0.255")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(getV4AddrBinary("233.252.0.0")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(getV4AddrBinary("233.252.0.255")));
 
 	// Middle of the range
-	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(inet_addr("233.252.0.128")));
-	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(inet_addr("233.252.0.1")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(getV4AddrBinary("233.252.0.128")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(getV4AddrBinary("233.252.0.1")));
 }
 
 // 240.0.0.0/4
 TEST_F(IpAddressCheckerTest, Test240_0_0_0_4) {
-	IpAddressNetlinkChecker ipAddressNetlinkChecker{netlinkMock};
+	IpAddressCheckerImpl ipAddressNetlinkChecker{netlinkMock};
 
 	// Range boundaries
-	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(inet_addr("240.0.0.0")));
-	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(inet_addr("255.255.255.254")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(getV4AddrBinary("240.0.0.0")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(getV4AddrBinary("255.255.255.254")));
 
 	// Middle of the range
-	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(inet_addr("241.128.0.0")));
-	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(inet_addr("248.0.0.1")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(getV4AddrBinary("241.128.0.0")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(getV4AddrBinary("248.0.0.1")));
 }
 
 // 255.255.255.255/32
 TEST_F(IpAddressCheckerTest, Test255_255_255_255_32) {
-	IpAddressNetlinkChecker ipAddressNetlinkChecker{netlinkMock};
+	IpAddressCheckerImpl ipAddressNetlinkChecker{netlinkMock};
 
-	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(inet_addr("255.255.255.255")));
-}
-
-TEST_F(IpAddressCheckerTest, LocalBridgeIp) {
-	EXPECT_CALL(netlinkMock, collectIpInterfaces).WillOnce(Return(IpInterfaces{{0, IpIfce{{inet_addr("142.15.4.0")}, {}, 0x0000ffff}}}));
-	EXPECT_CALL(netlinkMock, collectBridgeIndices).WillOnce(Return(BridgeIndices{0}));
-
-	IpAddressNetlinkChecker ipAddressNetlinkChecker{netlinkMock};
-
-	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(inet_addr("142.15.6.5")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(getV4AddrBinary("255.255.255.255")));
 }
 
 TEST_F(IpAddressCheckerTest, LocalIfceIpSrc) {
-	EXPECT_CALL(netlinkMock, collectIpInterfaces)
-			.WillOnce(Return(IpInterfaces{
-					{0, IpIfce{{inet_addr("115.89.3.7")}, {}, 0x0000ffff}},
-			}));
-	EXPECT_CALL(netlinkMock, collectBridgeIndices).WillOnce(Return(BridgeIndices{}));
+	EXPECT_CALL(netlinkMock, collectAllIpInterfaces);
+	EXPECT_CALL(netlinkMock,getIpV4Interfaces )
+			.WillOnce(Return(std::vector<Ipv4Network>{
+						{{getV4AddrBinary("115.89.3.7")},{0x0000ffff}, {}}
+					}));
 
-	IpAddressNetlinkChecker ipAddressNetlinkChecker{netlinkMock};
+	IpAddressCheckerImpl ipAddressNetlinkChecker{netlinkMock};
 
-	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(inet_addr("115.89.3.7")));
+	EXPECT_FALSE(ipAddressNetlinkChecker.isV4AddressExternal(getV4AddrBinary("115.89.3.7")));
 }
 
 static in6_addr getV6AddrBinary(const std::string& addr) {
@@ -273,7 +270,7 @@ static in6_addr getV6AddrBinary(const std::string& addr) {
 
 // IPv4 mapped to IPv6
 TEST_F(IpAddressCheckerTest, TestMapped) {
-	IpAddressNetlinkChecker ipAddressNetlinkChecker{netlinkMock};
+	IpAddressCheckerImpl ipAddressNetlinkChecker{netlinkMock};
 
 	// mapped IPv4
 	EXPECT_FALSE(ipAddressNetlinkChecker.isV6AddressExternal(getV6AddrBinary("::FFFF:192.168.0.5")));
@@ -295,7 +292,7 @@ TEST_F(IpAddressCheckerTest, TestMapped) {
 
 // unique local address (prefix fc00::/7)
 TEST_F(IpAddressCheckerTest, UniqueLocalAddress) {
-	IpAddressNetlinkChecker ipAddressNetlinkChecker{netlinkMock};
+	IpAddressCheckerImpl ipAddressNetlinkChecker{netlinkMock};
 
 	EXPECT_FALSE(ipAddressNetlinkChecker.isV6AddressExternal(getV6AddrBinary("fc00::1")));
 	EXPECT_FALSE(ipAddressNetlinkChecker.isV6AddressExternal(getV6AddrBinary("fdff:ffff:ffff:ffff:ffff:ffff:ffff:ffff")));
@@ -305,7 +302,7 @@ TEST_F(IpAddressCheckerTest, UniqueLocalAddress) {
 
 // site local addresses (fec0::/10 - deprecated)
 TEST_F(IpAddressCheckerTest, SiteLocalAddress) {
-	IpAddressNetlinkChecker ipAddressNetlinkChecker{netlinkMock};
+	IpAddressCheckerImpl ipAddressNetlinkChecker{netlinkMock};
 
 	EXPECT_FALSE(ipAddressNetlinkChecker.isV6AddressExternal(getV6AddrBinary("fec0::")));
 	EXPECT_FALSE(ipAddressNetlinkChecker.isV6AddressExternal(getV6AddrBinary("feff:ffff:ffff:ffff:ffff:ffff:ffff:ffff")));
@@ -314,7 +311,7 @@ TEST_F(IpAddressCheckerTest, SiteLocalAddress) {
 
 // link local addresses (fe80::/10)
 TEST_F(IpAddressCheckerTest, LinkLocalAddress) {
-	IpAddressNetlinkChecker ipAddressNetlinkChecker{netlinkMock};
+	IpAddressCheckerImpl ipAddressNetlinkChecker{netlinkMock};
 
 	EXPECT_FALSE(ipAddressNetlinkChecker.isV6AddressExternal(getV6AddrBinary("fe80::")));
 	EXPECT_FALSE(ipAddressNetlinkChecker.isV6AddressExternal(getV6AddrBinary("febf:ffff:ffff:ffff:ffff:ffff:ffff:ffff")));
@@ -323,7 +320,7 @@ TEST_F(IpAddressCheckerTest, LinkLocalAddress) {
 
 // loopback addresses (::1/128)
 TEST_F(IpAddressCheckerTest, LoopbackAddress) {
-	IpAddressNetlinkChecker ipAddressNetlinkChecker{netlinkMock};
+	IpAddressCheckerImpl ipAddressNetlinkChecker{netlinkMock};
 
 	EXPECT_FALSE(ipAddressNetlinkChecker.isV6AddressExternal(getV6AddrBinary("::1")));
 	EXPECT_TRUE(ipAddressNetlinkChecker.isV6AddressExternal(getV6AddrBinary("::")));
@@ -338,11 +335,9 @@ TEST_F(IpAddressCheckerTest, Ipv6NetworkSubnet) {
 	inet_pton(AF_INET6, "2001:db8:85a3::8a2e:370:7336", &ipv6NetworkAddr);
 	inet_pton(AF_INET6, "ffff:ffff:ffff:ffff::", &ipv6NetworkMask);
 
-	EXPECT_CALL(netlinkMock, collectIpv6Networks).WillOnce(Return(std::vector<service::NetlinkCalls::Ipv6Network>{{service::NetlinkCalls::Ipv6Network{ipv6NetworkAddr, ipv6NetworkMask}}}));
-	EXPECT_CALL(netlinkMock, collectIpInterfaces).WillOnce(Return(IpInterfaces{0}));
-	EXPECT_CALL(netlinkMock, collectBridgeIndices).WillOnce(Return(BridgeIndices{0}));
+	EXPECT_CALL(netlinkMock, getIpV6Interfaces).WillRepeatedly(Return(std::vector{{Ipv6Network{ipv6NetworkAddr, ipv6NetworkMask}}}));
 
-	IpAddressNetlinkChecker ipAddressNetlinkChecker{netlinkMock};
+	IpAddressCheckerImpl ipAddressNetlinkChecker{netlinkMock};
 
 	EXPECT_FALSE(ipAddressNetlinkChecker.isV6AddressExternal(getV6AddrBinary("2001:0db8:85a3:0000:0000:0000:0000:0000")));
 	EXPECT_TRUE(ipAddressNetlinkChecker.isV6AddressExternal(getV6AddrBinary("2001:0db8:85a3:0001:0000:0000:0000:0000")));

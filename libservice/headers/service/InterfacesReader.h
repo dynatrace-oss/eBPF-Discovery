@@ -18,38 +18,41 @@
 
 #include <cstdint>
 #include <memory>
+#include <netinet/in.h>
+#include <optional>
 #include <stddef.h>
 #include <unordered_map>
 #include <vector>
-#include <netinet/in.h>
 
 struct sockaddr_nl;
 
 namespace service {
 
-using IPv4int = uint32_t;
-
-struct IpIfce {
-	std::vector<IPv4int> ip;
-	std::vector<IPv4int> broadcast;
-	uint32_t mask;
-};
-
-using IpInterfaces = std::unordered_map<int, IpIfce>;
-using BridgeIndices = std::vector<int>;
-
-class NetlinkCalls {
-public:
-	virtual ~NetlinkCalls() = default;
-
-	struct Ipv6Network {
+struct Ipv6Network {
 		in6_addr networkIpv6Addr;
 		in6_addr networkMask;
-	};
+};
 
-	virtual IpInterfaces collectIpInterfaces() const;
-	virtual std::vector<Ipv6Network> collectIpv6Networks() const;
-	virtual BridgeIndices collectBridgeIndices() const;
+struct Ipv4Network {
+		in_addr networkIpv4Addr;
+		in_addr networkMask;
+		std::optional<in_addr> broadcastAddr;
+};
+
+
+class InterfacesReader {
+public:
+	virtual ~InterfacesReader() = default;
+	void printNetworksInfo();
+	[[nodiscard]] virtual std::vector<Ipv4Network> getIpV4Interfaces() const;
+	[[nodiscard]] virtual std::vector<Ipv6Network> getIpV6Interfaces() const;
+
+	virtual void collectAllIpInterfaces();
+
+private:
+	std::vector<Ipv4Network> ipv4Networks;
+	std::vector<Ipv6Network> ipv6Networks;
+
 };
 
 } // namespace service

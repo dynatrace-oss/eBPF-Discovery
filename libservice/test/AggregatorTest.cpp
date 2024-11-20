@@ -16,7 +16,7 @@
 
 #include "service/Aggregator.h"
 
-#include "service/IpAddressNetlinkChecker.h"
+#include "service/IpAddressCheckerImpl.h"
 
 #include <algorithm>
 #include <gmock/gmock.h>
@@ -33,7 +33,7 @@ void PrintTo(const Service& service, std::ostream* os) {
 
 class IpAddressCheckerMock : public IpAddressChecker {
 public:
-	MOCK_METHOD(bool, isV4AddressExternal, (IPv4int), (const));
+	MOCK_METHOD(bool, isV4AddressExternal, (const in_addr&), (const));
 	MOCK_METHOD(bool, isV6AddressExternal, (const in6_addr&), (const));
 };
 
@@ -61,7 +61,7 @@ struct ServiceAggregatorTest : public testing::Test {
 		return {request, meta};
 	}
 
-	const NetlinkCalls netlink;
+	const InterfacesReader netlink;
 	IpAddressCheckerMock ipCheckerMock;
 };
 
