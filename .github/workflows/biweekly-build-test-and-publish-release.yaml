@@ -82,7 +82,8 @@ jobs:
 
   biweekly-build-test-and-publish-release:
     runs-on: ${{ matrix.runner }}
-    matrix:
+    strategy:
+      matrix:
         include:
           - runner: ubuntu-latest
             arch: x86_64
