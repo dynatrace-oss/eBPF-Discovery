@@ -12,43 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: "Build and test Debug"
+name: "Checkout and run static analysis"
 
 on:
-  pull_request:
+  [push, pull_request]
 
 jobs:
-  build-and-test-debug:
+  run-static-analysis:
     runs-on: ${{ matrix.runner }}
     strategy:
       matrix:
-        runner: [ubuntu-latest, Linux-ARM-Runner]
+        runner: [ubuntu-latest]
     steps:
       - name: "Checkout source code of the repository"
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: "Set environment variables"
-        uses: ./.github/actions/set-environment-variables
-        with:
-          build-type: Debug
-
-      - name: "Build docker image"
-        uses: ./.github/actions/build-docker-image
-
-      - name: "Configure"
-        uses: ./.github/actions/configure
-
-      - name: "Build"
-        uses: ./.github/actions/build
-
-      - name: "Run unit tests"
-        uses: ./.github/actions/run-unit-tests
-
-      - name: "Run component tests"
-        uses: ./.github/actions/run-component-tests
-
       - name: "Run static code analysis with cppcheck"
         uses: ./.github/actions/run-cppcheck
 

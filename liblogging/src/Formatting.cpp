@@ -27,11 +27,13 @@ std::string vaFormat(const char* format, va_list args) noexcept {
 	int len{std::vsnprintf(result.data(), result.size() + 1, format, args)};
 
 	if (len <= 0) {
+		va_end(argsCopy);
 		return result;
 	}
 
 	if (len <= (int)result.size()) {
 		result.resize(len);
+		va_end(argsCopy);
 		return result;
 	}
 
@@ -39,6 +41,7 @@ std::string vaFormat(const char* format, va_list args) noexcept {
 	len = std::vsnprintf(result.data(), result.size() + 1, format, argsCopy);
 
 	if (len <= 0) {
+		va_end(argsCopy);
 		return {};
 	}
 
