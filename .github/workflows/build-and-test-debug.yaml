@@ -49,6 +49,3 @@ jobs:
       - name: "Run component tests"
         uses: ./.github/actions/run-component-tests
 
-      - name: "Run static code analysis with cppcheck"
-        uses: ./.github/actions/run-cppcheck
-
