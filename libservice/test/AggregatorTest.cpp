@@ -33,6 +33,7 @@ void PrintTo(const Service& service, std::ostream* os) {
 
 class IpAddressCheckerMock : public IpAddressChecker {
 public:
+	// cppcheck-suppress syntaxError ; sporadic false error occurred on following line
 	MOCK_METHOD(bool, isV4AddressExternal, (const in_addr&), (const));
 	MOCK_METHOD(bool, isV6AddressExternal, (const in6_addr&), (const));
 };
