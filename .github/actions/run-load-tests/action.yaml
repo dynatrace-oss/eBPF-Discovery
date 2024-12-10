@@ -39,7 +39,7 @@ runs:
       run: |
         sudo chmod -R 777 ${{ github.workspace }}/logs
     - name: "Upload log archive"
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: "log-archive"
         path: ${{ github.workspace }}/logs
