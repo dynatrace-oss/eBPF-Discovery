@@ -34,8 +34,12 @@ runs:
         cd ${{ env.LOAD_TESTING_PATH }}
         /bin/bash test_load.sh ${{ env.DISCOVERY_BIN_PATH }} ${{ github.workspace }}/logs 5 5 30m
       continue-on-error: true
+    - name: Set permissions for logs
+      shell: bash
+      run: |
+        sudo chmod -R 777 ${{ github.workspace }}/logs
     - name: "Upload log archive"
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: "log-archive"
         path: ${{ github.workspace }}/logs
