@@ -32,6 +32,7 @@ struct testClass {
 	std::string empty = "";
 };
 
+// cppcheck-suppress unknownMacro
 BOOST_DESCRIBE_STRUCT(testClass, (), (str, empty))
 
 bool is_parsable_back(std::string_view json_string) {
