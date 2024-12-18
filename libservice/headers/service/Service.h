@@ -65,6 +65,7 @@ struct Service {
 	}
 };
 
+// cppcheck-suppress unknownMacro
 BOOST_DESCRIBE_STRUCT(
 		Service,
 		(),
@@ -77,7 +78,6 @@ BOOST_DESCRIBE_STRUCT(
 		 externalIPv4_16ClientNets,
 		 externalIPv4_24ClientNets,
 		 externalIPv6ClientsNets))
-
 } // namespace service
 
 namespace boost::json {
