@@ -24,14 +24,7 @@
 #include "service/Aggregator.h"
 #include "service/IpAddressCheckerImpl.h"
 
-#include <atomic>
-#include <chrono>
-#include <condition_variable>
-#include <mutex>
-#include <queue>
-#include <string>
-#include <thread>
-#include <unordered_map>
+#include <string_view>
 
 namespace ebpfdiscovery {
 

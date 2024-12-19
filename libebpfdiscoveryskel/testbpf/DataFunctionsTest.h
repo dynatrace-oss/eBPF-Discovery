@@ -22,6 +22,7 @@
 
 #include "TestDefine.h"
 
+// cppcheck-suppress unknownMacro
 TEST_ENTRY int BPF_PROG(testDataProbeIsBeginningOfHttpRequest) {
 	CHECK_TEST_RUNNER(runnerPid);
 

@@ -29,7 +29,6 @@ target_include_directories(${TARGET} PRIVATE src PUBLIC headers)
 target_link_libraries(${TARGET}
         PUBLIC
             libpf-tools
-            ebpfdiscoveryproto
             ebpfdiscoveryshared
             ebpfdiscoveryskel
             httpparser
@@ -41,7 +40,7 @@ target_link_libraries(${TARGET}
 )
 
 if (BUILD_TESTS)
-    list(APPEND TEST_SOURCES test/LRUCacheTest.cpp)
+    list(APPEND TEST_SOURCES test/LRUCacheTest.cpp test/JsonTest.cpp)
     set(TEST_TARGET test${TARGET})
 
     add_executable(${TEST_TARGET} ${TEST_SOURCES})
