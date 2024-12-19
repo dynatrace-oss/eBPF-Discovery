@@ -209,6 +209,7 @@ __attribute__((always_inline)) inline static int handleSSLPendingExit(struct pt_
  * Probes
  */
 
+// cppcheck-suppress unknownMacro
 SEC("uprobe/SSL_read:libssl.so")
 int BPF_UPROBE(uprobeSSLReadOpenSSL, void* ssl, void* buf, int num) {
 	return handleSSLReadEntry(ctx, ssl, (char*)buf, num);
