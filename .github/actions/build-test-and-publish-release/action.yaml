@@ -67,10 +67,6 @@ runs:
       shell: bash
       run: mv ${{ env.BUILD_PATH }}/licenses ${{ env.ARTIFACT_PATH }}/third_party
 
-    - name: "Move protobuf model to artifact directory"
-      shell: bash
-      run: mv ${{ env.BUILD_PATH }}/libebpfdiscoveryproto/ebpfdiscoveryproto ${{ env.ARTIFACT_PATH }}/ebpfdiscoveryproto
-
     - name: "Move binaries to artifact directory"
       shell: bash
       run: mv ${{ env.BUILD_PATH }}/bin ${{ env.ARTIFACT_PATH }}/bin
