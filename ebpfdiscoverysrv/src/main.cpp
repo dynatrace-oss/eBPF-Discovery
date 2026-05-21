@@ -17,6 +17,7 @@
 #include "ebpfdiscovery/Discovery.h"
 #include "ebpfdiscovery/DiscoveryBpf.h"
 #include "ebpfdiscovery/DiscoveryBpfLogging.h"
+#include "ebpfdiscovery/SlpBpf.h"
 #include "logging/Logger.h"
 
 #include <boost/program_options.hpp>
@@ -53,6 +54,9 @@ static po::options_description getProgramOptions() {
       ("version", "Display program version")
       ("interval", po::value<int>()->default_value(60), "Services reporting time interval (in seconds)")
       ("enable-network-counters", po::bool_switch()->default_value(false), "Enable network counters")
+	  ("enable-slp", po::bool_switch()->default_value(false), "Enables the short-lived-process detection")
+	  ("slp-interval", po::value<int>()->default_value(60), "Short-lived-processes reporting time interval (in seconds)")
+
   ;
 	// clang-format on
 
@@ -207,6 +211,17 @@ int main(int argc, char** argv) {
 		});
 	}
 
+	const bool enableSlp{vm["enable-slp"].as<bool>()};
+	std::future<void> slpFuture{};
+	ebpfdiscovery::SlpBpf slpBpfInstance;
+	if (enableSlp) {
+		LOG_DEBUG("Starting SLP discovery.");
+		auto slpInterval{std::chrono::seconds(vm["slp-interval"].as<int>())};
+		slpFuture = std::async(std::launch::async, periodicTask, slpInterval, [&slpBpfInstance]() {
+			slpBpfInstance.collectAndOutput();
+		});
+	}
+
 	auto outputServicesToStdoutInterval{std::chrono::seconds(vm["interval"].as<int>())};
 	auto outputServicesToStdoutFuture = std::async(std::launch::async, periodicTask, outputServicesToStdoutInterval, [&](){ instance.outputServicesToStdout(); });
 
@@ -224,6 +239,9 @@ int main(int argc, char** argv) {
 	}
 	if(enableNetworkCounters && networkCountersCleaningFuture.valid()) {
 		networkCountersCleaningFuture.wait();
+	}
+	if (enableSlp && slpFuture.valid()) {
+		slpFuture.wait();
 	}
 
 	programRunningFlag = false;
