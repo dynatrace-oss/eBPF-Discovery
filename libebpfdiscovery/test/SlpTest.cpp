@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "ebpfdiscovery/SlpBpf.h"
+#include "ebpfdiscovery/Slp.h"
 
 #include <gtest/gtest.h>
 
@@ -23,10 +23,10 @@
 #include <string>
 #include <vector>
 
-using ebpfdiscovery::SlpBpf;
+using ebpfdiscovery::Slp;
 using ebpfdiscovery::SlpProcess;
 
-class SlpBpfTest : public testing::Test {};
+class SlpTest : public testing::Test {};
 
 static bool isParsableJson(const std::string& s) {
 	boost::system::error_code ec;
@@ -50,7 +50,7 @@ static std::string processesToJson(const std::vector<SlpProcess>& processes) {
 // JSON serialisation tests
 // ---------------------------------------------------------------------------
 
-TEST_F(SlpBpfTest, singleProcessJsonFormat) {
+TEST_F(SlpTest, singleProcessJsonFormat) {
 	const std::vector<SlpProcess> processes{{.pid = 42, .ppid = 1, .startTs = 123456789ULL, .cpuTime = 100ULL}};
 
 	const std::string result{processesToJson(processes)};
@@ -60,7 +60,7 @@ TEST_F(SlpBpfTest, singleProcessJsonFormat) {
 	EXPECT_EQ(result, expected);
 }
 
-TEST_F(SlpBpfTest, multipleProcessesJsonFormat) {
+TEST_F(SlpTest, multipleProcessesJsonFormat) {
 	const std::vector<SlpProcess> processes{
 			{.pid = 1, .ppid = 0, .startTs = 100ULL, .cpuTime = 10ULL},
 			{.pid = 2, .ppid = 1, .startTs = 200ULL, .cpuTime = 20ULL},
@@ -79,7 +79,7 @@ TEST_F(SlpBpfTest, multipleProcessesJsonFormat) {
 	EXPECT_EQ(result, expected);
 }
 
-TEST_F(SlpBpfTest, emptyProcessListProducesEmptyArray) {
+TEST_F(SlpTest, emptyProcessListProducesEmptyArray) {
 	const std::vector<SlpProcess> processes{};
 
 	const std::string result{processesToJson(processes)};
@@ -92,7 +92,7 @@ TEST_F(SlpBpfTest, emptyProcessListProducesEmptyArray) {
 // Stdout output test
 // ---------------------------------------------------------------------------
 
-TEST_F(SlpBpfTest, outputToStdoutProducesValidJson) {
+TEST_F(SlpTest, outputToStdoutProducesValidJson) {
 	// Redirect stdout, call Slp::outputToStdout, then verify the captured line.
 	const std::vector<SlpProcess> processes{{.pid = 10, .ppid = 1, .startTs = 42ULL, .cpuTime = 7ULL}};
 
@@ -101,7 +101,7 @@ TEST_F(SlpBpfTest, outputToStdoutProducesValidJson) {
 	std::ostringstream captured;
 	std::cout.rdbuf(captured.rdbuf());
 
-	SlpBpf::outputToStdout(processes);
+	Slp::outputToStdout(processes);
 
 	std::cout.rdbuf(origBuf);
 

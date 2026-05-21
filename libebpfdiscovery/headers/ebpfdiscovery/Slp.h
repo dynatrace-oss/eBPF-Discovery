@@ -23,7 +23,12 @@
 #include <vector>
 
 namespace ebpfdiscovery {
-
+/**
+ * Snapshot of a single process captured by the short-lived-process (SLP) pipeline.
+ *
+ * All time values use the kernel's clock-tick unit (as reported in /proc/<pid>/stat)
+ * BPF-sourced nanosecond timestamps from SLP BPF
+ */
 struct SlpProcess {
 	pid_t pid{};
 	pid_t ppid{};
@@ -34,11 +39,33 @@ struct SlpProcess {
 // cppcheck-suppress unknownMacro
 BOOST_DESCRIBE_STRUCT(SlpProcess, (), (pid, ppid, startTs, cpuTime))
 
-class SlpBpf {
+
+/**
+ * Short-lived process (SLP) detection component.
+ *
+ * Slp is the userspace counterpart to SlpBpf skeleton (analogous to
+ * DiscoveryBpf / Discovery for service discovery).  It is responsible for
+ * collecting process lifecycle data and emitting it periodically to stdout in
+ * the agreed JSON format:
+ *
+ *   {"processes":[{"pid":<pid>,"ppid":<ppid>,"startTs":<ts>,"cpuTime":<cpuTime>}, ...]}
+ *
+ * Collection via BPF tracepoints
+ *
+ * Intended usage in main():
+ * @code
+ *   ebpfdiscovery::Slp slp;
+ *   auto future = std::async(std::launch::async, periodicTask, interval,
+ *                            [&slp]{ slp.collectAndOutput(); });
+ * @endcode
+ */
+class Slp {
 public:
-	SlpBpf() = default;
-	SlpBpf(const SlpBpf&) = delete;
-	SlpBpf& operator=(const SlpBpf&) = delete;
+	Slp() = default;
+	Slp(const Slp&) = delete;
+	Slp& operator=(const Slp&) = delete;
+	Slp(Slp&&) = default;
+	Slp& operator=(Slp&&) = default;
 
 	/*
 	 * Output collected process data to stdout as JSON.

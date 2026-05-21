@@ -17,7 +17,7 @@
 #include "ebpfdiscovery/Discovery.h"
 #include "ebpfdiscovery/DiscoveryBpf.h"
 #include "ebpfdiscovery/DiscoveryBpfLogging.h"
-#include "ebpfdiscovery/SlpBpf.h"
+#include "ebpfdiscovery/Slp.h"
 #include "logging/Logger.h"
 
 #include <boost/program_options.hpp>
@@ -56,7 +56,6 @@ static po::options_description getProgramOptions() {
       ("enable-network-counters", po::bool_switch()->default_value(false), "Enable network counters")
 	  ("enable-slp", po::bool_switch()->default_value(false), "Enables the short-lived-process detection")
 	  ("slp-interval", po::value<int>()->default_value(60), "Short-lived-processes reporting time interval (in seconds)")
-
   ;
 	// clang-format on
 
@@ -213,7 +212,7 @@ int main(int argc, char** argv) {
 
 	const bool enableSlp{vm["enable-slp"].as<bool>()};
 	std::future<void> slpFuture{};
-	ebpfdiscovery::SlpBpf slpBpfInstance;
+	ebpfdiscovery::Slp slpBpfInstance;
 	if (enableSlp) {
 		LOG_DEBUG("Starting SLP discovery.");
 		auto slpInterval{std::chrono::seconds(vm["slp-interval"].as<int>())};
