@@ -19,6 +19,7 @@ list(
         src/DiscoveryBpf.cpp
         src/DiscoveryBpfLogging.cpp
         src/Session.cpp
+        src/Slp.cpp
 )
 set(TARGET ebpfdiscovery)
 
@@ -40,7 +41,7 @@ target_link_libraries(${TARGET}
 )
 
 if (BUILD_TESTS)
-    list(APPEND TEST_SOURCES test/LRUCacheTest.cpp test/JsonTest.cpp)
+    list(APPEND TEST_SOURCES test/LRUCacheTest.cpp test/JsonTest.cpp test/SlpTest.cpp)
     set(TEST_TARGET test${TARGET})
 
     add_executable(${TEST_TARGET} ${TEST_SOURCES})
