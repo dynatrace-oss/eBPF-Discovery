@@ -27,10 +27,6 @@
 
 __u32 runnerPid = 0;
 
-char* inPtr = NULL;
-size_t inLen = 0;
-int outRet = 0;
-
 #define TEST_ENTRY SEC("fentry/do_nanosleep")
 #define CHECK_TEST_RUNNER(runnerPid)                       \
 	if ((bpf_get_current_pid_tgid() >> 32) != runnerPid) { \

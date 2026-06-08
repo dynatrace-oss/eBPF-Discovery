@@ -17,6 +17,7 @@
  */
 
 #include "DataFunctionsTest.h"
+#include "SlpTestHooks.h"
 
 #include "vmlinux.h"
 

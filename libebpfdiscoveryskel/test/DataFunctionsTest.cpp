@@ -28,7 +28,6 @@
 
 using ebpfdiscovery::bpftest::attachBpfProgram;
 using ebpfdiscovery::bpftest::DiscoveryTest;
-using ebpfdiscovery::bpftest::triggerTracepoint;
 
 struct DiscoveryDataFunctionsTestParams {
 	std::string inputPtrData;
@@ -37,9 +36,32 @@ struct DiscoveryDataFunctionsTestParams {
 };
 
 class DiscoveryDataFunctionsTest : public DiscoveryTest, public ::testing::WithParamInterface<DiscoveryDataFunctionsTestParams> {};
-class DataProbeIsBeginningOfHttpRequestTest : public DiscoveryDataFunctionsTest {};
+class DataProbeIsBeginningOfHttpRequestTest : public DiscoveryDataFunctionsTest {
+public:
+	void setInPtr(const std::string& str) {
+		checkLoaded();
+		inPtrSrc.clear();
+		std::copy(str.begin(), str.end(), std::back_inserter(inPtrSrc));
+		testBss->inPtr = inPtrSrc.data();
+	}
+
+	void setInLen(size_t len) {
+		checkLoaded();
+		testBss->inLen = len;
+	}
+
+	int getOutRet() {
+		checkLoaded();
+		return testBss->outRet;
+	}
+
+	void triggerTracepoint() {
+		usleep(1);
+	}
+};
 
 TEST_P(DataProbeIsBeginningOfHttpRequestTest, Default) {
+
 	const auto& data{GetParam()};
 	setInPtr(data.inputPtrData);
 	setInLen(data.inputLen);
