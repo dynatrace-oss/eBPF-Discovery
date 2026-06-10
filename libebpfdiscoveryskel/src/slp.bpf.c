@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Dynatrace LLC
+* Copyright 2026 Dynatrace LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,22 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  */
 
-#pragma once
+#include "ProcessTracing.h"
 
-#include "DataFunctions.h"
-#include "TestDefine.h"
+char LICENSE[] SEC("license") = "GPL";
 
-char* inPtr = NULL;
-size_t inLen = 0;
-int outRet = 0;
-
-// cppcheck-suppress unknownMacro
-TEST_ENTRY int BPF_PROG(testDataProbeIsBeginningOfHttpRequest) {
-	CHECK_TEST_RUNNER(runnerPid);
-
-	if (inPtr != NULL && inLen < DISCOVERY_TEST_MAX_INPUT_LEN) {
-		outRet = dataProbeIsBeginningOfHttpRequest(inPtr, inLen);
-	}
-
-	return 0;
-}

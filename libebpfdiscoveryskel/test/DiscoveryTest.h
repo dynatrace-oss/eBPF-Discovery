@@ -38,23 +38,6 @@ public:
 		return testSkel != nullptr && testBss != nullptr;
 	}
 
-	void setInPtr(const std::string& str) {
-		checkLoaded();
-		inPtrSrc.clear();
-		std::copy(str.begin(), str.end(), std::back_inserter(inPtrSrc));
-		testBss->inPtr = inPtrSrc.data();
-	}
-
-	void setInLen(size_t len) {
-		checkLoaded();
-		testBss->inLen = len;
-	}
-
-	int getOutRet() {
-		checkLoaded();
-		return testBss->outRet;
-	}
-
 protected:
 	void SetUp() override {
 		testSkel = discoveryTest_bpf__open_and_load();
@@ -84,15 +67,11 @@ protected:
 	std::vector<char> inPtrSrc;
 };
 
-void attachBpfProgram(bpf_program* prog) {
+inline void attachBpfProgram(bpf_program* prog) {
 	auto link = bpf_program__attach(prog);
 	if (link == nullptr) {
 		throw std::runtime_error("couldn't attach bpf program");
 	}
-}
-
-void triggerTracepoint() {
-	usleep(1);
 }
 
 } // namespace ebpfdiscovery::bpftest

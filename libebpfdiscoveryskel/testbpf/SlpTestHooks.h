@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Dynatrace LLC
+* Copyright 2026 Dynatrace LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,21 +17,26 @@
  */
 
 #pragma once
-
-#include "DataFunctions.h"
 #include "TestDefine.h"
+#include "ProcessTracing.h"
 
-char* inPtr = NULL;
-size_t inLen = 0;
-int outRet = 0;
+size_t outCpuTime = 0;
 
-// cppcheck-suppress unknownMacro
-TEST_ENTRY int BPF_PROG(testDataProbeIsBeginningOfHttpRequest) {
+SEC("fentry/do_nanosleep")
+int BPF_PROG(testSlpFork) {
 	CHECK_TEST_RUNNER(runnerPid);
 
-	if (inPtr != NULL && inLen < DISCOVERY_TEST_MAX_INPUT_LEN) {
-		outRet = dataProbeIsBeginningOfHttpRequest(inPtr, inLen);
-	}
+	struct task_struct* task = (struct task_struct*)bpf_get_current_task();
 
-	return 0;
+	return handleProcessFork(task);
+}
+
+SEC("tracepoint/syscalls/sys_enter_getgid")
+int BPF_PROG(testSlpExit) {
+	CHECK_TEST_RUNNER(runnerPid);
+
+	struct task_struct* task = (struct task_struct*)bpf_get_current_task();
+	outCpuTime += BPF_CORE_READ(task, se.sum_exec_runtime);
+
+	return handleProcessExit(task);
 }

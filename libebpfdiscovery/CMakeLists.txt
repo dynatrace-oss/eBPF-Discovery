@@ -32,6 +32,7 @@ target_link_libraries(${TARGET}
             libpf-tools
             ebpfdiscoveryshared
             ebpfdiscoveryskel
+            ebpfslpskel
             httpparser
             logging
             service
