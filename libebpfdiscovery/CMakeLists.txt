@@ -15,6 +15,7 @@
 list(
         APPEND
         SOURCES
+        src/BpfOptions.cpp
         src/Discovery.cpp
         src/DiscoveryBpf.cpp
         src/DiscoveryBpfLogging.cpp

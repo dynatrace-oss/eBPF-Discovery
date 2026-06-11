@@ -21,6 +21,14 @@
 #include <cstdint>
 #include <sys/types.h>
 #include <vector>
+#include <memory>
+
+#include <bpf/libbpf.h>
+
+#include "slp.skel.h"
+
+#include "ebpfdiscovery/LibBpfInterface.h"
+#include "ebpfdiscoveryshared/SlpTypes.h"
 
 namespace ebpfdiscovery {
 /**
@@ -38,7 +46,6 @@ struct SlpProcess {
 
 // cppcheck-suppress unknownMacro
 BOOST_DESCRIBE_STRUCT(SlpProcess, (), (pid, ppid, startTs, cpuTime))
-
 
 /**
  * Short-lived process (SLP) detection component.
@@ -61,7 +68,8 @@ BOOST_DESCRIBE_STRUCT(SlpProcess, (), (pid, ppid, startTs, cpuTime))
  */
 class Slp {
 public:
-	Slp() = default;
+	explicit Slp(std::unique_ptr<LibBpfInterface> libBpfInterface = nullptr);
+	virtual ~Slp();
 	Slp(const Slp&) = delete;
 	Slp& operator=(const Slp&) = delete;
 	Slp(Slp&&) = default;
@@ -79,6 +87,21 @@ public:
 	 * Exposed for unit testing.
 	 */
 	static void outputToStdout(const std::vector<SlpProcess>& processes);
+
+	void load(const bpf_object_open_opts& openOpts);
+	void unload();
+
+	friend void addSplProcess(Slp& slp, const SlpEvent& process);
+protected:
+	virtual slp_bpf* openBpf(const bpf_object_open_opts& openOpts);
+	virtual int loadBpf(slp_bpf* prog);
+	virtual void destroyBpf(slp_bpf* prog);
+private:
+	std::unique_ptr<LibBpfInterface> libBpfCalls;
+	std::vector<SlpProcess> processes{};
+
+	slp_bpf* skel{nullptr};
+	ring_buffer* slpEventsBuffer{nullptr};
 };
 
 } // namespace ebpfdiscovery

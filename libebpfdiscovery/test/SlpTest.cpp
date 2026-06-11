@@ -15,7 +15,10 @@
  */
 
 #include "ebpfdiscovery/Slp.h"
+#include "ebpfdiscovery/Discovery.h"
+#include "LibBpInterfaceMock.h"
 
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include <boost/json.hpp>
@@ -23,94 +26,200 @@
 #include <string>
 #include <vector>
 
-using ebpfdiscovery::Slp;
-using ebpfdiscovery::SlpProcess;
+using namespace ebpfdiscovery;
+using namespace ::testing;
 
-class SlpTest : public testing::Test {};
-
-static bool isParsableJson(const std::string& s) {
+namespace {
+bool isParsableJson(const std::string& s) {
 	boost::system::error_code ec;
 	boost::json::parse(s, ec);
 	return !ec;
 }
+}
 
-// Build the JSON string for a list of processes the same way Slp::outputToStdout does,
-// without the trailing newline, so tests can do exact string comparisons.
-static std::string processesToJson(const std::vector<SlpProcess>& processes) {
-	boost::json::array arr;
-	arr.reserve(processes.size());
-	for (const auto& proc : processes) {
-		arr.push_back(boost::json::value_from(proc));
+class SlpMock : public Slp {
+public:
+	using Slp::Slp;
+	MOCK_METHOD(slp_bpf*, openBpf, (const bpf_object_open_opts&), (override));
+	MOCK_METHOD(int, loadBpf, (slp_bpf*), (override));
+	MOCK_METHOD(void, destroyBpf, (slp_bpf*), (override));
+};
+
+class SlpTest : public Test {
+public:
+	SlpTest() {
+		auto LibBpfParam = std::make_unique<LibBpfInterfaceMock>();
+		libBpfMock = LibBpfParam.get();
+		tested = std::make_unique<StrictMock<SlpMock>>(std::move(LibBpfParam));
+
+		//this values will never be dereferenced, they are used only in mock parameters comparison, so
+		//it is safe to use invalid pointers
+		fakeSkel.maps.slpEvents = reinterpret_cast<bpf_map*>(21);
+		fakeSkel.progs.processExitHook = reinterpret_cast<bpf_program*>(34);
+		fakeSkel.progs.processForkHook = reinterpret_cast<bpf_program*>(78);
 	}
-	const boost::json::object outJson{{"processes", std::move(arr)}};
-	return boost::json::serialize(outJson);
-}
 
-// ---------------------------------------------------------------------------
-// JSON serialisation tests
-// ---------------------------------------------------------------------------
+	void checkJsonResult(const std::string& json, const std::vector<SlpEvent>& events) {
+		try {
+			EXPECT_FALSE(json.empty());
+			EXPECT_TRUE(isParsableJson(json));
 
-TEST_F(SlpTest, singleProcessJsonFormat) {
-	const std::vector<SlpProcess> processes{{.pid = 42, .ppid = 1, .startTs = 123456789ULL, .cpuTime = 100ULL}};
+			const auto& parsedJson = boost::json::parse(json);
+			const auto& processes = parsedJson.as_object().at("processes");
+			int index = 0;
+			for ( const auto& elem : processes.as_array()) {
+				const auto& process = elem.as_object();
+				EXPECT_EQ(4u, process.size());
 
-	const std::string result{processesToJson(processes)};
+				ASSERT_TRUE(process.contains("pid"));
+				EXPECT_EQ(process.at("pid"), events[index].pid);
 
-	const std::string expected{R"({"processes":[{"pid":42,"ppid":1,"startTs":123456789,"cpuTime":100}]})"};
-	EXPECT_TRUE(isParsableJson(result));
-	EXPECT_EQ(result, expected);
-}
+				ASSERT_TRUE(process.contains("ppid"));
+				EXPECT_EQ(process.at("ppid"), events[index].parentPid);
 
-TEST_F(SlpTest, multipleProcessesJsonFormat) {
-	const std::vector<SlpProcess> processes{
-			{.pid = 1, .ppid = 0, .startTs = 100ULL, .cpuTime = 10ULL},
-			{.pid = 2, .ppid = 1, .startTs = 200ULL, .cpuTime = 20ULL},
-			{.pid = 3, .ppid = 1, .startTs = 300ULL, .cpuTime = 0ULL},
+				ASSERT_TRUE(process.contains("startTs"));
+				EXPECT_EQ(process.at("startTs"), events[index].startTimeNs);
+
+				ASSERT_TRUE(process.contains("cpuTime"));
+				EXPECT_EQ(process.at("cpuTime"), events[index].cpuTimeNs);
+				index++;
+			}
+		} catch (const std::exception& e) {
+			FAIL() << e.what();
+		}
+	}
+
+	void loadMockedBpf() {
+		EXPECT_CALL(*tested, openBpf(_)).WillOnce(Return(&fakeSkel));
+		EXPECT_CALL(*tested, loadBpf(&fakeSkel)).WillOnce(Return(0));
+		EXPECT_CALL(*libBpfMock, attachProgram(fakeSkel.progs.processForkHook)).WillOnce(Return(fakeProgramLink));
+		EXPECT_CALL(*libBpfMock, attachProgram(fakeSkel.progs.processExitHook)).WillOnce(Return(fakeProgramLink));
+		EXPECT_CALL(*libBpfMock, getMapFd(fakeSkel.maps.slpEvents)).WillOnce(Return(fakeMapFd));
+		EXPECT_CALL(*libBpfMock, createRingBuffer(fakeMapFd, _, tested.get(), nullptr)).WillOnce(DoAll(SaveArg<1>(&addEventToBuffer), Return(fakeBuffer)));
+		tested->load(opts);
+	}
+
+	void unloadMockedBpf() {
+		EXPECT_CALL(*libBpfMock, freeRingBuffer(fakeBuffer));
+		EXPECT_CALL(*tested, destroyBpf(&fakeSkel));
+		tested->unload();
+	}
+
+	bpf_link* fakeProgramLink = reinterpret_cast<bpf_link*>(0xBADADD);
+	ring_buffer* fakeBuffer = reinterpret_cast<ring_buffer*>(0xDEADBEEF);
+	const int fakeMapFd = 13;
+
+	ring_buffer_sample_fn addEventToBuffer;
+	bpf_object_open_opts opts{};
+	slp_bpf fakeSkel{};
+	LibBpfInterfaceMock* libBpfMock;
+	std::unique_ptr<StrictMock<SlpMock>> tested;
+};
+
+TEST_F(SlpTest, basic) {
+	loadMockedBpf();
+
+	std::vector<SlpEvent> processes{
+		{.pid = 10, .parentPid = 1, .startTimeNs = 42ULL, .cpuTimeNs = 7ULL},
+		{.pid = 15, .parentPid = 21, .startTimeNs = 555ULL, .cpuTimeNs = 321ULL},
 	};
-
-	const std::string result{processesToJson(processes)};
-
-	const std::string expected{
-			R"({"processes":[)"
-			R"({"pid":1,"ppid":0,"startTs":100,"cpuTime":10},)"
-			R"({"pid":2,"ppid":1,"startTs":200,"cpuTime":20},)"
-			R"({"pid":3,"ppid":1,"startTs":300,"cpuTime":0})"
-			R"(]})"};
-	EXPECT_TRUE(isParsableJson(result));
-	EXPECT_EQ(result, expected);
-}
-
-TEST_F(SlpTest, emptyProcessListProducesEmptyArray) {
-	const std::vector<SlpProcess> processes{};
-
-	const std::string result{processesToJson(processes)};
-
-	EXPECT_TRUE(isParsableJson(result));
-	EXPECT_EQ(result, R"({"processes":[]})");
-}
-
-// ---------------------------------------------------------------------------
-// Stdout output test
-// ---------------------------------------------------------------------------
-
-TEST_F(SlpTest, outputToStdoutProducesValidJson) {
-	// Redirect stdout, call Slp::outputToStdout, then verify the captured line.
-	const std::vector<SlpProcess> processes{{.pid = 10, .ppid = 1, .startTs = 42ULL, .cpuTime = 7ULL}};
 
 	// Capture stdout
 	std::streambuf* const origBuf{std::cout.rdbuf()};
 	std::ostringstream captured;
 	std::cout.rdbuf(captured.rdbuf());
 
-	Slp::outputToStdout(processes);
+	//reading from ring_buffer is mocked so we have to manually call handler function
+	for (auto& event : processes) {
+		addEventToBuffer(tested.get(), &event, 0);
+	}
+	EXPECT_CALL(*libBpfMock, pollEvents(fakeBuffer, 0));
+	tested->collectAndOutput();
+	const std::string firstOutput{captured.str()};
+
+	//no processes are added since last call to collectAndOutput, so the second call to collectAndOutput should produce empty output
+	captured.str("");
+	EXPECT_CALL(*libBpfMock, pollEvents(fakeBuffer, 0));
+	tested->collectAndOutput();
+	const std::string secondOutput{captured.str()};
 
 	std::cout.rdbuf(origBuf);
 
-	const std::string output{captured.str()};
-	EXPECT_FALSE(output.empty());
-	EXPECT_TRUE(isParsableJson(output));
+	checkJsonResult(firstOutput, processes);
+	EXPECT_EQ(secondOutput, std::string{});
 
-	boost::system::error_code ec;
-	const auto parsed{boost::json::parse(output, ec)};
-	ASSERT_FALSE(ec) << ec.message();
-	EXPECT_TRUE(parsed.as_object().contains("processes"));
+	unloadMockedBpf();
 }
+
+TEST_F(SlpTest, openBpfFails) {
+	using namespace ::testing;
+	EXPECT_CALL(*tested, openBpf(_)).WillOnce(Return(nullptr));
+	EXPECT_THROW(tested->load(opts), std::runtime_error);
+
+	//unload does nothing when opening bpf failed, so no EXPECT_CALLs
+	tested->unload();
+}
+
+TEST_F(SlpTest, loadBpfFails) {
+	using namespace ::testing;
+	EXPECT_CALL(*tested, openBpf(_)).WillOnce(Return(&fakeSkel));
+	EXPECT_CALL(*tested, loadBpf(&fakeSkel)).WillOnce(Return(-1));
+	EXPECT_THROW(tested->load(opts), std::runtime_error);
+
+	EXPECT_CALL(*tested, destroyBpf(&fakeSkel));
+	tested->unload();
+}
+
+TEST_F(SlpTest, attachForkProgramFails) {
+	using namespace ::testing;
+	EXPECT_CALL(*tested, openBpf(_)).WillOnce(Return(&fakeSkel));
+	EXPECT_CALL(*tested, loadBpf(&fakeSkel)).WillOnce(Return(0));
+	EXPECT_CALL(*libBpfMock, attachProgram(fakeSkel.progs.processForkHook)).WillOnce(Return(nullptr));
+	EXPECT_THROW(tested->load(opts), std::runtime_error);
+
+	EXPECT_CALL(*tested, destroyBpf(&fakeSkel));
+	tested->unload();
+}
+
+TEST_F(SlpTest, attachExitProgramFails) {
+	using namespace ::testing;
+	EXPECT_CALL(*tested, openBpf(_)).WillOnce(Return(&fakeSkel));
+	EXPECT_CALL(*tested, loadBpf(&fakeSkel)).WillOnce(Return(0));
+	EXPECT_CALL(*libBpfMock, attachProgram(fakeSkel.progs.processForkHook)).WillOnce(Return(fakeProgramLink));
+	EXPECT_CALL(*libBpfMock, attachProgram(fakeSkel.progs.processExitHook)).WillOnce(Return(nullptr));
+	EXPECT_THROW(tested->load(opts), std::runtime_error);
+
+	EXPECT_CALL(*tested, destroyBpf(&fakeSkel));
+	tested->unload();
+}
+
+TEST_F(SlpTest, getMapFdFails) {
+	using namespace ::testing;
+	EXPECT_CALL(*tested, openBpf(_)).WillOnce(Return(&fakeSkel));
+	EXPECT_CALL(*tested, loadBpf(&fakeSkel)).WillOnce(Return(0));
+	EXPECT_CALL(*libBpfMock, attachProgram(fakeSkel.progs.processForkHook)).WillOnce(Return(fakeProgramLink));
+	EXPECT_CALL(*libBpfMock, attachProgram(fakeSkel.progs.processExitHook)).WillOnce(Return(fakeProgramLink));
+	EXPECT_CALL(*libBpfMock, getMapFd(fakeSkel.maps.slpEvents)).WillOnce(Return(-EINVAL));
+	EXPECT_THROW(tested->load(opts), std::runtime_error);
+
+	EXPECT_CALL(*tested, destroyBpf(&fakeSkel));
+	tested->unload();
+}
+
+TEST_F(SlpTest, createRingBufferFails) {
+	using namespace ::testing;
+	EXPECT_CALL(*tested, openBpf(_)).WillOnce(Return(&fakeSkel));
+	EXPECT_CALL(*tested, loadBpf(&fakeSkel)).WillOnce(Return(0));
+	EXPECT_CALL(*libBpfMock, attachProgram(fakeSkel.progs.processForkHook)).WillOnce(Return(fakeProgramLink));
+	EXPECT_CALL(*libBpfMock, attachProgram(fakeSkel.progs.processExitHook)).WillOnce(Return(fakeProgramLink));
+	EXPECT_CALL(*libBpfMock, getMapFd(fakeSkel.maps.slpEvents)).WillOnce(Return(fakeMapFd));
+	EXPECT_CALL(*libBpfMock, createRingBuffer(fakeMapFd, _, tested.get(), nullptr)).WillOnce(Return(nullptr));
+	EXPECT_THROW(tested->load(opts), std::runtime_error);
+
+	EXPECT_CALL(*tested, destroyBpf(&fakeSkel));
+	tested->unload();
+}
+
+
+
+

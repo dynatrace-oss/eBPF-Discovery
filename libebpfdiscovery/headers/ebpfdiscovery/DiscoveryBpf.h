@@ -35,7 +35,7 @@ public:
 	DiscoveryBpf(const DiscoveryBpf&) = delete;
 	DiscoveryBpf& operator=(const DiscoveryBpf&) = delete;
 
-	void load();
+	void load(const bpf_object_open_opts& openOpts);
 	void unload();
 
 	DiscoveryBpfFds getFds();
@@ -46,9 +46,6 @@ private:
 	void attachLibSSLProbes();
 	void attachOpenSSLProbes();
 	bool tryAttachOpenSSLProbesToLibName(const std::string& libName);
-
-	bool coreEnsured{false};
-	bpf_object_open_opts openOpts{0};
 
 	discovery_bpf* skel{nullptr};
 };

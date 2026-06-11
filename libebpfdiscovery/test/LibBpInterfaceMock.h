@@ -15,21 +15,15 @@
  */
 
 #pragma once
+#include <gmock/gmock.h>
 
-#ifdef __TARGET_BPF
-#	include "vmlinux.h"
-#else
-#	include <linux/types.h>
-#endif
+#include "ebpfdiscovery/LibBpfInterface.h"
 
-struct SlpEvent{
-	__u64 cpuTimeNs;
-	__u64 startTimeNs;
-	__u32 pid;
-	__u32 parentPid;
-};
-
-struct SlpThreadsData{
-	__s64 count;
-	__u64 cpuTime;
+class LibBpfInterfaceMock : public ebpfdiscovery::LibBpfInterface {
+public:
+	MOCK_METHOD(int, getMapFd, (const struct bpf_map* map), (override));
+	MOCK_METHOD(int, pollEvents, (ring_buffer*, int), (override));
+	MOCK_METHOD(void, freeRingBuffer, (ring_buffer*), (override));
+	MOCK_METHOD(ring_buffer*, createRingBuffer, (int, ring_buffer_sample_fn, void*, const ring_buffer_opts*), (override));
+	MOCK_METHOD(bpf_link*, attachProgram, (const struct bpf_program*), (override));
 };

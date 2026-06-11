@@ -16,20 +16,24 @@
 
 #pragma once
 
-#ifdef __TARGET_BPF
-#	include "vmlinux.h"
-#else
-#	include <linux/types.h>
-#endif
+#include <bpf/libbpf.h>
 
-struct SlpEvent{
-	__u64 cpuTimeNs;
-	__u64 startTimeNs;
-	__u32 pid;
-	__u32 parentPid;
+namespace ebpfdiscovery {
+
+class BpfOptions {
+public:
+	BpfOptions() = default;
+	BpfOptions(const BpfOptions&) = delete;
+	BpfOptions& operator=(const BpfOptions&) = delete;
+	~BpfOptions();
+
+	void acquire();
+	void release();
+
+	const bpf_object_open_opts& getOpenOpts() const;
+private:
+	bool coreEnsured{false};
+	bpf_object_open_opts openOpts{0};
 };
 
-struct SlpThreadsData{
-	__s64 count;
-	__u64 cpuTime;
-};
+}
