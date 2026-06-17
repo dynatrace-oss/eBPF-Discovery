@@ -36,7 +36,6 @@ static int handle_event(void*, void* data, size_t) {
 	lastEvent.pid = event->pid;
 	lastEvent.parentPid = event->parentPid;
 	lastEvent.cpuTimeNs = event->cpuTimeNs;
-	std::memcpy(lastEvent.comm, event->comm, sizeof(lastEvent.comm));
 	return 0;
 }
 
@@ -99,7 +98,6 @@ public:
 		EXPECT_EQ(lastEvent.pid, getpid());
 		EXPECT_EQ(lastEvent.parentPid, getppid());
 		EXPECT_EQ(lastEvent.cpuTimeNs, testBss->outCpuTime);
-		EXPECT_EQ(std::string_view{lastEvent.comm}, "testebpfdiscove");
 		//startTimeNs not checked because it is too much hassle to get start time in ns from user space
 
 		checkEventsBufIsEmpty();

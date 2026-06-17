@@ -24,7 +24,7 @@
 #include <bpf/bpf_helpers.h>
 
 #include "ebpfdiscoveryshared/SlpTypes.h"
-#include  "DebugPrint.h"
+#include "DebugPrint.h"
 
 #define MAX_EVENTS 180000
 
@@ -77,7 +77,6 @@ __attribute__((always_inline)) inline static int handleProcessExit(struct task_s
 	event->parentPid = BPF_CORE_READ(task, parent, pid);
 	event->cpuTimeNs = processCpuTime;
 	event->startTimeNs = BPF_CORE_READ(task, start_time);
-	bpf_get_current_comm(event->comm, sizeof(event->comm));
 
 	bpf_ringbuf_submit(event, 0);
 	return 0;

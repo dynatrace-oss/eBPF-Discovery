@@ -21,25 +21,10 @@
 
 #include <fmt/core.h>
 
-extern "C" {
-#include "../../third_party/bcc/libbpf-tools/btf_helpers.h"
-}
-
 namespace ebpfdiscovery {
 
-void DiscoveryBpf::load() {
+void DiscoveryBpf::load(const bpf_object_open_opts& openOpts) {
 	LOG_DEBUG("Loading BPF program.");
-
-	{
-		LIBBPF_OPTS(bpf_object_open_opts, newOpenOpts);
-		openOpts = newOpenOpts;
-	}
-
-	LOG_TRACE("Fetching BTF for CO-RE.");
-	if (const auto res{ensure_core_btf(&openOpts)}) {
-		throw std::runtime_error("Failed to fetch necessary BTF for CO-RE: " + std::string(strerror(-res)));
-	}
-	coreEnsured = true;
 
 	LOG_TRACE("Opening Discovery BPF object.");
 	skel = discovery_bpf__open_opts(&openOpts);
@@ -61,11 +46,6 @@ void DiscoveryBpf::unload() {
 	if (skel != nullptr) {
 		discovery_bpf__destroy(skel);
 		skel = nullptr;
-	}
-
-	if (coreEnsured) {
-		cleanup_core_btf(&openOpts);
-		coreEnsured = false;
 	}
 }
 

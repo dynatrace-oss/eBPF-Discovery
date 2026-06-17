@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include "ebpfdiscovery/BpfOptions.h"
 #include "ebpfdiscovery/Discovery.h"
 #include "ebpfdiscovery/DiscoveryBpf.h"
 #include "ebpfdiscovery/DiscoveryBpfLogging.h"
@@ -160,9 +161,11 @@ int main(int argc, char** argv) {
 	LOG_DEBUG("Starting the program.");
 
 	initLibbpf();
+	ebpfdiscovery::BpfOptions loadOptions;
 	ebpfdiscovery::DiscoveryBpf discoveryBpf;
 	try {
-		discoveryBpf.load();
+		loadOptions.acquire();
+		discoveryBpf.load(loadOptions.getOpenOpts());
 	} catch (const std::runtime_error& e) {
 		LOG_CRITICAL("Couldn't load BPF program. ({})", e.what());
 		return EXIT_FAILURE;
@@ -212,13 +215,19 @@ int main(int argc, char** argv) {
 
 	const bool enableSlp{vm["enable-slp"].as<bool>()};
 	std::future<void> slpFuture{};
-	ebpfdiscovery::Slp slpBpfInstance;
+	ebpfdiscovery::Slp slpBpfInstance{std::make_unique<ebpfdiscovery::LibBpfInterface>()};
 	if (enableSlp) {
-		LOG_DEBUG("Starting SLP discovery.");
-		auto slpInterval{std::chrono::seconds(vm["slp-interval"].as<int>())};
-		slpFuture = std::async(std::launch::async, periodicTask, slpInterval, [&slpBpfInstance]() {
-			slpBpfInstance.collectAndOutput();
-		});
+		try {
+			LOG_DEBUG("Starting SLP discovery.");
+			auto slpInterval{std::chrono::seconds(vm["slp-interval"].as<int>())};
+			slpBpfInstance.load(loadOptions.getOpenOpts());
+			slpFuture = std::async(std::launch::async, periodicTask, slpInterval, [&slpBpfInstance]() {
+				slpBpfInstance.collectAndOutput();
+			});
+		} catch (const std::runtime_error& e) {
+			LOG_CRITICAL("Couldn't initialize Slp: {}", e.what());
+			return EXIT_FAILURE;
+		}
 	}
 
 	auto outputServicesToStdoutInterval{std::chrono::seconds(vm["interval"].as<int>())};
@@ -239,14 +248,18 @@ int main(int argc, char** argv) {
 	if(enableNetworkCounters && networkCountersCleaningFuture.valid()) {
 		networkCountersCleaningFuture.wait();
 	}
-	if (enableSlp && slpFuture.valid()) {
-		slpFuture.wait();
+	if (enableSlp) {
+		slpBpfInstance.unload();
+		if (slpFuture.valid()) {
+			slpFuture.wait();
+		}
 	}
 
 	programRunningFlag = false;
 
 	LOG_DEBUG("Exiting the program.");
 	discoveryBpf.unload();
+	loadOptions.release();
 	bpflogging::closeLogging(logBuf);
 
 	return EXIT_SUCCESS;

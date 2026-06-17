@@ -23,14 +23,31 @@
 
 namespace ebpfdiscovery {
 
-// Hardcoded example processes returned until real BPF-based collection is wired in.
-static constexpr std::array<SlpProcess, 3> exampleProcesses{{
-	{.pid = 1001, .ppid = 1, .startTs = 1000000, .cpuTime = 50},
-	{.pid = 1002, .ppid = 1001, .startTs = 1000100, .cpuTime = 10},
-	{.pid = 1003, .ppid = 1, .startTs = 1000200, .cpuTime = 200},
-}};
+Slp::Slp(std::unique_ptr<LibBpfInterface> libBpfInterface) : libBpfCalls(std::move(libBpfInterface)) {
+	if (!libBpfCalls) {
+		libBpfCalls = std::make_unique<LibBpfInterface>();
+	}
+}
+Slp::~Slp() {
+	unload();
+}
+
+slp_bpf* Slp::openBpf(const bpf_object_open_opts& openOpts) {
+	return slp_bpf__open_opts(&openOpts);
+}
+
+int Slp::loadBpf(slp_bpf* prog) {
+	return slp_bpf__load(prog);
+}
+
+void Slp::destroyBpf(slp_bpf* prog) {
+	slp_bpf__destroy(prog);
+}
 
 void Slp::outputToStdout(const std::vector<SlpProcess>& processes) {
+	if ( processes.empty() ) {
+		return;
+	}
 	boost::json::array arr;
 	arr.reserve(processes.size());
 	for (const auto& proc : processes) {
@@ -41,8 +58,72 @@ void Slp::outputToStdout(const std::vector<SlpProcess>& processes) {
 }
 
 void Slp::collectAndOutput() {
-	LOG_DEBUG("Outputting short-lived process example data.");
-	outputToStdout({exampleProcesses.begin(), exampleProcesses.end()});
+	LOG_DEBUG("Outputting short-lived process data. Number of processes {}", processes.size());
+	libBpfCalls->pollEvents(slpEventsBuffer, 0);
+	outputToStdout(processes);
+	processes.clear();
+}
+
+void addSlpProcess(Slp& slp, const SlpEvent& event) {
+	SlpProcess process{
+		.pid = static_cast<pid_t>(event.pid),
+		.ppid = static_cast<pid_t>(event.parentPid),
+		.cpuTime = event.cpuTimeNs,
+		.startTs = event.startTimeNs,
+	};
+	slp.processes.emplace_back(process);
+}
+
+void Slp::load(const bpf_object_open_opts& openOpts) {
+	LOG_TRACE("Opening Slp BPF object.");
+	skel = openBpf(openOpts);
+	if (!skel) {
+		throw std::runtime_error("Failed to open BPF object.");
+	}
+
+	LOG_TRACE("Loading Slp BPF program.");
+	if (const auto res{loadBpf(skel)}) {
+		throw std::runtime_error("Failed to load BPF object: " + std::to_string(res));
+	}
+
+	LOG_TRACE("Attaching Slp BPF Fork program.");
+	auto link = libBpfCalls->attachProgram(skel->progs.processForkHook);
+	if (link == nullptr) {
+		throw std::runtime_error("couldn't attach fork bpf program");
+	}
+
+	LOG_TRACE("Attaching Slp BPF Exit program.");
+	link = libBpfCalls->attachProgram(skel->progs.processExitHook);
+	if (link == nullptr) {
+		throw std::runtime_error("couldn't attach exit bpf program");
+	}
+
+	int eventsMapFd = libBpfCalls->getMapFd(skel->maps.slpEvents);
+	if (eventsMapFd == -EINVAL) {
+		throw std::runtime_error("Failed to load BPF events buffer");
+	}
+
+	LOG_TRACE("Creating Slp events buffer program.");
+	slpEventsBuffer = libBpfCalls->createRingBuffer(eventsMapFd, [](void* ctx, void* data, size_t) {
+		auto slp = static_cast<Slp*>(ctx);
+		auto event = static_cast<struct SlpEvent*>(data);
+		addSlpProcess(*slp, *event);
+		return 0;
+	}, this, nullptr);
+	if (!slpEventsBuffer) {
+		throw std::runtime_error("Failed to create SLP events ring buffer");
+	}
+}
+
+void Slp::unload() {
+	if (slpEventsBuffer) {
+		libBpfCalls->freeRingBuffer(slpEventsBuffer);
+		slpEventsBuffer = nullptr;
+	}
+	if (skel) {
+		destroyBpf(skel);
+		skel = nullptr;
+	}
 }
 
 } // namespace ebpfdiscovery
