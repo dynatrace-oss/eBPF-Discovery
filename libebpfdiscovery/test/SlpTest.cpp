@@ -78,10 +78,10 @@ public:
 				EXPECT_EQ(process.at("ppid"), events[index].parentPid);
 
 				ASSERT_TRUE(process.contains("startTs"));
-				EXPECT_EQ(process.at("startTs"), events[index].startTimeNs);
+				EXPECT_EQ(process.at("startTs"), nsToTicks(events[index].startTimeNs));
 
 				ASSERT_TRUE(process.contains("cpuTime"));
-				EXPECT_EQ(process.at("cpuTime"), events[index].cpuTimeNs);
+				EXPECT_EQ(process.at("cpuTime"), nsToTicks(events[index].cpuTimeNs));
 				index++;
 			}
 		} catch (const std::exception& e) {
@@ -120,8 +120,8 @@ TEST_F(SlpTest, basic) {
 	loadMockedBpf();
 
 	std::vector<SlpEvent> processes{
-		{.pid = 10, .parentPid = 1, .startTimeNs = 42ULL, .cpuTimeNs = 7ULL},
-		{.pid = 15, .parentPid = 21, .startTimeNs = 555ULL, .cpuTimeNs = 321ULL},
+		{.pid = 10, .parentPid = 1, .startTimeNs = 42'102'304'506ULL, .cpuTimeNs = 7'000'345'000ULL},
+		{.pid = 15, .parentPid = 21, .startTimeNs = 555'123'456'789ULL, .cpuTimeNs = 321'000'000'000ULL},
 	};
 
 	// Capture stdout
