@@ -23,6 +23,12 @@
 
 namespace ebpfdiscovery {
 
+uint64_t nsToTicks(uint64_t ns) {
+	static constexpr uint64_t kNanosInSec = 1'000'000'000;
+	static const auto clockTicks = sysconf(_SC_CLK_TCK);
+	return ns * clockTicks / kNanosInSec;
+}
+
 Slp::Slp(std::unique_ptr<LibBpfInterface> libBpfInterface) : libBpfCalls(std::move(libBpfInterface)) {
 	if (!libBpfCalls) {
 		libBpfCalls = std::make_unique<LibBpfInterface>();
@@ -68,8 +74,8 @@ void addSlpProcess(Slp& slp, const SlpEvent& event) {
 	SlpProcess process{
 		.pid = static_cast<pid_t>(event.pid),
 		.ppid = static_cast<pid_t>(event.parentPid),
-		.cpuTime = event.cpuTimeNs,
-		.startTs = event.startTimeNs,
+		.cpuTime = nsToTicks(event.cpuTimeNs),
+		.startTs = nsToTicks(event.startTimeNs),
 	};
 	slp.processes.emplace_back(process);
 }

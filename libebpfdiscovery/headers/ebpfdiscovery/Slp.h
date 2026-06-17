@@ -47,6 +47,8 @@ struct SlpProcess {
 // cppcheck-suppress unknownMacro
 BOOST_DESCRIBE_STRUCT(SlpProcess, (), (pid, ppid, startTs, cpuTime))
 
+uint64_t nsToTicks(uint64_t ns);
+
 /**
  * Short-lived process (SLP) detection component.
  *
