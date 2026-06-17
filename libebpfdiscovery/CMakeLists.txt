@@ -15,12 +15,15 @@
 list(
         APPEND
         SOURCES
+        src/AsyncTask.cpp
         src/BpfOptions.cpp
         src/Discovery.cpp
         src/DiscoveryBpf.cpp
         src/DiscoveryBpfLogging.cpp
+        src/ServiceDetectionTask.cpp
         src/Session.cpp
         src/Slp.cpp
+        src/SlpDetectionTask.cpp
 )
 set(TARGET ebpfdiscovery)
 
