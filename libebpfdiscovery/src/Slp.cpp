@@ -64,7 +64,7 @@ void Slp::collectAndOutput() {
 	processes.clear();
 }
 
-void addSplProcess(Slp& slp, const SlpEvent& event) {
+void addSlpProcess(Slp& slp, const SlpEvent& event) {
 	SlpProcess process{
 		.pid = static_cast<pid_t>(event.pid),
 		.ppid = static_cast<pid_t>(event.parentPid),
@@ -107,7 +107,7 @@ void Slp::load(const bpf_object_open_opts& openOpts) {
 	slpEventsBuffer = libBpfCalls->createRingBuffer(eventsMapFd, [](void* ctx, void* data, size_t) {
 		auto slp = static_cast<Slp*>(ctx);
 		auto event = static_cast<struct SlpEvent*>(data);
-		addSplProcess(*slp, *event);
+		addSlpProcess(*slp, *event);
 		return 0;
 	}, this, nullptr);
 	if (!slpEventsBuffer) {

@@ -217,7 +217,7 @@ int main(int argc, char** argv) {
 	std::future<void> slpFuture{};
 	ebpfdiscovery::Slp slpBpfInstance{std::make_unique<ebpfdiscovery::LibBpfInterface>()};
 	if (enableSlp) {
-		try{
+		try {
 			LOG_DEBUG("Starting SLP discovery.");
 			auto slpInterval{std::chrono::seconds(vm["slp-interval"].as<int>())};
 			slpBpfInstance.load(loadOptions.getOpenOpts());

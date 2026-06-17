@@ -27,7 +27,7 @@ public:
 		return bpf_map__fd(map);
 	}
 	virtual int pollEvents(ring_buffer *rb, int timeout_ms) {
-		return ring_buffer__poll(rb, 0);
+		return ring_buffer__poll(rb, timeout_ms);
 	}
 	virtual void freeRingBuffer(ring_buffer *rb) {
 		ring_buffer__free(rb);

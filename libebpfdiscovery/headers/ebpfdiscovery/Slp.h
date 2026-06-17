@@ -91,7 +91,7 @@ public:
 	void load(const bpf_object_open_opts& openOpts);
 	void unload();
 
-	friend void addSplProcess(Slp& slp, const SlpEvent& process);
+	friend void addSlpProcess(Slp& slp, const SlpEvent& process);
 protected:
 	virtual slp_bpf* openBpf(const bpf_object_open_opts& openOpts);
 	virtual int loadBpf(slp_bpf* prog);
