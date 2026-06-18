@@ -32,8 +32,8 @@ protected:
 	std::future<void> startAsync(std::chrono::milliseconds interval, std::function<void()> func);
 
 	std::atomic<bool> stopRequested = false;
-	std::mutex mutex;
-	std::condition_variable cv;
+	std::mutex stopMutex;
+	std::condition_variable stopNotifier;
 };
 
 }

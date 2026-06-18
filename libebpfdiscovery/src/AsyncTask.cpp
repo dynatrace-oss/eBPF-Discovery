@@ -20,7 +20,7 @@ namespace ebpfdiscovery {
 
 void AsyncTask::stop() {
 	stopRequested = true;
-	cv.notify_all();
+	stopNotifier.notify_all();
 }
 
 std::future<void> AsyncTask::startAsync(const std::chrono::milliseconds interval, std::function<void()> func) {
@@ -32,8 +32,8 @@ std::future<void> AsyncTask::startAsync(const std::chrono::milliseconds interval
 				break;
 			}
 			{
-				std::unique_lock ul(mutex);
-				cv.wait_for(ul, interval, [this] { return stopRequested.load(); });
+				std::unique_lock ul(stopMutex);
+				stopNotifier.wait_for(ul, interval, [this] { return stopRequested.load(); });
 			}
 		}
 	});

@@ -28,7 +28,7 @@ void ServiceDetectionTask::start(const bpf_object_open_opts& loadOptions, bool e
 
 	instance = std::make_unique<Discovery>(discoveryBpf.getFds(), enableNetworkCounters);
 	if (!instance) {
-		throw std::runtime_error("Failed to allocated memory for DiscoveryBpf instance");
+		throw std::runtime_error("Failed to allocate memory for DiscoveryBpf instance");
 	}
 	instance->init();
 
@@ -39,9 +39,9 @@ void ServiceDetectionTask::start(const bpf_object_open_opts& loadOptions, bool e
 		throw std::runtime_error(fmt::format("Could not open perf buffer for Discovery BPF logging: {}.", std::strerror(errno)));
 	}
 
-	auto eventQueuePollInterval{std::chrono::milliseconds(250)};
-	featchAndHandleEventsFuture = startAsync(std::chrono::milliseconds{eventQueuePollInterval}, [this]() {
-		auto ret{instance->fetchAndHandleEvents()};
+	const std::chrono::milliseconds eventQueuePollInterval{250};
+	featchAndHandleEventsFuture = startAsync(eventQueuePollInterval, [this]() {
+		const auto ret{instance->fetchAndHandleEvents()};
 		if (ret != 0) {
 			LOG_CRITICAL("Failed to fetch and handle Discovery BPF events: {}.", std::strerror(-ret));
 			stop();
@@ -49,17 +49,17 @@ void ServiceDetectionTask::start(const bpf_object_open_opts& loadOptions, bool e
 	});
 
 	if (enableNetworkCounters) {
-		auto networkCountersCleaningInterval{std::chrono::minutes(1)};
-		networkCountersCleaningFuture = startAsync(std::chrono::milliseconds{networkCountersCleaningInterval}, [this]() {
+		const std::chrono::minutes networkCountersCleaningInterval{1};
+		networkCountersCleaningFuture = startAsync(networkCountersCleaningInterval, [this]() {
 			instance->networkCountersCleaning();
 		});
 	}
 
-	outputServicesToStdoutFuture = startAsync(std::chrono::milliseconds{interval}, [this]() {
+	outputServicesToStdoutFuture = startAsync(interval, [this]() {
 		instance->outputServicesToStdout();
 	});
 
-	auto logBufFetchInterval{std::chrono::milliseconds(250)};
+	const std::chrono::milliseconds logBufFetchInterval{250};
 	logBpfLoggingFuture = setupBpfLogging(logLevel, logBufFetchInterval);
 }
 
@@ -94,7 +94,7 @@ std::future<void> ServiceDetectionTask::setupBpfLogging(logging::LogLevel logLev
 	if (logLevel <= logging::LogLevel::Debug) {
 		LOG_DEBUG("Handling of Discovery BPF logging is enabled.");
 		return startAsync(logBufFetchInterval, [this]() {
-			auto ret{bpflogging::fetchAndLog(logBuf.get())};
+			const auto ret{bpflogging::fetchAndLog(logBuf.get())};
 			if (ret != 0) {
 				LOG_CRITICAL("Failed to fetch and handle Discovery BPF logging: {}.", std::strerror(-ret));
 				stop();
