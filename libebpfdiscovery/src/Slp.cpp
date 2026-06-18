@@ -64,8 +64,8 @@ void Slp::outputToStdout(const std::vector<SlpProcess>& processes) {
 }
 
 void Slp::collectAndOutput() {
-	LOG_DEBUG("Outputting short-lived process data. Number of processes {}", processes.size());
 	libBpfCalls->pollEvents(slpEventsBuffer, 0);
+	LOG_DEBUG("Outputting short-lived process data. Number of processes {}", processes.size());
 	outputToStdout(processes);
 	processes.clear();
 }

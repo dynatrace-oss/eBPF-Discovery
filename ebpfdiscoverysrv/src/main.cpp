@@ -16,15 +16,14 @@
 
 #include "ebpfdiscovery/BpfOptions.h"
 #include "ebpfdiscovery/Discovery.h"
-#include "ebpfdiscovery/DiscoveryBpf.h"
 #include "ebpfdiscovery/DiscoveryBpfLogging.h"
+#include "ebpfdiscovery/ServiceDetectionTask.h"
 #include "ebpfdiscovery/Slp.h"
+#include "ebpfdiscovery/SlpDetectionTask.h"
 #include "logging/Logger.h"
 
 #include <boost/program_options.hpp>
 
-#include <atomic>
-#include <mutex>
 #include <filesystem>
 #include <iostream>
 #include <csignal>
@@ -34,48 +33,65 @@
 #include <sys/stat.h>
 
 namespace po = boost::program_options;
-namespace bpflogging = ebpfdiscovery::bpflogging;
 using logging::Logger;
 using logging::LogLevel;
 
-static std::atomic<bool> programRunningFlag = false;
-std::mutex mutex;
-std::condition_variable cv;
+namespace {
 
-static po::options_description getProgramOptions() {
+ebpfdiscovery::SlpDetectionTask slpBpfProg{};
+ebpfdiscovery::ServiceDetectionTask servicesBpfProg{};
+
+constexpr std::string_view testLaunchName = "test-launch";
+constexpr std::string_view logDirName = "log-dir";
+constexpr std::string_view logLevelName = "log-level";
+constexpr std::string_view logNoStdoutName = "log-no-stdout";
+constexpr std::string_view versionName = "version";
+constexpr std::string_view enableServiceDetectionName = "enable-service-detection";
+constexpr std::string_view intervalName = "interval";
+constexpr std::string_view enableNetworkCountersName = "enable-network-counters";
+constexpr std::string_view enableSlpName = "enable-slp";
+constexpr std::string_view slpIntervalName = "slp-interval";
+
+void stopRunningPrograms() {
+	slpBpfProg.stop();
+	servicesBpfProg.stop();
+}
+
+po::options_description getProgramOptions() {
 	po::options_description desc{"Options"};
 
 	// clang-format off
 	desc.add_options()
-      ("help,h", "Display available options")
-      ("test-launch", po::bool_switch()->default_value(false), "Exit program after launching for testing")
-      ("log-dir", po::value<std::filesystem::path>()->default_value(""), "Log files directory")
-      ("log-level", po::value<logging::LogLevel>()->default_value(logging::LogLevel::Err, "error"), "Set log level {trace,debug,info,warning,error,critical,off}")
-      ("log-no-stdout", po::bool_switch()->default_value(false), "Disable logging to stdout")
-      ("version", "Display program version")
-      ("interval", po::value<int>()->default_value(60), "Services reporting time interval (in seconds)")
-      ("enable-network-counters", po::bool_switch()->default_value(false), "Enable network counters")
-	  ("enable-slp", po::bool_switch()->default_value(false), "Enables the short-lived-process detection")
-	  ("slp-interval", po::value<int>()->default_value(60), "Short-lived-processes reporting time interval (in seconds)")
+	  ("help,h", "Display available options")
+	  (testLaunchName.data(), po::bool_switch()->default_value(false), "Exit program after launching for testing")
+	  (logDirName.data(), po::value<std::filesystem::path>()->default_value(""), "Log files directory")
+	  (logLevelName.data(), po::value<logging::LogLevel>()->default_value(logging::LogLevel::Err, "error"), "Set log level {trace,debug,info,warning,error,critical,off}")
+	  (logNoStdoutName.data(), po::bool_switch()->default_value(false), "Disable logging to stdout")
+	  (versionName.data(), "Display program version")
+	  //TODO change default value to false after DT OA starts using this switch for service detection
+	  (enableServiceDetectionName.data(), po::bool_switch()->default_value(true), "Enables service detection")
+	  (intervalName.data(), po::value<int>()->default_value(60), "Services reporting time interval (in seconds)")
+	  (enableNetworkCountersName.data(), po::bool_switch()->default_value(false), "Enable network counters")
+	  (enableSlpName.data(), po::bool_switch()->default_value(false), "Enables the short-lived-process detection")
+	  (slpIntervalName.data(), po::value<int>()->default_value(60), "Short-lived-processes reporting time interval (in seconds)")
   ;
 	// clang-format on
 
 	return desc;
 }
 
-static void initLogging(logging::LogLevel logLevel, bool enableStdout, const std::filesystem::path& logDir) {
+void initLogging(logging::LogLevel logLevel, bool enableStdout, const std::filesystem::path& logDir) {
 	umask(S_IRWXG | S_IRWXO);
 	Logger::getInstance().init(enableStdout, logDir);
 	Logger::getInstance().setLevel(logLevel);
 	LOG_TRACE("Logging has been set up. (enableStdout: {}, logDir: `{}`)", enableStdout, logDir.string());
 }
 
-static void handleUnixShutdownSignal(int signal) {
-	programRunningFlag = false;
-	cv.notify_all();
+void handleUnixShutdownSignal(int signal) {
+	stopRunningPrograms();
 }
 
-static int libbpfPrintFn(enum libbpf_print_level level, const char* format, va_list args) {
+int libbpfPrintFn(enum libbpf_print_level level, const char* format, va_list args) {
 	switch (level) {
 	case LIBBPF_WARN:
 		Logger::getInstance().vlogf(logging::LogLevel::Warn, format, args);
@@ -90,37 +106,13 @@ static int libbpfPrintFn(enum libbpf_print_level level, const char* format, va_l
 	return 0;
 }
 
-static void initLibbpf() {
+void initLibbpf() {
 	libbpf_set_print(libbpfPrintFn);
 }
 
-static void periodicTask(const std::chrono::milliseconds interval, std::function<void()> func) {
-	while (programRunningFlag) {
-		func();
-		{
-			std::unique_lock ul(mutex);
-			cv.wait_for(ul, interval, [] { return !programRunningFlag; });
-		}
-	}
-}
-
-template <typename Duration>
-static std::future<void> setupBpfLogging(logging::LogLevel logLevel, Duration logBufFetchInterval, perf_buffer* logBuf){
-	if (logLevel <= logging::LogLevel::Debug) {
-		LOG_DEBUG("Handling of Discovery BPF logging is enabled.");
-		return std::async(std::launch::async, periodicTask, logBufFetchInterval, [logBuf]() {
-			auto ret{bpflogging::fetchAndLog(logBuf)};
-			if (ret != 0) {
-				LOG_CRITICAL("Failed to fetch and handle Discovery BPF logging: {}.", std::strerror(-ret));
-				programRunningFlag = false;
-			}
-		});
-	}
-	return {};
 }
 
 int main(int argc, char** argv) {
-	programRunningFlag = true;
 	std::signal(SIGINT, handleUnixShutdownSignal);
 	std::signal(SIGPIPE, handleUnixShutdownSignal);
 	std::signal(SIGTERM, handleUnixShutdownSignal);
@@ -141,15 +133,22 @@ int main(int argc, char** argv) {
 		return EXIT_SUCCESS;
 	}
 
-	if (vm.count("version")) {
+	if (vm.count(versionName.data())) {
 		std::cout << "eBPF-Discovery " << PROJECT_VERSION << '\n';
 		return EXIT_SUCCESS;
 	}
 
-	logging::LogLevel logLevel{vm["log-level"].as<logging::LogLevel>()};
-	bool isStdoutLogDisabled{vm["log-no-stdout"].as<bool>()};
-	std::filesystem::path logDir{vm["log-dir"].as<std::filesystem::path>()};
-	bool isLaunchTest{vm["test-launch"].as<bool>()};
+	const bool enableSlp{vm[enableSlpName.data()].as<bool>()};
+	//TODO !enableSlp is a temporary workaround to allow gathering only slp, remove when changing enableServiceDetection default value to false
+	const bool enableServiceDetection = !enableSlp && vm[enableServiceDetectionName.data()].as<bool>();
+
+	if (!enableSlp && !enableServiceDetection) {
+		return EXIT_SUCCESS;
+	}
+
+	LogLevel logLevel{vm[logLevelName.data()].as<LogLevel>()};
+	bool isStdoutLogDisabled{vm[logNoStdoutName.data()].as<bool>()};
+	std::filesystem::path logDir{vm[logDirName.data()].as<std::filesystem::path>()};
 
 	try {
 		initLogging(logLevel, !isStdoutLogDisabled, logDir);
@@ -162,105 +161,47 @@ int main(int argc, char** argv) {
 
 	initLibbpf();
 	ebpfdiscovery::BpfOptions loadOptions;
-	ebpfdiscovery::DiscoveryBpf discoveryBpf;
 	try {
 		loadOptions.acquire();
-		discoveryBpf.load(loadOptions.getOpenOpts());
 	} catch (const std::runtime_error& e) {
-		LOG_CRITICAL("Couldn't load BPF program. ({})", e.what());
+		LOG_CRITICAL("Couldn't get bpf load options. ({})", e.what());
 		return EXIT_FAILURE;
 	}
 
-	const bool enableNetworkCounters{vm["enable-network-counters"].as<bool>()};
 
-	const auto bpfFds{discoveryBpf.getFds()};
-	ebpfdiscovery::Discovery instance(bpfFds, enableNetworkCounters);
-	try {
-		instance.init();
-	} catch (const std::runtime_error& e) {
-		LOG_CRITICAL("Couldn't initialize Discovery: {}", e.what());
-		return EXIT_FAILURE;
-	}
-
-	if (isLaunchTest) {
-		programRunningFlag = false;
-		cv.notify_all();
-	}
-
-	const int logPerfBufFd{discoveryBpf.getLogPerfBufFd()};
-
-	perf_buffer* logBuf{bpflogging::setupLogging(logPerfBufFd)};
-	if (logBuf == nullptr) {
-		LOG_CRITICAL("Could not open perf buffer for Discovery BPF logging: {}.", std::strerror(errno));
-		return EXIT_FAILURE;
-	}
-
-	auto eventQueuePollInterval{std::chrono::milliseconds(250)};
-	auto featchAndHandleEventsFuture = std::async(std::launch::async, periodicTask, eventQueuePollInterval, [&instance]() {
-		auto ret{instance.fetchAndHandleEvents()};
-		if (ret != 0) {
-			LOG_CRITICAL("Failed to fetch and handle Discovery BPF events: {}.", std::strerror(-ret));
-			programRunningFlag = false;
-			cv.notify_all();
+	if (enableServiceDetection) {
+		try {
+			auto outputServicesToStdoutInterval{std::chrono::seconds(vm[intervalName.data()].as<int>())};
+			const bool enableNetworkCounters{vm[enableNetworkCountersName.data()].as<bool>()};
+			servicesBpfProg.start(loadOptions.getOpenOpts(), enableNetworkCounters, outputServicesToStdoutInterval, logLevel);
+		} catch (const std::runtime_error& e) {
+			LOG_CRITICAL("Couldn't load BPF program. ({})", e.what());
+			return EXIT_FAILURE;
 		}
-	});
-
-	std::future<void> networkCountersCleaningFuture{};
-	if (enableNetworkCounters) {
-		auto networkCountersCleaningInterval{std::chrono::minutes(1)};
-		networkCountersCleaningFuture = std::async(std::launch::async, periodicTask, networkCountersCleaningInterval, [&instance]() {
-			instance.networkCountersCleaning();
-		});
 	}
 
-	const bool enableSlp{vm["enable-slp"].as<bool>()};
-	std::future<void> slpFuture{};
-	ebpfdiscovery::Slp slpBpfInstance{std::make_unique<ebpfdiscovery::LibBpfInterface>()};
 	if (enableSlp) {
 		try {
 			LOG_DEBUG("Starting SLP discovery.");
-			auto slpInterval{std::chrono::seconds(vm["slp-interval"].as<int>())};
-			slpBpfInstance.load(loadOptions.getOpenOpts());
-			slpFuture = std::async(std::launch::async, periodicTask, slpInterval, [&slpBpfInstance]() {
-				slpBpfInstance.collectAndOutput();
-			});
+			auto slpInterval{std::chrono::seconds(vm[slpIntervalName.data()].as<int>())};
+			slpBpfProg.start(loadOptions.getOpenOpts(), slpInterval);
 		} catch (const std::runtime_error& e) {
 			LOG_CRITICAL("Couldn't initialize Slp: {}", e.what());
 			return EXIT_FAILURE;
 		}
 	}
 
-	auto outputServicesToStdoutInterval{std::chrono::seconds(vm["interval"].as<int>())};
-	auto outputServicesToStdoutFuture = std::async(std::launch::async, periodicTask, outputServicesToStdoutInterval, [&](){ instance.outputServicesToStdout(); });
-
-	auto logBufFetchInterval{std::chrono::milliseconds(250)};
-	auto logBpfLoggingFuture = setupBpfLogging(logLevel, logBufFetchInterval, logBuf);
-
-	if(outputServicesToStdoutFuture.valid()) {
-		outputServicesToStdoutFuture.wait();
-	}
-	if(logBpfLoggingFuture.valid()) {
-		logBpfLoggingFuture.wait();
-	}
-	if(featchAndHandleEventsFuture.valid()) {
-		featchAndHandleEventsFuture.wait();
-	}
-	if(enableNetworkCounters && networkCountersCleaningFuture.valid()) {
-		networkCountersCleaningFuture.wait();
-	}
-	if (enableSlp) {
-		slpBpfInstance.unload();
-		if (slpFuture.valid()) {
-			slpFuture.wait();
-		}
+	if (vm[testLaunchName.data()].as<bool>()) {
+		stopRunningPrograms();
 	}
 
-	programRunningFlag = false;
+	servicesBpfProg.waitForFinish();
+	slpBpfProg.waitForFinish();
 
 	LOG_DEBUG("Exiting the program.");
-	discoveryBpf.unload();
+	servicesBpfProg.shutdown();
+	slpBpfProg.shutdown();
 	loadOptions.release();
-	bpflogging::closeLogging(logBuf);
 
 	return EXIT_SUCCESS;
 }
