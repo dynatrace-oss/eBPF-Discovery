@@ -60,7 +60,7 @@ void Slp::outputToStdout(const std::vector<SlpProcess>& processes) {
 		arr.push_back(boost::json::value_from(proc));
 	}
 	const boost::json::object outJson{{"processes", std::move(arr)}};
-	std::cout << boost::json::serialize(outJson) << '\n';
+	std::cout << boost::json::serialize(outJson) << std::endl;
 }
 
 void Slp::collectAndOutput() {
