@@ -123,9 +123,9 @@ if (BUILD_TESTS OR BUILD_BPF_TESTS)
     add_custom_target(run-tests COMMAND ${CMAKE_CTEST_COMMAND} -T Test --no-compress-output --output-on-failure USES_TERMINAL)
 endif ()
 
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/third_party/libbpf-bootstrap/tools/cmake)
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/ebpf-common/libbpf-bootstrap/tools/cmake)
 
-add_subdirectory(third_party)
+add_subdirectory(ebpf-common)
 add_subdirectory(libebpfdiscovery)
 add_subdirectory(libebpfdiscoveryshared)
 add_subdirectory(libebpfdiscoveryskel)

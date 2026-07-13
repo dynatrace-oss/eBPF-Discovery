@@ -19,7 +19,7 @@
 #include "logging/Logger.h"
 
 extern "C" {
-#include "../../third_party/bcc/libbpf-tools/btf_helpers.h"
+#include "../../ebpf-common/bcc/libbpf-tools/btf_helpers.h"
 }
 
 namespace ebpfdiscovery {

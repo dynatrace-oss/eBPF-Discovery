@@ -19,7 +19,7 @@ RUN apt-get update -y && \
     apt-get install -y software-properties-common && \
     # needed for updated libstdc++-9-dev containing filesystem namespace
     add-apt-repository ppa:ubuntu-toolchain-r/test -y && \
-    apt-get install -y wget lsb-release gpg libelf-dev libstdc++-9-dev python3-pip git && \
+    apt-get install -y wget lsb-release gpg libelf-dev libstdc++-9-dev python3-pip git libssl-dev && \
     # install clang 17
     wget --timeout=10 --tries=3 -O - https://apt.llvm.org/llvm.sh | bash -s - 17 && \
     # update links to clang as default compiler
