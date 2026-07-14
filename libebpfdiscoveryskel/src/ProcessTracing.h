@@ -74,7 +74,7 @@ __attribute__((always_inline)) inline static int handleProcessExit(struct task_s
 	}
 
 	event->pid = tgid;
-	event->parentPid = BPF_CORE_READ(task, parent, pid);
+	event->parentPid = BPF_CORE_READ(task, parent, tgid);
 	event->cpuTimeNs = processCpuTime;
 	event->startTimeNs = BPF_CORE_READ(task, start_time);
 
@@ -94,7 +94,7 @@ __attribute__((always_inline)) inline static int handleProcessFork(struct task_s
 
 	const __u32 tgid = BPF_CORE_READ(task, tgid);
 	const __u32 pid = BPF_CORE_READ(task, pid);
-	const __u32 parentPid = BPF_CORE_READ(task, parent, pid);
+	const __u32 parentPid = BPF_CORE_READ(task, parent, tgid);
 
 	const bool isKThread = parentPid == 0 || parentPid == 2;
 	struct SlpThreadsData* elem = bpf_map_lookup_elem(&slpThreadsData, &tgid);
