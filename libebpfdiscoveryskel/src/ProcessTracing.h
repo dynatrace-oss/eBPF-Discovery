@@ -30,7 +30,7 @@
 
 struct{
     __uint(type, BPF_MAP_TYPE_RINGBUF);
-    __uint(max_entries, MAX_EVENTS);
+    __uint(max_entries, MAX_EVENTS * sizeof(struct SlpEvent));
 } slpEvents SEC(".maps");
 
 struct{
