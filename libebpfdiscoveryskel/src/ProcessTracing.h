@@ -24,13 +24,15 @@
 #include <bpf/bpf_helpers.h>
 
 #include "ebpfdiscoveryshared/SlpTypes.h"
+#include "ebpfdiscoveryshared/Constants.h"
 #include "DebugPrint.h"
 
-#define MAX_EVENTS 180000
+#include <asm-generic/int-ll64.h>
 
 struct{
     __uint(type, BPF_MAP_TYPE_RINGBUF);
-    __uint(max_entries, MAX_EVENTS * sizeof(struct SlpEvent));
+	// required buffer size is MAX_EVENTS * sizeof(SlpEvent) which is 1054 * DEFAULT_PAGE_SIZE, need to round it up to next power of 2, so 2048
+    __uint(max_entries, 2048 * DEFAULT_PAGE_SIZE);
 } slpEvents SEC(".maps");
 
 struct{

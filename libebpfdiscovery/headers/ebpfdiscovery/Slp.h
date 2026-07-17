@@ -98,6 +98,7 @@ protected:
 	virtual slp_bpf* openBpf(const bpf_object_open_opts& openOpts);
 	virtual int loadBpf(slp_bpf* prog);
 	virtual void destroyBpf(slp_bpf* prog);
+	virtual void setMapMaxEntries(bpf_map* map, uint32_t maxEntries);
 private:
 	std::unique_ptr<LibBpfInterface> libBpfCalls;
 	std::vector<SlpProcess> processes{};
