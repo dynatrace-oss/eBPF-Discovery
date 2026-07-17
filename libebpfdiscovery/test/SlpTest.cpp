@@ -112,7 +112,7 @@ public:
 	ring_buffer* fakeBuffer = reinterpret_cast<ring_buffer*>(0xDEADBEEF);
 	const int fakeMapFd = 13;
 	// 2048 is the nearest power of 2 larger than base size (MAX_EVENTS * sizeof(SlpEvent))
-	const size_t expectedMapSize = 2048 * 4096;
+	const size_t expectedMapSize = 2048 * sysconf(_SC_PAGE_SIZE);
 
 	ring_buffer_sample_fn addEventToBuffer;
 	bpf_object_open_opts opts{};
