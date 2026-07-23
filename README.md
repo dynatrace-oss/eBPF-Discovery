@@ -24,6 +24,11 @@ Add a new remote:
 conan remote add conancenter https://center.conan.io
 ```
 
+Checkout project with all git submodules
+```
+git submodule update --init --recursive
+```
+
 **Build**
 
 ```
