@@ -15,6 +15,8 @@
  */
 
 #include "ebpfdiscovery/Slp.h"
+
+#include "ebpfdiscoveryshared/Constants.h"
 #include "logging/Logger.h"
 
 #include <boost/json.hpp>
@@ -22,6 +24,23 @@
 #include <iostream>
 
 namespace ebpfdiscovery {
+
+namespace {
+
+auto calculateActualRingBufferSize(size_t requiredSize) {
+	//size must be page_size * (power of 2)
+	size_t candidateSize = sysconf(_SC_PAGE_SIZE);
+	while (candidateSize < requiredSize) {
+		auto nextSize = candidateSize << 1;
+		if (nextSize < candidateSize) { //overflow
+			break;
+		}
+		candidateSize = nextSize;
+	}
+	return candidateSize;
+}
+
+}
 
 uint64_t nsToTicks(uint64_t ns) {
 	static constexpr uint64_t kNanosInSec = 1'000'000'000;
@@ -48,6 +67,10 @@ int Slp::loadBpf(slp_bpf* prog) {
 
 void Slp::destroyBpf(slp_bpf* prog) {
 	slp_bpf__destroy(prog);
+}
+
+void Slp::setMapMaxEntries(bpf_map* map, uint32_t maxEntries) {
+	bpf_map__set_max_entries(map, maxEntries);
 }
 
 void Slp::outputToStdout(const std::vector<SlpProcess>& processes) {
@@ -86,6 +109,12 @@ void Slp::load(const bpf_object_open_opts& openOpts) {
 	if (!skel) {
 		throw std::runtime_error("Failed to open BPF object.");
 	}
+
+	const auto requiredBufferSize = MAX_EVENTS * sizeof(SlpEvent);
+	const auto actualBufferSize = calculateActualRingBufferSize(requiredBufferSize);
+
+	LOG_TRACE("Setting slp events ring buffer size to {}, required size {}", actualBufferSize, requiredBufferSize);
+	setMapMaxEntries(skel->maps.slpEvents, actualBufferSize);
 
 	LOG_TRACE("Loading Slp BPF program.");
 	if (const auto res{loadBpf(skel)}) {

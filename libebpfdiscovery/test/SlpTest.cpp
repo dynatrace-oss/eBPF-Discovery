@@ -15,8 +15,9 @@
  */
 
 #include "ebpfdiscovery/Slp.h"
-#include "ebpfdiscovery/Discovery.h"
 #include "LibBpInterfaceMock.h"
+#include "bpf/bpf.h"
+#include "ebpfdiscovery/Discovery.h"
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
@@ -43,6 +44,7 @@ public:
 	MOCK_METHOD(slp_bpf*, openBpf, (const bpf_object_open_opts&), (override));
 	MOCK_METHOD(int, loadBpf, (slp_bpf*), (override));
 	MOCK_METHOD(void, destroyBpf, (slp_bpf*), (override));
+	MOCK_METHOD(void, setMapMaxEntries, (bpf_map*, uint32_t), (override));
 };
 
 class SlpTest : public Test {
@@ -91,6 +93,7 @@ public:
 
 	void loadMockedBpf() {
 		EXPECT_CALL(*tested, openBpf(_)).WillOnce(Return(&fakeSkel));
+		EXPECT_CALL(*tested, setMapMaxEntries(fakeSkel.maps.slpEvents, expectedMapSize));
 		EXPECT_CALL(*tested, loadBpf(&fakeSkel)).WillOnce(Return(0));
 		EXPECT_CALL(*libBpfMock, attachProgram(fakeSkel.progs.processForkHook)).WillOnce(Return(fakeProgramLink));
 		EXPECT_CALL(*libBpfMock, attachProgram(fakeSkel.progs.processExitHook)).WillOnce(Return(fakeProgramLink));
@@ -108,6 +111,8 @@ public:
 	bpf_link* fakeProgramLink = reinterpret_cast<bpf_link*>(0xBADADD);
 	ring_buffer* fakeBuffer = reinterpret_cast<ring_buffer*>(0xDEADBEEF);
 	const int fakeMapFd = 13;
+	// 2048 is the nearest power of 2 larger than base size (MAX_EVENTS * sizeof(SlpEvent))
+	const size_t expectedMapSize = 2048 * sysconf(_SC_PAGE_SIZE);
 
 	ring_buffer_sample_fn addEventToBuffer;
 	bpf_object_open_opts opts{};
@@ -163,6 +168,7 @@ TEST_F(SlpTest, openBpfFails) {
 TEST_F(SlpTest, loadBpfFails) {
 	using namespace ::testing;
 	EXPECT_CALL(*tested, openBpf(_)).WillOnce(Return(&fakeSkel));
+	EXPECT_CALL(*tested, setMapMaxEntries(fakeSkel.maps.slpEvents, expectedMapSize));
 	EXPECT_CALL(*tested, loadBpf(&fakeSkel)).WillOnce(Return(-1));
 	EXPECT_THROW(tested->load(opts), std::runtime_error);
 
@@ -173,6 +179,7 @@ TEST_F(SlpTest, loadBpfFails) {
 TEST_F(SlpTest, attachForkProgramFails) {
 	using namespace ::testing;
 	EXPECT_CALL(*tested, openBpf(_)).WillOnce(Return(&fakeSkel));
+	EXPECT_CALL(*tested, setMapMaxEntries(fakeSkel.maps.slpEvents, expectedMapSize));
 	EXPECT_CALL(*tested, loadBpf(&fakeSkel)).WillOnce(Return(0));
 	EXPECT_CALL(*libBpfMock, attachProgram(fakeSkel.progs.processForkHook)).WillOnce(Return(nullptr));
 	EXPECT_THROW(tested->load(opts), std::runtime_error);
@@ -184,6 +191,7 @@ TEST_F(SlpTest, attachForkProgramFails) {
 TEST_F(SlpTest, attachExitProgramFails) {
 	using namespace ::testing;
 	EXPECT_CALL(*tested, openBpf(_)).WillOnce(Return(&fakeSkel));
+	EXPECT_CALL(*tested, setMapMaxEntries(fakeSkel.maps.slpEvents, expectedMapSize));
 	EXPECT_CALL(*tested, loadBpf(&fakeSkel)).WillOnce(Return(0));
 	EXPECT_CALL(*libBpfMock, attachProgram(fakeSkel.progs.processForkHook)).WillOnce(Return(fakeProgramLink));
 	EXPECT_CALL(*libBpfMock, attachProgram(fakeSkel.progs.processExitHook)).WillOnce(Return(nullptr));
@@ -196,6 +204,7 @@ TEST_F(SlpTest, attachExitProgramFails) {
 TEST_F(SlpTest, getMapFdFails) {
 	using namespace ::testing;
 	EXPECT_CALL(*tested, openBpf(_)).WillOnce(Return(&fakeSkel));
+	EXPECT_CALL(*tested, setMapMaxEntries(fakeSkel.maps.slpEvents, expectedMapSize));
 	EXPECT_CALL(*tested, loadBpf(&fakeSkel)).WillOnce(Return(0));
 	EXPECT_CALL(*libBpfMock, attachProgram(fakeSkel.progs.processForkHook)).WillOnce(Return(fakeProgramLink));
 	EXPECT_CALL(*libBpfMock, attachProgram(fakeSkel.progs.processExitHook)).WillOnce(Return(fakeProgramLink));
@@ -209,6 +218,7 @@ TEST_F(SlpTest, getMapFdFails) {
 TEST_F(SlpTest, createRingBufferFails) {
 	using namespace ::testing;
 	EXPECT_CALL(*tested, openBpf(_)).WillOnce(Return(&fakeSkel));
+	EXPECT_CALL(*tested, setMapMaxEntries(fakeSkel.maps.slpEvents, expectedMapSize));
 	EXPECT_CALL(*tested, loadBpf(&fakeSkel)).WillOnce(Return(0));
 	EXPECT_CALL(*libBpfMock, attachProgram(fakeSkel.progs.processForkHook)).WillOnce(Return(fakeProgramLink));
 	EXPECT_CALL(*libBpfMock, attachProgram(fakeSkel.progs.processExitHook)).WillOnce(Return(fakeProgramLink));
