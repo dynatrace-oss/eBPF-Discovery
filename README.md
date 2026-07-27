@@ -54,16 +54,19 @@ Please note that in order to run eBPF Discovery on a system it needs to have eBP
 
 Optional command line arguments can be set in place of the OPTIONS tag:
 
-| Option                      | Description                                                                                                     | Default value                        |
-|-----------------------------|-----------------------------------------------------------------------------------------------------------------|--------------------------------------|
-| `--help, -h`                | Display available options.                                                                                      | false                                |
-| `--interval=VALUE`          | Set the time inteval (in seconds) in which the discovered services are reported to the programs standard output | 60 (seconds).                        |
-| `--log-dir=DIRECTORY`       | Set log files directory.                                                                                        | eBPF Discovery binary root directory |
-| `--log-level=LEVEL`         | Set logging level, where LEVEL={trace, debug, info, warning, error, critical, off}.                             | error                                |
-| `--log-no-stdout`           | Disable logging to stdout.                                                                                      | false                                |
-| `--test-launch`             | Exit program after launch for testing purposes.                                                                 | false                                |
-| `--version`                 | Display program version.                                                                                        | false                                |
-| `--enable-network-counters` | Enable network counters.                                                                                        | false                                |
+| Option                       | Description                                                                                                       | Default value                        |
+|------------------------------|-------------------------------------------------------------------------------------------------------------------|--------------------------------------|
+| `--help, -h`                 | Display available options.                                                                                        | false                                |
+| `--interval=VALUE`           | Set the time inteval (in seconds) in which the discovered services are reported to the programs standard output.  | 60 (seconds)                         |
+| `--log-dir=DIRECTORY`        | Set log files directory.                                                                                          | eBPF Discovery binary root directory |
+| `--log-level=LEVEL`          | Set logging level, where LEVEL={trace, debug, info, warning, error, critical, off}.                               | error                                |
+| `--log-no-stdout`            | Disable logging to stdout.                                                                                        | false                                |
+| `--test-launch`              | Exit program after launch for testing purposes.                                                                   | false                                |
+| `--version`                  | Display program version.                                                                                          | false                                |
+| `--enable-network-counters`  | Enable network counters.                                                                                          | false                                |
+| `--enable-service-detection` | Enable service detection.                                                                                         | false                                |
+| `--enable-slp`               | Enable process detection.                                                                                         | false                                |
+| `--slp-interval`             | Set the time inteval (in seconds) in which the discovered processes are reported to the programs standard output. | 60 (seconds)                         |
 
 
 ## Help & Support
