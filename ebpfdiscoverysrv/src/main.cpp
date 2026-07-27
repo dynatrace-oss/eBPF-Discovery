@@ -68,8 +68,7 @@ po::options_description getProgramOptions() {
 	  (logLevelName.data(), po::value<logging::LogLevel>()->default_value(logging::LogLevel::Err, "error"), "Set log level {trace,debug,info,warning,error,critical,off}")
 	  (logNoStdoutName.data(), po::bool_switch()->default_value(false), "Disable logging to stdout")
 	  (versionName.data(), "Display program version")
-	  //TODO change default value to false after DT OA starts using this switch for service detection
-	  (enableServiceDetectionName.data(), po::bool_switch()->default_value(true), "Enables service detection")
+	  (enableServiceDetectionName.data(), po::bool_switch()->default_value(false), "Enables service detection")
 	  (intervalName.data(), po::value<int>()->default_value(60), "Services reporting time interval (in seconds)")
 	  (enableNetworkCountersName.data(), po::bool_switch()->default_value(false), "Enable network counters")
 	  (enableSlpName.data(), po::bool_switch()->default_value(false), "Enables the short-lived-process detection")
@@ -139,8 +138,7 @@ int main(int argc, char** argv) {
 	}
 
 	const bool enableSlp{vm[enableSlpName.data()].as<bool>()};
-	//TODO !enableSlp is a temporary workaround to allow gathering only slp, remove when changing enableServiceDetection default value to false
-	const bool enableServiceDetection = !enableSlp && vm[enableServiceDetectionName.data()].as<bool>();
+	const bool enableServiceDetection{vm[enableServiceDetectionName.data()].as<bool>()};
 
 	if (!enableSlp && !enableServiceDetection) {
 		return EXIT_SUCCESS;
