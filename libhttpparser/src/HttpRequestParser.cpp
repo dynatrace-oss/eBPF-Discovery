@@ -30,7 +30,7 @@ static constexpr std::string_view HTTP_1_1{"HTTP/1.1"};
 
 static constexpr std::string_view VALID_URL_SPECIAL_CHARS{"-._~:/?#[]@!$&'()*+,;=%"};
 static constexpr std::string_view VALID_HEADER_KEY_SPECIAL_CHARS{"!#$%&'*+-.^_`|~"};
-static constexpr std::string_view VALID_HEADER_VALUE_SPECIAL_CHARS{"`~!@#$%^&*()-_=+[]{}\\|;'<>,.?/ "};
+static constexpr std::string_view VALID_HEADER_VALUE_SPECIAL_CHARS{"`~!@#$%^&*()-_=+[]{}\\|;:'\"<>,.?/ "};
 static constexpr std::string_view VALID_HOST_HEADER_VALUE_SPECIAL_CHARS{"-.:[]"};
 static constexpr std::string_view VALID_CLIENT_IP_HEADER_VALUE_SPECIAL_CHARS{"-.:[], "};
 
