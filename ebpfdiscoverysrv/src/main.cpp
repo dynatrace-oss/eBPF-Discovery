@@ -139,8 +139,9 @@ int main(int argc, char** argv) {
 
 	const bool enableSlp{vm[enableSlpName.data()].as<bool>()};
 	const bool enableServiceDetection{vm[enableServiceDetectionName.data()].as<bool>()};
+	const bool isLaunchTest{vm[testLaunchName.data()].as<bool>()};
 
-	if (!enableSlp && !enableServiceDetection) {
+	if (!isLaunchTest && !enableSlp && !enableServiceDetection) {
 		return EXIT_SUCCESS;
 	}
 
@@ -189,7 +190,7 @@ int main(int argc, char** argv) {
 		}
 	}
 
-	if (vm[testLaunchName.data()].as<bool>()) {
+	if (isLaunchTest) {
 		stopRunningPrograms();
 	}
 
