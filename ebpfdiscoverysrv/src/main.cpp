@@ -17,6 +17,7 @@
 #include "ebpfdiscovery/BpfOptions.h"
 #include "ebpfdiscovery/Discovery.h"
 #include "ebpfdiscovery/DiscoveryBpfLogging.h"
+#include "ebpfdiscovery/DvmDetectionTask.h"
 #include "ebpfdiscovery/ServiceDetectionTask.h"
 #include "ebpfdiscovery/Slp.h"
 #include "ebpfdiscovery/SlpDetectionTask.h"
@@ -38,6 +39,7 @@ using logging::LogLevel;
 
 namespace {
 
+ebpfdiscovery::DvmDetectionTask dvmBpfProg{};
 ebpfdiscovery::SlpDetectionTask slpBpfProg{};
 ebpfdiscovery::ServiceDetectionTask servicesBpfProg{};
 
@@ -51,8 +53,11 @@ constexpr std::string_view intervalName = "interval";
 constexpr std::string_view enableNetworkCountersName = "enable-network-counters";
 constexpr std::string_view enableSlpName = "enable-slp";
 constexpr std::string_view slpIntervalName = "slp-interval";
+constexpr std::string_view enableDvmName = "enable-dvm";
+constexpr std::string_view dvmIntervalName = "dvm-interval";
 
 void stopRunningPrograms() {
+	dvmBpfProg.stop();
 	slpBpfProg.stop();
 	servicesBpfProg.stop();
 }
@@ -73,6 +78,8 @@ po::options_description getProgramOptions() {
 	  (enableNetworkCountersName.data(), po::bool_switch()->default_value(false), "Enable network counters")
 	  (enableSlpName.data(), po::bool_switch()->default_value(false), "Enables the short-lived-process detection")
 	  (slpIntervalName.data(), po::value<int>()->default_value(60), "Short-lived-processes reporting time interval (in seconds)")
+	  (enableDvmName.data(), po::bool_switch()->default_value(false), "Enables delayed VM-detection (DVM)")
+	  (dvmIntervalName.data(), po::value<int>()->default_value(60), "DVM reporting time interval (in seconds)")
   ;
 	// clang-format on
 
@@ -137,11 +144,12 @@ int main(int argc, char** argv) {
 		return EXIT_SUCCESS;
 	}
 
+	const bool enableDvm{vm[enableDvmName.data()].as<bool>()};
 	const bool enableSlp{vm[enableSlpName.data()].as<bool>()};
 	const bool enableServiceDetection{vm[enableServiceDetectionName.data()].as<bool>()};
 	const bool isLaunchTest{vm[testLaunchName.data()].as<bool>()};
 
-	if (!isLaunchTest && !enableSlp && !enableServiceDetection) {
+	if (!isLaunchTest && !enableDvm && !enableSlp && !enableServiceDetection) {
 		return EXIT_SUCCESS;
 	}
 
@@ -190,16 +198,29 @@ int main(int argc, char** argv) {
 		}
 	}
 
+	if (enableDvm) {
+		try {
+			LOG_DEBUG("Starting DVM discovery.");
+			auto dvmInterval{std::chrono::seconds(vm[dvmIntervalName.data()].as<int>())};
+			dvmBpfProg.start(loadOptions.getOpenOpts(), dvmInterval);
+		} catch (const std::runtime_error& e) {
+			LOG_CRITICAL("Couldn't initialize Dvm: {}", e.what());
+			return EXIT_FAILURE;
+		}
+	}
+
 	if (isLaunchTest) {
 		stopRunningPrograms();
 	}
 
 	servicesBpfProg.waitForFinish();
 	slpBpfProg.waitForFinish();
+	dvmBpfProg.waitForFinish();
 
 	LOG_DEBUG("Exiting the program.");
 	servicesBpfProg.shutdown();
 	slpBpfProg.shutdown();
+	dvmBpfProg.shutdown();
 	loadOptions.release();
 
 	return EXIT_SUCCESS;
