@@ -168,7 +168,9 @@ int main(int argc, char** argv) {
 	}
 
 
-	if (enableServiceDetection) {
+	// isLaunchTest probes whether cap_bpf/cap_perfmon actually work on this kernel.
+	// It does so by launching an eBPF program for a brief moment
+	if (enableServiceDetection || isLaunchTest) {
 		try {
 			auto outputServicesToStdoutInterval{std::chrono::seconds(vm[intervalName.data()].as<int>())};
 			const bool enableNetworkCounters{vm[enableNetworkCountersName.data()].as<bool>()};
