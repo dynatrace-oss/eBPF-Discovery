@@ -22,6 +22,8 @@ list(
         src/DiscoveryBpfLogging.cpp
         src/ServiceDetectionTask.cpp
         src/Session.cpp
+        src/Dvm.cpp
+        src/DvmDetectionTask.cpp
         src/Slp.cpp
         src/SlpDetectionTask.cpp
 )
