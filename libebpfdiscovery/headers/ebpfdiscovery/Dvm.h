@@ -30,19 +30,6 @@ namespace ebpfdiscovery {
 
 /**
  * Userspace representation of a single managed-runtime library load event.
- *
- * Output JSON schema (one element of the "libraryLoads" array):
- *
- *   {
- *     "pid":         <number>   // PID of the loading process
- *     "libraryType": <number>   // managed-runtime kind (DvmEvent::libraryType)
- *     "loadTs":      <number>   // library load time in clock ticks
- *   }
- *
- * Full envelope:
- *   {"libraryLoads":[{"pid":..,"libraryType":..,"loadTs":..}, ...]}
- *
- * loadTs uses the same clock-tick unit as SlpProcess::startTs (nsToTicks()).
  */
 struct DvmLibraryLoad {
 	pid_t pid{};
@@ -62,16 +49,6 @@ BOOST_DESCRIBE_STRUCT(DvmLibraryLoad, (), (pid, libraryType, loadTs))
  *
  *   {"libraryLoads":[{"pid":<pid>,"libraryType":<type>,"loadTs":<ts>}, ...]}
  *
- * For this story the BPF skeleton is not yet available; load() and unload()
- * are no-ops, and collectAndOutput() emits nothing.
- *
- * Intended usage (mirrors Slp):
- * @code
- *   ebpfdiscovery::Dvm dvm;
- *   dvm.load(openOpts);
- *   auto future = std::async(std::launch::async, periodicTask, interval,
- *                            [&dvm]{ dvm.collectAndOutput(); });
- * @endcode
  */
 class Dvm {
 public:
@@ -82,10 +59,6 @@ public:
 	Dvm(Dvm&&) = default;
 	Dvm& operator=(Dvm&&) = default;
 
-	/**
-	 * Output collected library-load events to stdout as JSON.
-	 * No-op until the BPF skeleton is wired in.
-	 */
 	void collectAndOutput();
 
 	/**
@@ -94,11 +67,7 @@ public:
 	 * Exposed for unit testing.
 	 */
 	static void outputToStdout(const std::vector<DvmLibraryLoad>& loads);
-
-	/** No-op until the BPF skeleton is available. */
 	void load(const bpf_object_open_opts& openOpts);
-
-	/** No-op until the BPF skeleton is available. */
 	void unload();
 
 private:
