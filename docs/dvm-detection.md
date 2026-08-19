@@ -49,7 +49,7 @@ enum DvmLibraryType : __u32 {
 
 Defined in `libebpfdiscovery/headers/ebpfdiscovery/Dvm.h`.
 
-The userspace representation produced from a `DvmEvent`. `loadTimeNs` is converted to clock ticks via `nsToTicks()` (same convention as SLP's `startTs`/`cpuTime`).
+The userspace representation produced from a `DvmEvent`. `loadTimeNs` is converted to clock ticks via `nsToTicks()` (same convention as SLP's `startTs`).
 
 ```cpp
 struct DvmLibraryLoad {
@@ -89,7 +89,6 @@ Records are written to **stdout**, one JSON object per flush interval. Nothing i
 
 | Value | Constant | Runtime |
 |-------|----------|---------|
-| `0` | `DVM_LIBRARY_TYPE_UNKNOWN` | Unknown / unrecognised library |
 | `1` | `DVM_LIBRARY_TYPE_JVM` | Java Virtual Machine (e.g. `libjvm.so`) |
 | `2` | `DVM_LIBRARY_TYPE_DOTNET` | .NET CLR (e.g. `libcoreclr.so`) |
 
@@ -104,7 +103,8 @@ Records are written to **stdout**, one JSON object per flush interval. Nothing i
 ## Implementation Notes
 
 - Follows the `SlpDetectionTask` pattern: `DvmDetectionTask` owns a `Dvm` instance and drives it on a periodic async task.
-- The BPF skeleton is not yet wired in; `load()`, `unload()`, and `collectAndOutput()` are no-ops. No output is produced until the skeleton is added in a later story.
+- The BPF program hooks `kprobe/vfs_open` for library detection and `tracepoint/sched/sched_process_exit` to clean up deduplication state when a process exits.
+- Deduplication is per `(pid, libraryId)` — each distinct library file is reported once per process lifetime.
 - Shared types (`DvmEvent`, `DvmLibraryType`) live in `libebpfdiscoveryshared` so they are accessible from both BPF C code and userspace C++.
 
 ---
@@ -114,6 +114,7 @@ Records are written to **stdout**, one JSON object per flush interval. Nothing i
 | Path | Purpose |
 |------|---------|
 | `libebpfdiscoveryshared/headers/ebpfdiscoveryshared/DvmTypes.h` | Kernel/userspace shared types: `DvmEvent`, `DvmLibraryType` |
+| `libebpfdiscoveryskel/src/dvm.bpf.c` | BPF program (`kprobe/vfs_open`, `sched_process_exit`) |
 | `libebpfdiscovery/headers/ebpfdiscovery/Dvm.h` | Userspace detection class and `DvmLibraryLoad` struct |
 | `libebpfdiscovery/src/Dvm.cpp` | Detection logic and JSON serialisation |
 | `libebpfdiscovery/headers/ebpfdiscovery/DvmDetectionTask.h` | Async task wrapper |
