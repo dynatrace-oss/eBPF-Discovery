@@ -18,8 +18,10 @@
 
 #include "AsyncTask.h"
 #include "Dvm.h"
+#include "LibBpfInterface.h"
 
 #include <bpf/libbpf.h>
+#include <memory>
 
 #include <chrono>
 #include <future>
@@ -38,7 +40,7 @@ public:
 
 private:
 	std::future<void> dvmFuture{};
-	Dvm dvmInstance{};
+	Dvm dvmInstance{std::make_unique<LibBpfInterface>()};
 };
 
 } // namespace ebpfdiscovery

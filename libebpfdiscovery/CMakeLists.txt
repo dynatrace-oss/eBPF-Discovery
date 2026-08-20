@@ -39,6 +39,7 @@ target_link_libraries(${TARGET}
             ebpfdiscoveryshared
             ebpfdiscoveryskel
             ebpfslpskel
+            ebpfdvmskel
             httpparser
             logging
             service
