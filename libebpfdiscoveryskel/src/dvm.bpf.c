@@ -50,19 +50,18 @@ enum DvmLibraryId : __u32 {
 	DVM_LIB_LIBSYSTEM_NATIVE_SO       = 10,
 	DVM_LIB_LIBSYSTEM_IO_PORTS_SO     = 11,
 	DVM_LIB_LIBSYSTEM_NET_SECURITY_SO = 12,
-	DVM_LIB_COUNT                     = 13,
 };
 
-struct DvmSeenKey {
-	__u32 pid;
-	__u32 libraryId; 
-};
-
+/*
+ * pid -> u16 bitmask of seen DvmLibraryId values (bit N = library N was seen).
+ * LRU_HASH evicts the least-recently-used pid automatically, so the map stays
+ * bounded without a separate process-exit cleanup hook.
+ */
 struct {
-	__uint(type, BPF_MAP_TYPE_HASH);
-	__uint(max_entries, 4096);
-	__type(key, struct DvmSeenKey);
-	__type(value, __u8);
+	__uint(type, BPF_MAP_TYPE_LRU_HASH);
+	__uint(max_entries, 65536);
+	__type(key, __u32);
+	__type(value, __u16);
 } dvmSeenMap SEC(".maps");
 
 static __always_inline __u32 classifyFilename(const char name[DVM_FILENAME_MAX_LEN], int len) {
@@ -100,11 +99,9 @@ int BPF_KPROBE(dvmVfsOpenHook, const struct path* path, struct file* file) {
 		return 0;
 	}
 
-	/* Read the basename from the kernel dentry into a stack buffer. */
 	char filename[DVM_FILENAME_MAX_LEN] = {};
 	const unsigned char* namePtr = BPF_CORE_READ(path, dentry, d_name.name);
 	int nameLen = bpf_probe_read_kernel_str(filename, sizeof(filename), namePtr);
-	/* nameLen includes the null terminator; <= 1 means empty or error. */
 	if (nameLen <= 1) {
 		return 0;
 	}
@@ -115,20 +112,15 @@ int BPF_KPROBE(dvmVfsOpenHook, const struct path* path, struct file* file) {
 	}
 
 	__u32 pid = bpf_get_current_pid_tgid() >> 32;
+	__u16 bit = (__u16)(1u << libId);
 
-	/*
-	 * Deduplicate per (pid, libraryId) — one slot per distinct library file.
-	 * Atomically claim with BPF_NOEXIST; non-zero return means another CPU
-	 * already inserted — skip.
-	 */
-	struct DvmSeenKey key = {.pid = pid, .libraryId = libId};
-	if (bpf_map_lookup_elem(&dvmSeenMap, &key)) {
+	__u16* seenMask = bpf_map_lookup_elem(&dvmSeenMap, &pid);
+	if (seenMask && (*seenMask & bit)) {
 		return 0;
 	}
-	__u8 seen = 1;
-	if (bpf_map_update_elem(&dvmSeenMap, &key, &seen, BPF_NOEXIST) != 0) {
-		return 0;
-	}
+
+	__u16 newMask = seenMask ? (*seenMask | bit) : bit;
+	bpf_map_update_elem(&dvmSeenMap, &pid, &newMask, BPF_ANY);
 
 	struct DvmEvent* event = bpf_ringbuf_reserve(&dvmEvents, sizeof(struct DvmEvent), 0);
 	if (!event) {
@@ -144,7 +136,6 @@ int BPF_KPROBE(dvmVfsOpenHook, const struct path* path, struct file* file) {
 	return 0;
 }
 
-//clear deduplication map when process exit to not hit limit 4069 entries
 SEC("tracepoint/sched/sched_process_exit")
 int dvmSchedProcessExit(void* ctx) {
 	__u64 pidTgid = bpf_get_current_pid_tgid();
@@ -153,11 +144,6 @@ int dvmSchedProcessExit(void* ctx) {
 	if (tgid != tid) {
 		return 0;
 	}
-
-	struct DvmSeenKey key = {.pid = tgid};
-	for (__u32 libId = 1; libId < DVM_LIB_COUNT; libId++) {
-		key.libraryId = libId;
-		bpf_map_delete_elem(&dvmSeenMap, &key);
-	}
+	bpf_map_delete_elem(&dvmSeenMap, &tgid);
 	return 0;
 }

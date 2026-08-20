@@ -111,7 +111,8 @@ void Dvm::load(const bpf_object_open_opts& openOpts) {
 		throw std::runtime_error("Couldn't attach DVM sched_process_exit BPF program.");
 	}
 
-	int eventsMapFd = libBpfCalls->getMapFd(skel->maps.dvmEvents);
+
+int eventsMapFd = libBpfCalls->getMapFd(skel->maps.dvmEvents);
 	if (eventsMapFd == -EINVAL) {
 		throw std::runtime_error("Failed to get DVM events ring buffer fd.");
 	}
