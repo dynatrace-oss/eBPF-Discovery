@@ -263,6 +263,20 @@ INSTANTIATE_TEST_SUITE_P(
 						"example.com",
 						{"10.0.0.1", "127.0.0.1", "2001:0db8:85a3::8a2e:0370:7335"},
 				},
+				HttpRequestTestData{
+						{"GET /example HTTP/1.1\r\nHost: example.com\r\nReferer: https://example.com/\r\n\r\n"},
+						"GET",
+						"/example",
+						"HTTP/1.1",
+						"example.com",
+						{}},
+				HttpRequestTestData{
+						{"GET /example HTTP/1.1\r\nHost: example.com\r\nSec-CH-UA: \"Chromium\";v=\"124\"\r\n\r\n"},
+						"GET",
+						"/example",
+						"HTTP/1.1",
+						"example.com",
+						{}},
 				HttpRequestTestData{chunkString("GET / HTTP/1.1\r\n", 1), "GET", "/", "HTTP/1.1", "", {}, false, false},
 				HttpRequestTestData{{"GET /"}, "GET", "/", "", "", {}, false, false},
 				HttpRequestTestData{{"", ""}, "", "", "", "", {}, false, false}));
