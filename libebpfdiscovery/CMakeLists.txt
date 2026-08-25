@@ -49,7 +49,7 @@ target_link_libraries(${TARGET}
 )
 
 if (BUILD_TESTS)
-    list(APPEND TEST_SOURCES test/LRUCacheTest.cpp test/JsonTest.cpp test/SlpTest.cpp)
+    list(APPEND TEST_SOURCES test/LRUCacheTest.cpp test/JsonTest.cpp test/SlpTest.cpp test/DvmTest.cpp)
     set(TEST_TARGET test${TARGET})
 
     add_executable(${TEST_TARGET} ${TEST_SOURCES})
