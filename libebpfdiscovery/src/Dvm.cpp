@@ -15,6 +15,7 @@
  */
 
 #include "ebpfdiscovery/Dvm.h"
+#include "ebpfdiscovery/TimeUtil.h"
 
 #include "logging/Logger.h"
 
@@ -25,16 +26,6 @@
 #include <unistd.h>
 
 namespace ebpfdiscovery {
-
-namespace {
-
-uint64_t nsToTicks(uint64_t ns) {
-	static constexpr uint64_t kNanosInSec = 1'000'000'000;
-	static const auto clockTicks = sysconf(_SC_CLK_TCK);
-	return ns * clockTicks / kNanosInSec;
-}
-
-} // namespace
 
 Dvm::Dvm(std::unique_ptr<LibBpfInterface> libBpfInterface) : libBpfCalls(std::move(libBpfInterface)) {
 	if (!libBpfCalls) {
@@ -112,7 +103,7 @@ void Dvm::load(const bpf_object_open_opts& openOpts) {
 	}
 
 
-int eventsMapFd = libBpfCalls->getMapFd(skel->maps.dvmEvents);
+	int eventsMapFd = libBpfCalls->getMapFd(skel->maps.dvmEvents);
 	if (eventsMapFd == -EINVAL) {
 		throw std::runtime_error("Failed to get DVM events ring buffer fd.");
 	}
