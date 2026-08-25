@@ -52,16 +52,11 @@ enum DvmLibraryId : __u32 {
 	DVM_LIB_LIBSYSTEM_NET_SECURITY_SO = 12,
 };
 
-struct DvmSeenValue {
-	struct bpf_spin_lock lock;
-	__u16 mask; /* bitmask of seen DvmLibraryId values */
-};
-
 struct {
-	__uint(type, BPF_MAP_TYPE_LRU_HASH);
+	__uint(type, BPF_MAP_TYPE_HASH);
 	__uint(max_entries, 65536);
 	__type(key, __u32);
-	__type(value, struct DvmSeenValue);
+	__type(value, __u64); /* bitmask of seen DvmLibraryId values */
 } dvmSeenMap SEC(".maps");
 
 static __always_inline __u32 classifyFilename(const char name[DVM_FILENAME_MAX_LEN], int len) {
@@ -112,26 +107,19 @@ int BPF_KPROBE(dvmVfsOpenHook, const struct path* path, struct file* file) {
 	}
 
 	__u32 pid = bpf_get_current_pid_tgid() >> 32;
-	__u16 bit = (__u16)(1u << libId);
+	__u64 bit = 1ULL << libId;
 
-	struct DvmSeenValue* val = bpf_map_lookup_elem(&dvmSeenMap, &pid);
-	if (!val) {
-		struct DvmSeenValue newVal = {};
-		bpf_map_update_elem(&dvmSeenMap, &pid, &newVal, BPF_NOEXIST);
-		val = bpf_map_lookup_elem(&dvmSeenMap, &pid);
-		if (!val) {
+	__u64* mask = bpf_map_lookup_elem(&dvmSeenMap, &pid);
+	if (!mask) {
+		__u64 zero = 0;
+		bpf_map_update_elem(&dvmSeenMap, &pid, &zero, BPF_NOEXIST);
+		mask = bpf_map_lookup_elem(&dvmSeenMap, &pid);
+		if (!mask) {
 			return 0;
 		}
 	}
 
-	bpf_spin_lock(&val->lock);
-	bool alreadySeen = val->mask & bit;
-	if (!alreadySeen) {
-		val->mask |= bit;
-	}
-	bpf_spin_unlock(&val->lock);
-
-	if (alreadySeen) {
+	if (__sync_fetch_and_or(mask, bit) & bit) {
 		return 0;
 	}
 
