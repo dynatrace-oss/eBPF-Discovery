@@ -61,19 +61,19 @@ struct {
 
 static __always_inline __u32 classifyFilename(const char name[DVM_FILENAME_MAX_LEN], int len) {
 	// JVM libs
-	if (len == 9  && __builtin_memcmp(name, "libjvm.so",    9)  == 0) return DVM_LIB_LIBJVM_SO;
-	if (len == 9  && __builtin_memcmp(name, "libjli.so",    9)  == 0) return DVM_LIB_LIBJLI_SO;
-	if (len == 9  && __builtin_memcmp(name, "libzip.so",    9)  == 0) return DVM_LIB_LIBZIP_SO;
-	if (len == 10 && __builtin_memcmp(name, "libjava.so",   10) == 0) return DVM_LIB_LIBJAVA_SO;
-	if (len == 12 && __builtin_memcmp(name, "libverify.so", 12) == 0) return DVM_LIB_LIBVERIFY_SO;
+	if (len == 9  && __builtin_memcmp(name, "libjvm.so",    len)  == 0) return DVM_LIB_LIBJVM_SO;
+	if (len == 9  && __builtin_memcmp(name, "libjli.so",    len)  == 0) return DVM_LIB_LIBJLI_SO;
+	if (len == 9  && __builtin_memcmp(name, "libzip.so",    len)  == 0) return DVM_LIB_LIBZIP_SO;
+	if (len == 10 && __builtin_memcmp(name, "libjava.so",   len) == 0) return DVM_LIB_LIBJAVA_SO;
+	if (len == 12 && __builtin_memcmp(name, "libverify.so", len) == 0) return DVM_LIB_LIBVERIFY_SO;
 	// .NET libs
-	if (len == 12 && __builtin_memcmp(name, "libclrjit.so",                    12) == 0) return DVM_LIB_LIBCLRJIT_SO;
-	if (len == 13 && __builtin_memcmp(name, "libcoreclr.so",                   13) == 0) return DVM_LIB_LIBCORECLR_SO;
-	if (len == 19 && __builtin_memcmp(name, "libSystem.Native.so",              19) == 0) return DVM_LIB_LIBSYSTEM_NATIVE_SO;
-	if (len == 26 && __builtin_memcmp(name, "System.Private.CoreLib.dll",       26) == 0) return DVM_LIB_CORECLR_DLL;
-	if (len == 28 && __builtin_memcmp(name, "libSystem.IO.Ports.Native.so",     28) == 0) return DVM_LIB_LIBSYSTEM_IO_PORTS_SO;
-	if (len == 29 && __builtin_memcmp(name, "System.Private.CoreLib.ni.dll",    29) == 0) return DVM_LIB_CORECLR_NI_DLL;
-	if (len == 32 && __builtin_memcmp(name, "libSystem.Net.Security.Native.so", 32) == 0) return DVM_LIB_LIBSYSTEM_NET_SECURITY_SO;
+	if (len == 12 && __builtin_memcmp(name, "libclrjit.so",                     len) == 0) return DVM_LIB_LIBCLRJIT_SO;
+	if (len == 13 && __builtin_memcmp(name, "libcoreclr.so",                    len) == 0) return DVM_LIB_LIBCORECLR_SO;
+	if (len == 19 && __builtin_memcmp(name, "libSystem.Native.so",              len) == 0) return DVM_LIB_LIBSYSTEM_NATIVE_SO;
+	if (len == 26 && __builtin_memcmp(name, "System.Private.CoreLib.dll",       len) == 0) return DVM_LIB_CORECLR_DLL;
+	if (len == 28 && __builtin_memcmp(name, "libSystem.IO.Ports.Native.so",     len) == 0) return DVM_LIB_LIBSYSTEM_IO_PORTS_SO;
+	if (len == 29 && __builtin_memcmp(name, "System.Private.CoreLib.ni.dll",    len) == 0) return DVM_LIB_CORECLR_NI_DLL;
+	if (len == 32 && __builtin_memcmp(name, "libSystem.Net.Security.Native.so", len) == 0) return DVM_LIB_LIBSYSTEM_NET_SECURITY_SO;
 	return DVM_LIB_UNKNOWN;
 }
 
