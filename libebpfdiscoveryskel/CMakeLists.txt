@@ -16,6 +16,7 @@
 
 set(TARGET ebpfdiscoveryskel)
 set(TARGETSLP ebpfslpskel)
+set(TARGETDVM ebpfdvmskel)
 
 set(BPF_C_FLAGS ${BPF_C_FLAGS} -I${CMAKE_CURRENT_SOURCE_DIR}/src -I${PROJECT_SOURCE_DIR}/libebpfdiscoveryshared/headers)
 
@@ -25,6 +26,7 @@ get_target_property(BPFOBJECT_BPFTOOL_EXE bpftool IMPORTED_LOCATION)
 find_package(BpfObject REQUIRED)
 bpf_object(${TARGET} src/discovery.bpf.c)
 bpf_object(${TARGETSLP} src/slp.bpf.c)
+bpf_object(${TARGETDVM} src/dvm.bpf.c)
 
 if(BUILD_BPF_TESTS)
 	set(TEST_SKEL_TARGET ebpfdiscoverytestskel)

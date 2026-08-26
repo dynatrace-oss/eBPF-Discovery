@@ -15,6 +15,7 @@
  */
 
 #include "ebpfdiscovery/Slp.h"
+#include "ebpfdiscovery/TimeUtil.h"
 
 #include "ebpfdiscoveryshared/Constants.h"
 #include "logging/Logger.h"
@@ -40,12 +41,6 @@ auto calculateActualRingBufferSize(size_t requiredSize) {
 	return candidateSize;
 }
 
-}
-
-uint64_t nsToTicks(uint64_t ns) {
-	static constexpr uint64_t kNanosInSec = 1'000'000'000;
-	static const auto clockTicks = sysconf(_SC_CLK_TCK);
-	return ns * clockTicks / kNanosInSec;
 }
 
 Slp::Slp(std::unique_ptr<LibBpfInterface> libBpfInterface) : libBpfCalls(std::move(libBpfInterface)) {
