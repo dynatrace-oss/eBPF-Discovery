@@ -72,6 +72,8 @@ Optional command line arguments can be set in place of the OPTIONS tag:
 | `--enable-service-detection` | Enable service detection.                                                                                         | false                                |
 | `--enable-slp`               | Enable process detection.                                                                                         | false                                |
 | `--slp-interval`             | Set the time inteval (in seconds) in which the discovered processes are reported to the programs standard output. | 60 (seconds)                         |
+| `--enable-dvm`               | Enable managed-runtime (JVM/.NET) library load detection.                                                        | false                                |
+| `--dvm-interval`             | Set the time interval (in seconds) in which detected managed-runtime library loads are reported to stdout.        | 60 (seconds)                         |
 
 
 ## Help & Support
