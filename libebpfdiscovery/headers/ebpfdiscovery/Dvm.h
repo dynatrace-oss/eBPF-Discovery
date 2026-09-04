@@ -21,15 +21,20 @@
 #include <bpf/libbpf.h>
 
 #include <cstdint>
+#include <memory>
 #include <sys/types.h>
 #include <vector>
 
+#include "dvm.skel.h"
+
+#include "ebpfdiscovery/LibBpfInterface.h"
 #include "ebpfdiscoveryshared/DvmTypes.h"
 
 namespace ebpfdiscovery {
 
 /**
  * Userspace representation of a single managed-runtime library load event.
+ *
  */
 struct DvmLibraryLoad {
 	pid_t pid{};
@@ -43,16 +48,16 @@ BOOST_DESCRIBE_STRUCT(DvmLibraryLoad, (), (pid, libraryType, loadTs))
 /**
  * Delayed VM-detection (DVM) component.
  *
- * Userspace counterpart to the (forthcoming) dvm BPF skeleton.  When the BPF
- * program is wired in, this class will collect managed-runtime library load
- * events and emit them periodically to stdout in the agreed JSON format:
+ * Userspace counterpart to the dvm BPF skeleton (dvm.bpf.c).  Collects
+ * managed-runtime library load events via an lsm/mmap_file hook and emits
+ * them periodically to stdout in the agreed JSON format:
  *
  *   {"libraryLoads":[{"pid":<pid>,"libraryType":<type>,"loadTs":<ts>}, ...]}
  *
  */
 class Dvm {
 public:
-	Dvm() = default;
+	explicit Dvm(std::unique_ptr<LibBpfInterface> libBpfInterface = nullptr);
 	virtual ~Dvm();
 	Dvm(const Dvm&) = delete;
 	Dvm& operator=(const Dvm&) = delete;
@@ -67,11 +72,23 @@ public:
 	 * Exposed for unit testing.
 	 */
 	static void outputToStdout(const std::vector<DvmLibraryLoad>& loads);
+
 	void load(const bpf_object_open_opts& openOpts);
 	void unload();
 
+	friend void addDvmLibraryLoad(Dvm& dvm, const DvmEvent& event);
+
+protected:
+	virtual dvm_bpf* openBpf(const bpf_object_open_opts& openOpts);
+	virtual int loadBpf(dvm_bpf* prog);
+	virtual void destroyBpf(dvm_bpf* prog);
+
 private:
+	std::unique_ptr<LibBpfInterface> libBpfCalls;
 	std::vector<DvmLibraryLoad> libraryLoads{};
+
+	dvm_bpf* skel{nullptr};
+	ring_buffer* dvmEventsBuffer{nullptr};
 };
 
 } // namespace ebpfdiscovery

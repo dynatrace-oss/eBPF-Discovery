@@ -15,6 +15,7 @@
  */
 
 #include "ebpfdiscovery/Slp.h"
+#include "ebpfdiscovery/TimeUtil.h"
 #include "LibBpInterfaceMock.h"
 #include "bpf/bpf.h"
 #include "ebpfdiscovery/Discovery.h"

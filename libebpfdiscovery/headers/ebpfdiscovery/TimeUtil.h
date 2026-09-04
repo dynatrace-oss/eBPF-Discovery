@@ -16,31 +16,15 @@
 
 #pragma once
 
-#include "AsyncTask.h"
-#include "Dvm.h"
-#include "LibBpfInterface.h"
-
-#include <bpf/libbpf.h>
-#include <memory>
-
-#include <chrono>
-#include <future>
+#include <cstdint>
+#include <unistd.h>
 
 namespace ebpfdiscovery {
 
-class DvmDetectionTask : AsyncTask {
-public:
-	using AsyncTask::stop;
-
-	~DvmDetectionTask() override;
-
-	void start(const bpf_object_open_opts& loadOptions, std::chrono::seconds dvmInterval);
-	void shutdown();
-	void waitForFinish();
-
-private:
-	std::future<void> dvmFuture{};
-	Dvm dvmInstance{std::make_unique<LibBpfInterface>()};
-};
+inline uint64_t nsToTicks(uint64_t ns) {
+	static constexpr uint64_t kNanosInSec = 1'000'000'000;
+	static const auto clockTicks = sysconf(_SC_CLK_TCK);
+	return ns * clockTicks / kNanosInSec;
+}
 
 } // namespace ebpfdiscovery
