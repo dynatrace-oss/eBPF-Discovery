@@ -49,6 +49,8 @@ To run eBPF Discovery, simply run:
 ```
 ./ebpfdiscoverysrv [OPTIONS]
 ```
+Unless you are doing a test run, at least one of the \[feature flag\] options must be enabled. Otherwise the eBPF Discovery will exit immediately.
+
 The program needs to be run either as superuser or with the following capabilities assigned:
 ```
 cap_dac_override,cap_sys_resource,cap_perfmon,cap_bpf=ep
@@ -69,10 +71,10 @@ Optional command line arguments can be set in place of the OPTIONS tag:
 | `--test-launch`              | Exit program after launch for testing purposes.                                                                   | false                                |
 | `--version`                  | Display program version.                                                                                          | false                                |
 | `--enable-network-counters`  | Enable network counters.                                                                                          | false                                |
-| `--enable-service-detection` | Enable service detection.                                                                                         | false                                |
-| `--enable-slp`               | Enable process detection.                                                                                         | false                                |
+| `--enable-service-detection` | Enable service detection. \[feature flag\]                                                                        | false                                |
+| `--enable-slp`               | Enable process detection. \[feature flag\]                                                                        | false                                |
 | `--slp-interval`             | Set the time inteval (in seconds) in which the discovered processes are reported to the programs standard output. | 60 (seconds)                         |
-| `--enable-dvm`               | Enable managed-runtime (JVM/.NET) library load detection.                                                        | false                                |
+| `--enable-dvm`               | Enable managed-runtime (JVM/.NET) library load detection. \[feature flag\]                                        | false                                |
 | `--dvm-interval`             | Set the time interval (in seconds) in which detected managed-runtime library loads are reported to stdout.        | 60 (seconds)                         |
 
 

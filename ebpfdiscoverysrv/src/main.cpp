@@ -68,17 +68,17 @@ po::options_description getProgramOptions() {
 	// clang-format off
 	desc.add_options()
 	  ("help,h", "Display available options")
-	  (testLaunchName.data(), po::bool_switch()->default_value(false), "Exit program after launching for testing")
+	  (testLaunchName.data(), po::bool_switch()->default_value(false), "Exit program after launching for testing [test flag]")
 	  (logDirName.data(), po::value<std::filesystem::path>()->default_value(""), "Log files directory")
 	  (logLevelName.data(), po::value<logging::LogLevel>()->default_value(logging::LogLevel::Err, "error"), "Set log level {trace,debug,info,warning,error,critical,off}")
 	  (logNoStdoutName.data(), po::bool_switch()->default_value(false), "Disable logging to stdout")
 	  (versionName.data(), "Display program version")
-	  (enableServiceDetectionName.data(), po::bool_switch()->default_value(false), "Enables service detection")
+	  (enableServiceDetectionName.data(), po::bool_switch()->default_value(false), "Enables service detection [feature flag]")
 	  (intervalName.data(), po::value<int>()->default_value(60), "Services reporting time interval (in seconds)")
 	  (enableNetworkCountersName.data(), po::bool_switch()->default_value(false), "Enable network counters")
-	  (enableSlpName.data(), po::bool_switch()->default_value(false), "Enables the short-lived-process detection")
+	  (enableSlpName.data(), po::bool_switch()->default_value(false), "Enables the short-lived-process detection [feature flag]")
 	  (slpIntervalName.data(), po::value<int>()->default_value(60), "Short-lived-processes reporting time interval (in seconds)")
-	  (enableDvmName.data(), po::bool_switch()->default_value(false), "Enables delayed VM-detection (DVM)")
+	  (enableDvmName.data(), po::bool_switch()->default_value(false), "Enables delayed VM-detection (DVM) [feature flag]")
 	  (dvmIntervalName.data(), po::value<int>()->default_value(60), "DVM reporting time interval (in seconds)")
   ;
 	// clang-format on
@@ -150,6 +150,7 @@ int main(int argc, char** argv) {
 	const bool isLaunchTest{vm[testLaunchName.data()].as<bool>()};
 
 	if (!isLaunchTest && !enableDvm && !enableSlp && !enableServiceDetection) {
+		std::cout << "No feature or test flag enabled, exiting.\n" << desc;
 		return EXIT_SUCCESS;
 	}
 
