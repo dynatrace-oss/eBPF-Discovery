@@ -92,8 +92,8 @@ void addSlpProcess(Slp& slp, const SlpEvent& event) {
 	SlpProcess process{
 		.pid = static_cast<pid_t>(event.pid),
 		.ppid = static_cast<pid_t>(event.parentPid),
-		.cpuTime = nsToTicks(event.cpuTimeNs),
 		.startTs = nsToTicks(event.startTimeNs),
+		.cpuTime = nsToTicks(event.cpuTimeNs)
 	};
 	slp.processes.emplace_back(process);
 }

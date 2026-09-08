@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include "ebpfdiscovery/AsyncTask.h"
 #include "ebpfdiscovery/BpfOptions.h"
 #include "ebpfdiscovery/Discovery.h"
 #include "ebpfdiscovery/DiscoveryBpfLogging.h"
@@ -30,6 +31,7 @@
 #include <csignal>
 #include <future>
 #include <chrono>
+#include <vector>
 
 #include <sys/stat.h>
 
@@ -42,6 +44,8 @@ namespace {
 ebpfdiscovery::DvmDetectionTask dvmBpfProg{};
 ebpfdiscovery::SlpDetectionTask slpBpfProg{};
 ebpfdiscovery::ServiceDetectionTask servicesBpfProg{};
+
+std::vector<ebpfdiscovery::AsyncTask*> runningTasks;
 
 constexpr std::string_view testLaunchName = "test-launch";
 constexpr std::string_view logDirName = "log-dir";
@@ -57,9 +61,21 @@ constexpr std::string_view enableDvmName = "enable-dvm";
 constexpr std::string_view dvmIntervalName = "dvm-interval";
 
 void stopRunningPrograms() {
-	dvmBpfProg.stop();
-	slpBpfProg.stop();
-	servicesBpfProg.stop();
+	for (auto* task : runningTasks) {
+		task->stop();
+	}
+}
+
+void waitForRunningPrograms() {
+	for (auto* task : runningTasks) {
+		task->waitForFinish();
+	}
+}
+
+void shutdownRunningPrograms() {
+	for (auto* task : runningTasks) {
+		task->shutdown();
+	}
 }
 
 po::options_description getProgramOptions() {
@@ -176,7 +192,6 @@ int main(int argc, char** argv) {
 		return EXIT_FAILURE;
 	}
 
-
 	// isLaunchTest probes whether cap_bpf/cap_perfmon actually work on this kernel.
 	// It does so by launching an eBPF program for a brief moment
 	if (enableServiceDetection || isLaunchTest) {
@@ -184,6 +199,7 @@ int main(int argc, char** argv) {
 			auto outputServicesToStdoutInterval{std::chrono::seconds(vm[intervalName.data()].as<int>())};
 			const bool enableNetworkCounters{vm[enableNetworkCountersName.data()].as<bool>()};
 			servicesBpfProg.start(loadOptions.getOpenOpts(), enableNetworkCounters, outputServicesToStdoutInterval, logLevel);
+			runningTasks.emplace_back(&servicesBpfProg);
 		} catch (const std::runtime_error& e) {
 			LOG_CRITICAL("Couldn't load BPF program. ({})", e.what());
 			return EXIT_FAILURE;
@@ -195,6 +211,7 @@ int main(int argc, char** argv) {
 			LOG_DEBUG("Starting SLP discovery.");
 			auto slpInterval{std::chrono::seconds(vm[slpIntervalName.data()].as<int>())};
 			slpBpfProg.start(loadOptions.getOpenOpts(), slpInterval);
+			runningTasks.emplace_back(&slpBpfProg);
 		} catch (const std::runtime_error& e) {
 			LOG_CRITICAL("Couldn't initialize Slp: {}", e.what());
 			return EXIT_FAILURE;
@@ -206,6 +223,7 @@ int main(int argc, char** argv) {
 			LOG_DEBUG("Starting DVM discovery.");
 			auto dvmInterval{std::chrono::seconds(vm[dvmIntervalName.data()].as<int>())};
 			dvmBpfProg.start(loadOptions.getOpenOpts(), dvmInterval);
+			runningTasks.emplace_back(&dvmBpfProg);
 		} catch (const std::runtime_error& e) {
 			LOG_CRITICAL("Couldn't initialize Dvm: {}", e.what());
 			return EXIT_FAILURE;
@@ -216,14 +234,10 @@ int main(int argc, char** argv) {
 		stopRunningPrograms();
 	}
 
-	servicesBpfProg.waitForFinish();
-	slpBpfProg.waitForFinish();
-	dvmBpfProg.waitForFinish();
+	waitForRunningPrograms();
 
 	LOG_DEBUG("Exiting the program.");
-	servicesBpfProg.shutdown();
-	slpBpfProg.shutdown();
-	dvmBpfProg.shutdown();
+	shutdownRunningPrograms();
 	loadOptions.release();
 
 	return EXIT_SUCCESS;

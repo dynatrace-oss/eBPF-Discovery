@@ -24,13 +24,11 @@ namespace ebpfdiscovery {
 
 class ServiceDetectionTask : public AsyncTask {
 public:
-	using AsyncTask::stop;
-
 	~ServiceDetectionTask() override;
 
 	void start(const bpf_object_open_opts& loadOptions, bool enableNetworkCounters, std::chrono::seconds interval, logging::LogLevel logLevel);
-	void shutdown();
-	void waitForFinish();
+	void shutdown() override;
+	void waitForFinish() override;
 private:
 	struct PerfBufferDeleter {
 		void operator()(perf_buffer* buffer);
