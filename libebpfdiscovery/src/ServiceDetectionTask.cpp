@@ -67,9 +67,7 @@ ServiceDetectionTask::~ServiceDetectionTask() {
 	shutdown();
 }
 
-void ServiceDetectionTask::shutdown() {
-	stop();
-	waitForFinish();
+void ServiceDetectionTask::shutdownInternal() {
 	logBuf.reset();
 	instance.reset();
 	discoveryBpf.unload();

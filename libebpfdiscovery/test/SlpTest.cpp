@@ -126,8 +126,8 @@ TEST_F(SlpTest, basic) {
 	loadMockedBpf();
 
 	std::vector<SlpEvent> processes{
-		{.pid = 10, .parentPid = 1, .startTimeNs = 42'102'304'506ULL, .cpuTimeNs = 7'000'345'000ULL},
-		{.pid = 15, .parentPid = 21, .startTimeNs = 555'123'456'789ULL, .cpuTimeNs = 321'000'000'000ULL},
+		{.cpuTimeNs = 7'000'345'000ULL, .startTimeNs = 42'102'304'506ULL, .pid = 10, .parentPid = 1},
+		{.cpuTimeNs = 321'000'000'000ULL, .startTimeNs = 555'123'456'789ULL, .pid = 15, .parentPid = 21},
 	};
 
 	// Capture stdout

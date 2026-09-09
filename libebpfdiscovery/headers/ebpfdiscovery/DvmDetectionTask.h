@@ -28,15 +28,15 @@
 
 namespace ebpfdiscovery {
 
-class DvmDetectionTask : AsyncTask {
+class DvmDetectionTask : public AsyncTask {
 public:
-	using AsyncTask::stop;
-
 	~DvmDetectionTask() override;
 
 	void start(const bpf_object_open_opts& loadOptions, std::chrono::seconds dvmInterval);
-	void shutdown();
-	void waitForFinish();
+	void waitForFinish() override;
+
+protected:
+	void shutdownInternal() override;
 
 private:
 	std::future<void> dvmFuture{};

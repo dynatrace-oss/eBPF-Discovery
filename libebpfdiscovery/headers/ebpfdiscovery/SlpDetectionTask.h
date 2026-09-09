@@ -23,15 +23,16 @@
 
 namespace ebpfdiscovery {
 
-class SlpDetectionTask : AsyncTask {
+class SlpDetectionTask : public AsyncTask {
 public:
-	using AsyncTask::stop;
-
 	~SlpDetectionTask() override;
 
 	void start(const bpf_object_open_opts& loadOptions, std::chrono::seconds slpInterval);
-	void shutdown();
-	void waitForFinish();
+	void waitForFinish() override;
+
+protected:
+	void shutdownInternal() override;
+
 private:
 	std::future<void> slpFuture{};
 	Slp slpBpfInstance{std::make_unique<LibBpfInterface>()};

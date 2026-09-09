@@ -29,9 +29,7 @@ void SlpDetectionTask::start(const bpf_object_open_opts& loadOptions, std::chron
 	});
 }
 
-void SlpDetectionTask::shutdown() {
-	stop();
-	waitForFinish();
+void SlpDetectionTask::shutdownInternal() {
 	slpBpfInstance.unload();
 }
 

@@ -29,9 +29,7 @@ void DvmDetectionTask::start(const bpf_object_open_opts& loadOptions, std::chron
 	});
 }
 
-void DvmDetectionTask::shutdown() {
-	stop();
-	waitForFinish();
+void DvmDetectionTask::shutdownInternal() {
 	dvmInstance.unload();
 }
 

@@ -25,10 +25,15 @@
 namespace ebpfdiscovery {
 
 struct AsyncTask {
-protected:
+public:
 	virtual ~AsyncTask() = default;
 
-	void stop();
+	void shutdown();
+	virtual void stop();
+	virtual void waitForFinish() = 0;
+
+protected:
+	virtual void shutdownInternal() = 0;
 	std::future<void> startAsync(std::chrono::milliseconds interval, std::function<void()> func);
 
 	std::atomic<bool> stopRequested = false;
