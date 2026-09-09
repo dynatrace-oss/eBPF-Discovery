@@ -28,11 +28,12 @@ struct AsyncTask {
 public:
 	virtual ~AsyncTask() = default;
 
+	void shutdown();
 	virtual void stop();
 	virtual void waitForFinish() = 0;
-	virtual void shutdown() = 0;
 
 protected:
+	virtual void shutdownInternal() = 0;
 	std::future<void> startAsync(std::chrono::milliseconds interval, std::function<void()> func);
 
 	std::atomic<bool> stopRequested = false;

@@ -27,8 +27,11 @@ public:
 	~ServiceDetectionTask() override;
 
 	void start(const bpf_object_open_opts& loadOptions, bool enableNetworkCounters, std::chrono::seconds interval, logging::LogLevel logLevel);
-	void shutdown() override;
 	void waitForFinish() override;
+
+protected:
+	void shutdownInternal() override;
+
 private:
 	struct PerfBufferDeleter {
 		void operator()(perf_buffer* buffer);

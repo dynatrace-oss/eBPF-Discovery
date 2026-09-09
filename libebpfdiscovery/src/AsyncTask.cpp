@@ -23,6 +23,12 @@ void AsyncTask::stop() {
 	stopNotifier.notify_all();
 }
 
+void AsyncTask::shutdown() {
+	stop();
+	waitForFinish();
+	shutdownInternal();
+}
+
 std::future<void> AsyncTask::startAsync(const std::chrono::milliseconds interval, std::function<void()> func) {
 	return std::async(std::launch::async, [this, interval, func = std::move(func)]() {
 		while (!stopRequested) {

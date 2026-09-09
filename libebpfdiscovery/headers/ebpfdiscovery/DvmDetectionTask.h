@@ -33,8 +33,10 @@ public:
 	~DvmDetectionTask() override;
 
 	void start(const bpf_object_open_opts& loadOptions, std::chrono::seconds dvmInterval);
-	void shutdown() override;
 	void waitForFinish() override;
+
+protected:
+	void shutdownInternal() override;
 
 private:
 	std::future<void> dvmFuture{};
