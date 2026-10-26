@@ -22,6 +22,7 @@
 #include <bpf/bpf_helpers.h>
 #include <bpf/bpf_tracing.h>
 
+#include "ebpfdiscoveryshared/Constants.h"
 #include "ebpfdiscoveryshared/DvmTypes.h"
 #include "DebugPrint.h"
 
@@ -31,7 +32,7 @@ char LICENSE[] SEC("license") = "GPL";
 
 struct {
 	__uint(type, BPF_MAP_TYPE_RINGBUF);
-	__uint(max_entries, 32 * 4096);
+	__uint(max_entries, 512 * DEFAULT_PAGE_SIZE); // 2 MiB (~87381 events/min)
 } dvmEvents SEC(".maps");
 
 enum DvmLibraryId : __u32 {
