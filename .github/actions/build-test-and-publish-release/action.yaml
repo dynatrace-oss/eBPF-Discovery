@@ -75,6 +75,14 @@ runs:
       shell: bash
       run: find ${{ env.ARTIFACT_PATH }}/* -name 'test*' -exec rm {} \;
 
+    - name: "Strip debug symbols from binary"
+      shell: bash
+      run: |
+        mkdir -p  ${{ env.ARTIFACT_PATH }}/symbols
+        objcopy --only-keep-debug mv ${{ env.BUILD_PATH }}/bin/ebpfdiscoverysrv   ${{ env.ARTIFACT_PATH }}/symbols/ebpfdiscoverysrv.debug
+        strip --strip-debug ${{ env.ARTIFACT_PATH }}/bin/ebpfdiscoverysrv
+        objcopy --add-gnu-debuglink=${{ env.ARTIFACT_PATH }}/symbols/ebpfdiscoverysrv.debug ${{ env.ARTIFACT_PATH }}/bin/ebpfdiscoverysrv
+
     - name: "Zip artifact directory contents"
       shell: bash
       run: |
