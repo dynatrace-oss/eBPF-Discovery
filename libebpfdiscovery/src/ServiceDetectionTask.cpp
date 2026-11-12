@@ -23,8 +23,8 @@ void ServiceDetectionTask::PerfBufferDeleter::operator()(perf_buffer* buffer) {
 	bpflogging::fetchAndLog(buffer);
 }
 
-void ServiceDetectionTask::start(const bpf_object_open_opts& loadOptions, bool enableNetworkCounters, std::chrono::seconds interval, logging::LogLevel logLevel)  {
-	discoveryBpf.load(loadOptions);
+void ServiceDetectionTask::start(const bpf_object_open_opts& loadOptions, bool enableNetworkCounters, std::chrono::seconds interval, logging::LogLevel logLevel, bool disableSSL)  {
+	discoveryBpf.load(loadOptions, disableSSL);
 
 	instance = std::make_unique<Discovery>(discoveryBpf.getFds(), enableNetworkCounters);
 	if (!instance) {

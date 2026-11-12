@@ -26,7 +26,12 @@ class ServiceDetectionTask : public AsyncTask {
 public:
 	~ServiceDetectionTask() override;
 
-	void start(const bpf_object_open_opts& loadOptions, bool enableNetworkCounters, std::chrono::seconds interval, logging::LogLevel logLevel);
+	void start(
+			const bpf_object_open_opts& loadOptions,
+			bool enableNetworkCounters,
+			std::chrono::seconds interval,
+			logging::LogLevel logLevel,
+			bool disableSSL);
 	void waitForFinish() override;
 
 protected:
