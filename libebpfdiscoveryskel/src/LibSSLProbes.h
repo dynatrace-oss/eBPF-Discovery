@@ -92,10 +92,12 @@ __attribute__((always_inline)) inline static int handleSSLReadExit(struct pt_reg
 
 	struct LibSSLReadArgs* sslReadArgsPtr = (struct LibSSLReadArgs*)bpf_map_lookup_elem(&runningLibSSLReadArgsMap, &pidTgid);
 	if (sslReadArgsPtr == NULL) {
+		bpf_map_delete_elem(&runningLibSSLReadArgsMap, &pidTgid);
 		return 0;
 	}
 
 	if (sslReadArgsPtr->ssl == NULL || sslReadArgsPtr->buf == NULL) {
+		bpf_map_delete_elem(&runningLibSSLReadArgsMap, &pidTgid);
 		return 0;
 	}
 
@@ -103,11 +105,13 @@ __attribute__((always_inline)) inline static int handleSSLReadExit(struct pt_reg
 
 	if (bytesCount <= 0) {
 		handleNoMoreData(ctx, globalStatePtr, allSessionStatePtr, pidTgid, fd);
+		bpf_map_delete_elem(&runningLibSSLReadArgsMap, &pidTgid);
 		return 0;
 	}
 
 	handleReadSslHttp(ctx, globalStatePtr, allSessionStatePtr, pidTgid, fd, sslReadArgsPtr->buf, bytesCount);
 	DEBUG_PRINTLN("ssl read exit, pid: `%d`, no fd", pidTgidToPid(pidTgid));
+	bpf_map_delete_elem(&runningLibSSLReadArgsMap, &pidTgid);
 
 	return 0;
 }
@@ -127,10 +131,12 @@ __attribute__((always_inline)) inline static int handleSSLReadExExit(struct pt_r
 
 	struct LibSSLReadArgs* sslReadArgsPtr = (struct LibSSLReadArgs*)bpf_map_lookup_elem(&runningLibSSLReadArgsMap, &pidTgid);
 	if (sslReadArgsPtr == NULL) {
+		bpf_map_delete_elem(&runningLibSSLReadArgsMap, &pidTgid);
 		return 0;
 	}
 
 	if (sslReadArgsPtr->ssl == NULL || sslReadArgsPtr->buf == NULL || sslReadArgsPtr->readBytes == NULL) {
+		bpf_map_delete_elem(&runningLibSSLReadArgsMap, &pidTgid);
 		return 0;
 	}
 
@@ -138,6 +144,7 @@ __attribute__((always_inline)) inline static int handleSSLReadExExit(struct pt_r
 
 	if (ret <= 0) {
 		handleNoMoreData(ctx, globalStatePtr, allSessionStatePtr, pidTgid, fd);
+		bpf_map_delete_elem(&runningLibSSLReadArgsMap, &pidTgid);
 		return 0;
 	}
 
@@ -145,11 +152,13 @@ __attribute__((always_inline)) inline static int handleSSLReadExExit(struct pt_r
 	bpf_probe_read_user(&bytesCount, sizeof(size_t), sslReadArgsPtr->readBytes);
 	if (bytesCount <= 0) {
 		handleNoMoreData(ctx, globalStatePtr, allSessionStatePtr, pidTgid, fd);
+		bpf_map_delete_elem(&runningLibSSLReadArgsMap, &pidTgid);
 		return 0;
 	}
 
 	handleReadSslHttp(ctx, globalStatePtr, allSessionStatePtr, pidTgid, fd, sslReadArgsPtr->buf, bytesCount);
 	DEBUG_PRINTLN("ssl read exit, pid: `%d`, no fd", pidTgidToPid(pidTgid));
+	bpf_map_delete_elem(&runningLibSSLReadArgsMap, &pidTgid);
 
 	return 0;
 }
@@ -188,10 +197,12 @@ __attribute__((always_inline)) inline static int handleSSLPendingExit(struct pt_
 
 	struct LibSSLPendingArgs* sslArgsPtr = (struct LibSSLPendingArgs*)bpf_map_lookup_elem(&runningLibSSLPendingArgsMap, &pidTgid);
 	if (sslArgsPtr == NULL) {
+		bpf_map_delete_elem(&runningLibSSLPendingArgsMap, &pidTgid);
 		return 0;
 	}
 
 	if (sslArgsPtr->ssl == NULL) {
+		bpf_map_delete_elem(&runningLibSSLPendingArgsMap, &pidTgid);
 		return 0;
 	}
 
@@ -199,9 +210,11 @@ __attribute__((always_inline)) inline static int handleSSLPendingExit(struct pt_
 
 	if (ret <= 0) {
 		handleNoMoreData(ctx, globalStatePtr, allSessionStatePtr, pidTgid, fd);
+		bpf_map_delete_elem(&runningLibSSLPendingArgsMap, &pidTgid);
 		return 0;
 	}
 
+	bpf_map_delete_elem(&runningLibSSLPendingArgsMap, &pidTgid);
 	return 0;
 }
 
