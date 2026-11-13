@@ -53,7 +53,7 @@ struct {
 
 __attribute__((always_inline)) inline static int handleSSLReadExEntry(struct pt_regs* ctx, void* ssl, char* buf, size_t num, size_t* readBytes) {
 	struct DiscoveryGlobalState* globalStatePtr = getGlobalState();
-	if (globalStatePtr == NULL || globalStatePtr->isCollectingDisabled) {
+	if (globalStatePtr == NULL ) {
 		return 0;
 	}
 
@@ -79,7 +79,7 @@ __attribute__((always_inline)) inline static int handleSSLReadEntry(struct pt_re
 
 __attribute__((always_inline)) inline static int handleSSLReadExit(struct pt_regs* ctx, int bytesCount) {
 	struct DiscoveryGlobalState* globalStatePtr = getGlobalState();
-	if (globalStatePtr == NULL || globalStatePtr->isCollectingDisabled) {
+	if (globalStatePtr == NULL ) {
 		return 0;
 	}
 
@@ -92,7 +92,6 @@ __attribute__((always_inline)) inline static int handleSSLReadExit(struct pt_reg
 
 	struct LibSSLReadArgs* sslReadArgsPtr = (struct LibSSLReadArgs*)bpf_map_lookup_elem(&runningLibSSLReadArgsMap, &pidTgid);
 	if (sslReadArgsPtr == NULL) {
-		bpf_map_delete_elem(&runningLibSSLReadArgsMap, &pidTgid);
 		return 0;
 	}
 
@@ -118,7 +117,7 @@ __attribute__((always_inline)) inline static int handleSSLReadExit(struct pt_reg
 
 __attribute__((always_inline)) inline static int handleSSLReadExExit(struct pt_regs* ctx, int ret) {
 	struct DiscoveryGlobalState* globalStatePtr = getGlobalState();
-	if (globalStatePtr == NULL || globalStatePtr->isCollectingDisabled) {
+	if (globalStatePtr == NULL ) {
 		return 0;
 	}
 
@@ -131,7 +130,6 @@ __attribute__((always_inline)) inline static int handleSSLReadExExit(struct pt_r
 
 	struct LibSSLReadArgs* sslReadArgsPtr = (struct LibSSLReadArgs*)bpf_map_lookup_elem(&runningLibSSLReadArgsMap, &pidTgid);
 	if (sslReadArgsPtr == NULL) {
-		bpf_map_delete_elem(&runningLibSSLReadArgsMap, &pidTgid);
 		return 0;
 	}
 
@@ -165,7 +163,7 @@ __attribute__((always_inline)) inline static int handleSSLReadExExit(struct pt_r
 
 __attribute__((always_inline)) inline static int handleSSLPendingEntry(struct pt_regs* ctx, void* ssl) {
 	struct DiscoveryGlobalState* globalStatePtr = getGlobalState();
-	if (globalStatePtr == NULL || globalStatePtr->isCollectingDisabled) {
+	if (globalStatePtr == NULL ) {
 		return 0;
 	}
 
@@ -184,7 +182,7 @@ __attribute__((always_inline)) inline static int handleSSLPendingEntry(struct pt
 
 __attribute__((always_inline)) inline static int handleSSLPendingExit(struct pt_regs* ctx, int ret) {
 	struct DiscoveryGlobalState* globalStatePtr = getGlobalState();
-	if (globalStatePtr == NULL || globalStatePtr->isCollectingDisabled) {
+	if (globalStatePtr == NULL ) {
 		return 0;
 	}
 
@@ -197,7 +195,6 @@ __attribute__((always_inline)) inline static int handleSSLPendingExit(struct pt_
 
 	struct LibSSLPendingArgs* sslArgsPtr = (struct LibSSLPendingArgs*)bpf_map_lookup_elem(&runningLibSSLPendingArgsMap, &pidTgid);
 	if (sslArgsPtr == NULL) {
-		bpf_map_delete_elem(&runningLibSSLPendingArgsMap, &pidTgid);
 		return 0;
 	}
 
