@@ -20,6 +20,7 @@ list(
         src/Discovery.cpp
         src/DiscoveryBpf.cpp
         src/DiscoveryBpfLogging.cpp
+        src/PerfCounters.cpp
         src/ServiceDetectionTask.cpp
         src/Session.cpp
         src/Dvm.cpp

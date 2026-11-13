@@ -35,7 +35,7 @@ public:
 	DiscoveryBpf(const DiscoveryBpf&) = delete;
 	DiscoveryBpf& operator=(const DiscoveryBpf&) = delete;
 
-	void load(const bpf_object_open_opts& openOpts);
+	void load(const bpf_object_open_opts& openOpts, const bool disableSSL);
 	void unload();
 
 	DiscoveryBpfFds getFds();

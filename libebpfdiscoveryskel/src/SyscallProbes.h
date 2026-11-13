@@ -67,7 +67,7 @@ __attribute__((always_inline)) inline static int handleSysAcceptEntry(struct pt_
 	}
 
 	struct DiscoveryGlobalState* globalStatePtr = getGlobalState();
-	if (globalStatePtr == NULL || globalStatePtr->isCollectingDisabled) {
+	if (globalStatePtr == NULL ) {
 		return 0;
 	}
 
@@ -95,7 +95,7 @@ __attribute__((always_inline)) inline static int handleSysAcceptEntry(struct pt_
 
 __attribute__((always_inline)) inline static int handleSysAcceptExit(struct pt_regs* ctx, int fd) {
 	struct DiscoveryGlobalState* globalStatePtr = getGlobalState();
-	if (globalStatePtr == NULL || globalStatePtr->isCollectingDisabled) {
+	if (globalStatePtr == NULL ) {
 		return 0;
 	}
 
@@ -129,7 +129,7 @@ __attribute__((always_inline)) inline static int handleSysReadEntry(struct pt_re
 	}
 
 	struct DiscoveryGlobalState* globalStatePtr = getGlobalState();
-	if (globalStatePtr == NULL || globalStatePtr->isCollectingDisabled) {
+	if (globalStatePtr == NULL ) {
 		return 0;
 	}
 
@@ -166,7 +166,7 @@ __attribute__((always_inline)) inline static int handleSysReadExit(struct pt_reg
 	}
 
 	struct DiscoveryGlobalState* globalStatePtr = getGlobalState();
-	if (globalStatePtr == NULL || globalStatePtr->isCollectingDisabled) {
+	if (globalStatePtr == NULL ) {
 		return 0;
 	}
 
@@ -209,7 +209,7 @@ __attribute__((always_inline)) inline static int handleSysReadExit(struct pt_reg
 
 __attribute__((always_inline)) inline static int handleSysCloseEntry(struct pt_regs* ctx, int fd) {
 	struct DiscoveryGlobalState* globalStatePtr = getGlobalState();
-	if (globalStatePtr == NULL || globalStatePtr->isCollectingDisabled) {
+	if (globalStatePtr == NULL ) {
 		return 0;
 	}
 
@@ -262,7 +262,7 @@ __attribute__((always_inline)) inline static int handleSysRecvmsgEntry(
 	}
 
 	struct DiscoveryGlobalState* globalStatePtr = getGlobalState();
-	if (globalStatePtr == NULL || globalStatePtr->isCollectingDisabled) {
+	if (globalStatePtr == NULL ) {
 		return 0;
 	}
 
@@ -294,7 +294,7 @@ __attribute__((always_inline)) inline static int handleSysRecvmsgEntry(
 
 __attribute__((always_inline)) inline static int handleSysRecvmsgExit(struct pt_regs* ctx, ssize_t bytesCount) {
 	struct DiscoveryGlobalState* globalStatePtr = getGlobalState();
-	if (globalStatePtr == NULL || globalStatePtr->isCollectingDisabled) {
+	if (globalStatePtr == NULL ) {
 		return 0;
 	}
 

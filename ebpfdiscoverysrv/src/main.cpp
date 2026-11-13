@@ -59,6 +59,7 @@ constexpr std::string_view enableSlpName = "enable-slp";
 constexpr std::string_view slpIntervalName = "slp-interval";
 constexpr std::string_view enableDvmName = "enable-dvm";
 constexpr std::string_view dvmIntervalName = "dvm-interval";
+constexpr std::string_view disableSSLName = "disable-ssl";
 
 void stopRunningPrograms() {
 	for (auto* task : runningTasks) {
@@ -88,6 +89,7 @@ po::options_description getProgramOptions() {
 	  (logDirName.data(), po::value<std::filesystem::path>()->default_value(""), "Log files directory")
 	  (logLevelName.data(), po::value<logging::LogLevel>()->default_value(logging::LogLevel::Err, "error"), "Set log level {trace,debug,info,warning,error,critical,off}")
 	  (logNoStdoutName.data(), po::bool_switch()->default_value(false), "Disable logging to stdout")
+	  (disableSSLName.data(), po::bool_switch()->default_value(false), "Disable SSL Probes")
 	  (versionName.data(), "Display program version")
 	  (enableServiceDetectionName.data(), po::bool_switch()->default_value(false), "Enables service detection [feature flag]")
 	  (intervalName.data(), po::value<int>()->default_value(60), "Services reporting time interval (in seconds)")
@@ -198,7 +200,12 @@ int main(int argc, char** argv) {
 		try {
 			auto outputServicesToStdoutInterval{std::chrono::seconds(vm[intervalName.data()].as<int>())};
 			const bool enableNetworkCounters{vm[enableNetworkCountersName.data()].as<bool>()};
-			servicesBpfProg.start(loadOptions.getOpenOpts(), enableNetworkCounters, outputServicesToStdoutInterval, logLevel);
+			servicesBpfProg.start(
+					loadOptions.getOpenOpts(),
+					enableNetworkCounters,
+					outputServicesToStdoutInterval,
+					logLevel,
+					vm[disableSSLName.data()].as<bool>());
 			runningTasks.emplace_back(&servicesBpfProg);
 		} catch (const std::runtime_error& e) {
 			LOG_CRITICAL("Couldn't load BPF program. ({})", e.what());

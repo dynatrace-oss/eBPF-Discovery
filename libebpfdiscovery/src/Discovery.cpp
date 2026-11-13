@@ -45,12 +45,9 @@ void Discovery::init() {
 	}
 }
 
-int Discovery::fetchAndHandleEvents() {
-	if (const auto ret{bpfDiscoveryResumeCollecting()}; ret != 0) {
-		return ret;
-	}
+int Discovery::fetchAndHandleEvents(PerfCounters& counters) {
 
-	if (const auto ret{bpfDiscoveryFetchAndHandleEvents()}; ret != 0) {
+	if (const auto ret{bpfDiscoveryFetchAndHandleEvents(counters)}; ret != 0) {
 		return ret;
 	}
 
@@ -70,18 +67,20 @@ void Discovery::outputServicesToStdout() {
 	serviceAggregator.clear();
 }
 
-int Discovery::bpfDiscoveryFetchAndHandleEvents() {
+int Discovery::bpfDiscoveryFetchAndHandleEvents(PerfCounters& counters) {
 	DiscoveryEvent event;
-	int ret;
+	int ret{};
+	int count{};
 	for (;;) {
 		ret = bpf_map_lookup_and_delete_elem(bpfFds.eventsToUserspaceQueueMap, nullptr, &event);
 		if (ret != 0) {
 			break;
 		}
-
+		count++;
 		handleNewEvent(std::move(event));
 	};
 
+	counters.addEventsCtr(count);
 	if (ret != -ENOENT) {
 		return ret;
 	}
