@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include <bpf/bpf.h>
 #include "ebpfdiscovery/ServiceDetectionTask.h"
 #include "ebpfdiscovery/DiscoveryBpfLogging.h"
 
@@ -41,7 +42,7 @@ void ServiceDetectionTask::start(const bpf_object_open_opts& loadOptions, bool e
 
 	const std::chrono::milliseconds eventQueuePollInterval{250};
 	featchAndHandleEventsFuture = startAsync(eventQueuePollInterval, [this]() {
-		const auto ret{instance->fetchAndHandleEvents()};
+		const auto ret{instance->fetchAndHandleEvents(counters)};
 		if (ret != 0) {
 			LOG_CRITICAL("Failed to fetch and handle Discovery BPF events: {}.", std::strerror(-ret));
 			stop();
@@ -61,6 +62,7 @@ void ServiceDetectionTask::start(const bpf_object_open_opts& loadOptions, bool e
 
 	const std::chrono::milliseconds logBufFetchInterval{250};
 	logBpfLoggingFuture = setupBpfLogging(logLevel, logBufFetchInterval);
+	logCountersFuture = setupPerfCounters(std::chrono::minutes{5});
 }
 
 ServiceDetectionTask::~ServiceDetectionTask() {
@@ -86,6 +88,9 @@ void ServiceDetectionTask::waitForFinish() {
 	if(networkCountersCleaningFuture.valid()) {
 		networkCountersCleaningFuture.wait();
 	}
+	if (logCountersFuture.valid()) {
+		logCountersFuture.wait();
+	}
 }
 
 std::future<void> ServiceDetectionTask::setupBpfLogging(logging::LogLevel logLevel, std::chrono::milliseconds logBufFetchInterval){
@@ -102,4 +107,17 @@ std::future<void> ServiceDetectionTask::setupBpfLogging(logging::LogLevel logLev
 	return {};
 }
 
+std::future<void> ServiceDetectionTask::setupPerfCounters(std::chrono::seconds interval) {
+	return startAsync(interval, [this]() {
+		uint32_t zero{0};
+		DiscoveryGlobalState discoveryGlobalState;
+		int result = bpf_map_lookup_elem(discoveryBpf.getFds().globalStateMap, &zero, &discoveryGlobalState);
+		if (!result) {
+			counters.updateEventErrorsCtr(discoveryGlobalState.pushEventFailedCtr);
+		}
+		LOG_INFO(
+				"{}",
+				counters.printDiagnostics(discoveryBpf.getFds(), sizeof(DiscoverySavedBufferKey), sizeof(DiscoveryTrackedSessionKey)));
+	});
 }
+} // namespace ebpfdiscovery

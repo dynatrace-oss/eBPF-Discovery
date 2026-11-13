@@ -40,12 +40,6 @@ __attribute__((always_inline)) inline static struct DiscoveryGlobalState* getGlo
 	return (struct DiscoveryGlobalState*)bpf_map_lookup_elem(&globalStateMap, &zero);
 }
 
-__attribute__((always_inline)) inline static void disableDiscoveryCollecting(
-		struct pt_regs* ctx, struct DiscoveryGlobalState* discoveryGlobalStatePtr) {
-	LOG_DEBUG(ctx, "Discovery collecting of data has been disabled.")
-	discoveryGlobalStatePtr->isCollectingDisabled = true;
-}
-
 struct {
 	__uint(type, BPF_MAP_TYPE_ARRAY);
 	__type(key, __u32);
@@ -89,10 +83,9 @@ struct {
 
 __attribute__((always_inline)) inline static int pushEventToUserspace(
 		struct pt_regs* ctx, struct DiscoveryGlobalState* globalStatePtr, struct DiscoveryEvent* eventPtr) {
-	int result = bpf_map_push_elem(&eventsToUserspaceQueueMap, eventPtr, BPF_ANY);
+	int result = bpf_map_push_elem(&eventsToUserspaceQueueMap, eventPtr, 0);
 	if (result != 0) {
-		LOG_DEBUG(ctx, "Couldn't push the shared event. (fd:`%d`)", eventPtr->key.fd);
-		disableDiscoveryCollecting(ctx, globalStatePtr);
+		__sync_fetch_and_add(&globalStatePtr->pushEventFailedCtr, 1);
 		return result;
 	}
 

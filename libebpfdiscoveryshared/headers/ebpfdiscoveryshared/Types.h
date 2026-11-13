@@ -213,6 +213,7 @@ struct DiscoveryAllSessionState {
 };
 
 struct DiscoveryGlobalState {
+	__u32 pushEventFailedCtr;
 	bool isCollectingDisabled;
 };
 

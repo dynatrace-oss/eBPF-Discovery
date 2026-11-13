@@ -16,6 +16,7 @@
 
 #pragma once
 
+#include "PerfCounters.h"
 #include "ebpfdiscovery/DiscoveryBpf.h"
 #include "ebpfdiscovery/LRUCache.h"
 #include "ebpfdiscovery/Session.h"
@@ -37,10 +38,8 @@ public:
 	Discovery& operator=(const Discovery&) = delete;
 
 	void init();
-
-	int fetchAndHandleEvents();
+	int fetchAndHandleEvents(PerfCounters& counters);
 	void outputServicesToStdout();
-
 	void networkCountersCleaning();
 
 private:
@@ -58,7 +57,7 @@ private:
 	void handleNewRequest(const Session& session, const service::DiscoverySessionMeta& meta);
 	void handleSuccessfulParse(const Session& session, const service::DiscoverySessionMeta& sessionMeta);
 
-	int bpfDiscoveryFetchAndHandleEvents();
+	int bpfDiscoveryFetchAndHandleEvents(PerfCounters& counters);
 	int bpfDiscoveryResetConfig();
 	int bpfDiscoveryResumeCollecting();
 	int bpfDiscoveryDeleteSession(const DiscoveryTrackedSessionKey& trackedSessionKey);

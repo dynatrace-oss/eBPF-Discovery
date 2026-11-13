@@ -59,7 +59,7 @@ constexpr std::string_view enableSlpName = "enable-slp";
 constexpr std::string_view slpIntervalName = "slp-interval";
 constexpr std::string_view enableDvmName = "enable-dvm";
 constexpr std::string_view dvmIntervalName = "dvm-interval";
-constexpr std::string_view disableSSLName = "disable-SSL";
+constexpr std::string_view disableSSLName = "disable-ssl";
 
 void stopRunningPrograms() {
 	for (auto* task : runningTasks) {

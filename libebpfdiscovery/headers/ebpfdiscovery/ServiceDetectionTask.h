@@ -18,6 +18,7 @@
 #include "AsyncTask.h"
 #include "Discovery.h"
 #include "DiscoveryBpf.h"
+#include "PerfCounters.h"
 #include "logging/Logger.h"
 
 namespace ebpfdiscovery {
@@ -42,14 +43,18 @@ private:
 		void operator()(perf_buffer* buffer);
 	};
 	std::future<void> setupBpfLogging(logging::LogLevel logLevel, std::chrono::milliseconds logBufFetchInterval);
+	std::future<void> setupPerfCounters(std::chrono::seconds interval);
 
 	DiscoveryBpf discoveryBpf;
 	std::unique_ptr<Discovery> instance{nullptr};
+	PerfCounters counters;
 
 	std::future<void> networkCountersCleaningFuture{};
 	std::future<void> featchAndHandleEventsFuture{};
 	std::future<void> outputServicesToStdoutFuture{};
 	std::future<void> logBpfLoggingFuture{};
+	std::future<void> logCountersFuture{};
+
 	std::unique_ptr<perf_buffer, PerfBufferDeleter> logBuf{nullptr};
 };
 
