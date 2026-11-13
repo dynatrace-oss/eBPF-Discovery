@@ -66,11 +66,6 @@ __attribute__((always_inline)) inline static int handleSysAcceptEntry(struct pt_
 		return 0;
 	}
 
-	struct DiscoveryGlobalState* globalStatePtr = getGlobalState();
-	if (globalStatePtr == NULL || globalStatePtr->isCollectingDisabled) {
-		return 0;
-	}
-
 	struct DiscoveryAllSessionState* allSessionStatePtr = getAllSessionState();
 	if (allSessionStatePtr == NULL) {
 		return 0;
@@ -94,10 +89,6 @@ __attribute__((always_inline)) inline static int handleSysAcceptEntry(struct pt_
 }
 
 __attribute__((always_inline)) inline static int handleSysAcceptExit(struct pt_regs* ctx, int fd) {
-	struct DiscoveryGlobalState* globalStatePtr = getGlobalState();
-	if (globalStatePtr == NULL || globalStatePtr->isCollectingDisabled) {
-		return 0;
-	}
 
 	struct DiscoveryAllSessionState* allSessionStatePtr = getAllSessionState();
 	if (allSessionStatePtr == NULL) {
@@ -125,11 +116,6 @@ __attribute__((always_inline)) inline static int handleSysAcceptExit(struct pt_r
 
 __attribute__((always_inline)) inline static int handleSysReadEntry(struct pt_regs* ctx, int fd, char* buf) {
 	if (buf == NULL) {
-		return 0;
-	}
-
-	struct DiscoveryGlobalState* globalStatePtr = getGlobalState();
-	if (globalStatePtr == NULL || globalStatePtr->isCollectingDisabled) {
 		return 0;
 	}
 
@@ -165,11 +151,6 @@ __attribute__((always_inline)) inline static int handleSysReadExit(struct pt_reg
 		return 0;
 	}
 
-	struct DiscoveryGlobalState* globalStatePtr = getGlobalState();
-	if (globalStatePtr == NULL || globalStatePtr->isCollectingDisabled) {
-		return 0;
-	}
-
 	struct DiscoveryAllSessionState* allSessionStatePtr = getAllSessionState();
 	if (allSessionStatePtr == NULL) {
 		return 0;
@@ -195,7 +176,6 @@ __attribute__((always_inline)) inline static int handleSysReadExit(struct pt_reg
 
 	handleReadUnencryptedHttp(
 			ctx,
-			globalStatePtr,
 			allSessionStatePtr,
 			sessionPtr,
 			pidTgid,
@@ -208,10 +188,6 @@ __attribute__((always_inline)) inline static int handleSysReadExit(struct pt_reg
 }
 
 __attribute__((always_inline)) inline static int handleSysCloseEntry(struct pt_regs* ctx, int fd) {
-	struct DiscoveryGlobalState* globalStatePtr = getGlobalState();
-	if (globalStatePtr == NULL || globalStatePtr->isCollectingDisabled) {
-		return 0;
-	}
 
 	struct DiscoveryAllSessionState* allSessionStatePtr = getAllSessionState();
 	if (allSessionStatePtr == NULL) {
@@ -219,7 +195,7 @@ __attribute__((always_inline)) inline static int handleSysCloseEntry(struct pt_r
 	};
 
 	__u64 pidTgid = bpf_get_current_pid_tgid();
-	handleNoMoreData(ctx, globalStatePtr, allSessionStatePtr, pidTgid, fd);
+	handleNoMoreData(ctx, allSessionStatePtr, pidTgid, fd);
 
 	return 0;
 }
@@ -261,11 +237,6 @@ __attribute__((always_inline)) inline static int handleSysRecvmsgEntry(
 		return 0;
 	}
 
-	struct DiscoveryGlobalState* globalStatePtr = getGlobalState();
-	if (globalStatePtr == NULL || globalStatePtr->isCollectingDisabled) {
-		return 0;
-	}
-
 	struct DiscoveryAllSessionState* allSessionStatePtr = getAllSessionState();
 	if (allSessionStatePtr == NULL) {
 		return 0;
@@ -293,10 +264,6 @@ __attribute__((always_inline)) inline static int handleSysRecvmsgEntry(
 }
 
 __attribute__((always_inline)) inline static int handleSysRecvmsgExit(struct pt_regs* ctx, ssize_t bytesCount) {
-	struct DiscoveryGlobalState* globalStatePtr = getGlobalState();
-	if (globalStatePtr == NULL || globalStatePtr->isCollectingDisabled) {
-		return 0;
-	}
 
 	struct DiscoveryAllSessionState* allSessionStatePtr = getAllSessionState();
 	if (allSessionStatePtr == NULL) {
@@ -312,6 +279,7 @@ __attribute__((always_inline)) inline static int handleSysRecvmsgExit(struct pt_
 	}
 
 	if (readSyscallVectorArgsPtr->iov == NULL) {
+		bpf_map_delete_elem(&runningReadSyscallVectorArgsMap, &pidTgid);
 		return 0;
 	}
 
@@ -327,6 +295,7 @@ __attribute__((always_inline)) inline static int handleSysRecvmsgExit(struct pt_
 	struct DiscoverySession* sessionPtr =
 			(struct DiscoverySession*)bpf_map_lookup_elem(&trackedSessionsMap, (struct DiscoveryTrackedSessionKey*)&key);
 	if (sessionPtr == NULL) {
+		bpf_map_delete_elem(&runningReadSyscallVectorArgsMap, &pidTgid);
 		return 0;
 	}
 
@@ -334,13 +303,14 @@ __attribute__((always_inline)) inline static int handleSysRecvmsgExit(struct pt_
 		char* buf = NULL;
 		bpf_probe_read(&buf, sizeof(char*), &readSyscallVectorArgsPtr->iov[i].iov_base);
 		if (buf == NULL) {
-			handleNoMoreData(ctx, globalStatePtr, allSessionStatePtr, key.fd, pidTgid);
+			handleNoMoreData(ctx, allSessionStatePtr, key.fd, pidTgid);
+			bpf_map_delete_elem(&runningReadSyscallVectorArgsMap, &pidTgid);
 			return 0;
 		}
 
 		size_t iovLen;
 		bpf_probe_read(&iovLen, sizeof(size_t), &readSyscallVectorArgsPtr->iov[i].iov_len);
-		handleReadUnencryptedHttp(ctx, globalStatePtr, allSessionStatePtr, sessionPtr, pidTgid, key.fd, buf, iovLen);
+		handleReadUnencryptedHttp(ctx, allSessionStatePtr, sessionPtr, pidTgid, key.fd, buf, iovLen);
 	}
 
 	bpf_map_delete_elem(&runningReadSyscallVectorArgsMap, &pidTgid);

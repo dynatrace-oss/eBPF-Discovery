@@ -171,7 +171,6 @@ __attribute__((always_inline)) inline static void trackedSessionSaveBuf(
 
 __attribute__((always_inline)) inline static void fillTrackedSession(
 		struct pt_regs* ctx,
-		struct DiscoveryGlobalState* globalStatePtr,
 		struct DiscoverySession* sessionPtr,
 		struct DiscoverySavedBufferKey* key,
 		__u64 pidTgid,

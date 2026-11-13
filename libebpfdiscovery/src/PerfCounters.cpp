@@ -16,6 +16,7 @@
 
 #include "ebpfdiscovery/PerfCounters.h"
 #include "ebpfdiscoveryshared/Constants.h"
+#include "logging/Logger.h"
 #include <bpf/bpf.h>
 #include <cerrno>
 #include <fmt/format.h>
@@ -54,7 +55,12 @@ static long countMapElements(int mapFd, size_t keySize) {
 		key.swap(next);
 		err = bpf_map_get_next_key(mapFd, key.data(), next.data());
 	}
-	return (errno == ENOENT) ? count : -1;
+	if (err != 0 && errno != ENOENT) {
+		LOG_WARN("Couldn't calc size of fd:{}", mapFd);
+		return count;
+	}
+
+	return count;
 }
 
 std::string PerfCounters::printDiagnostics(

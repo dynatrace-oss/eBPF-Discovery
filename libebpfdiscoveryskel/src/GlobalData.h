@@ -82,9 +82,14 @@ struct {
 } eventsToUserspaceQueueMap SEC(".maps");
 
 __attribute__((always_inline)) inline static int pushEventToUserspace(
-		struct pt_regs* ctx, struct DiscoveryGlobalState* globalStatePtr, struct DiscoveryEvent* eventPtr) {
+struct DiscoveryEvent* eventPtr) {
 	int result = bpf_map_push_elem(&eventsToUserspaceQueueMap, eventPtr, 0);
 	if (result != 0) {
+		struct DiscoveryGlobalState* globalStatePtr = getGlobalState();
+		if (globalStatePtr == NULL) {
+			return result;
+		}
+
 		__sync_fetch_and_add(&globalStatePtr->pushEventFailedCtr, 1);
 		return result;
 	}
