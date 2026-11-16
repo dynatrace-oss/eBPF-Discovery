@@ -303,7 +303,7 @@ __attribute__((always_inline)) inline static int handleSysRecvmsgExit(struct pt_
 		char* buf = NULL;
 		bpf_probe_read(&buf, sizeof(char*), &readSyscallVectorArgsPtr->iov[i].iov_base);
 		if (buf == NULL) {
-			handleNoMoreData(ctx, allSessionStatePtr, key.fd, pidTgid);
+			handleNoMoreData(ctx, allSessionStatePtr, pidTgid, key.fd );
 			bpf_map_delete_elem(&runningReadSyscallVectorArgsMap, &pidTgid);
 			return 0;
 		}
