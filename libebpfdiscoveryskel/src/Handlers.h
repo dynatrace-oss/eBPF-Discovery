@@ -104,18 +104,17 @@ __attribute__((always_inline)) inline static void handleAccept(
 
 __attribute__((always_inline)) inline static void fillTrackedSessionAndPushEvent(
 		struct pt_regs* ctx,
-		struct DiscoveryGlobalState* globalStatePtr,
 		struct DiscoverySession* sessionPtr,
 		struct DiscoverySavedBufferKey* key,
 		__u64 pidTgid,
 		const char* buf,
 		size_t bytesCount) {
-	fillTrackedSession(ctx, globalStatePtr, sessionPtr, key, pidTgid, buf, bytesCount);
+	fillTrackedSession(ctx, sessionPtr, key, pidTgid, buf, bytesCount);
 	struct DiscoveryEvent event = {};
 	event.key = *key;
 	event.sourceIP = sessionPtr->sourceIP;
 	event.flags = sessionPtr->flags | DISCOVERY_FLAG_EVENT_NEW_DATA;
-	pushEventToUserspace(ctx, globalStatePtr, &event);
+	pushEventToUserspace(&event);
 }
 
 __attribute__((always_inline)) inline static void advanceTrackedSession(
@@ -126,7 +125,6 @@ __attribute__((always_inline)) inline static void advanceTrackedSession(
 
 __attribute__((always_inline)) inline static void handleReadUnencryptedHttp(
 		struct pt_regs* ctx,
-		struct DiscoveryGlobalState* globalStatePtr,
 		struct DiscoveryAllSessionState* allSessionStatePtr,
 		struct DiscoverySession* sessionPtr,
 		__u64 pidTgid,
@@ -146,12 +144,11 @@ __attribute__((always_inline)) inline static void handleReadUnencryptedHttp(
 
 	key.sessionID = sessionPtr->id;
 	key.bufferSeq = sessionPtr->bufferCount;
-	fillTrackedSessionAndPushEvent(ctx, globalStatePtr, sessionPtr, &key, pidTgid, buf, bytesCount);
+	fillTrackedSessionAndPushEvent(ctx, sessionPtr, &key, pidTgid, buf, bytesCount);
 }
 
 __attribute__((always_inline)) inline static void handleReadSslHttp(
 		struct pt_regs* ctx,
-		struct DiscoveryGlobalState* globalStatePtr,
 		struct DiscoveryAllSessionState* allSessionStatePtr,
 		__u64 pidTgid,
 		__u32 fd,
@@ -177,12 +174,11 @@ __attribute__((always_inline)) inline static void handleReadSslHttp(
 
 	key.sessionID = sessionPtr->id;
 	key.bufferSeq = sessionPtr->bufferCount;
-	fillTrackedSessionAndPushEvent(ctx, globalStatePtr, sessionPtr, &key, pidTgid, buf, bytesCount);
+	fillTrackedSessionAndPushEvent(ctx, sessionPtr, &key, pidTgid, buf, bytesCount);
 }
 
 __attribute__((always_inline)) inline static void handleNoMoreData(
 		struct pt_regs* ctx,
-		struct DiscoveryGlobalState* globalStatePtr,
 		struct DiscoveryAllSessionState* allSessionStatePtr,
 		__u64 pidTgid,
 		int fd) {
@@ -198,7 +194,7 @@ __attribute__((always_inline)) inline static void handleNoMoreData(
 	event.key.sessionID = sessionPtr->id;
 	event.key.bufferSeq = sessionPtr->bufferCount;
 	event.flags = DISCOVERY_FLAG_EVENT_DATA_END;
-	pushEventToUserspace(ctx, globalStatePtr, &event);
+	pushEventToUserspace(&event);
 
 	DEBUG_PRINTLN("Tracked session ended. (pid:`%d`, fd:`%d`, sessionID:`%d`)", event.key.pid, event.key.fd, event.key.sessionID);
 	bpf_map_delete_elem(&trackedSessionsMap, &key);

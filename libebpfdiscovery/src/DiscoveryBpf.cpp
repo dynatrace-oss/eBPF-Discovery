@@ -23,7 +23,7 @@
 
 namespace ebpfdiscovery {
 
-void DiscoveryBpf::load(const bpf_object_open_opts& openOpts) {
+void DiscoveryBpf::load(const bpf_object_open_opts& openOpts, const bool disableSSL) {
 	LOG_DEBUG("Loading BPF program.");
 
 	LOG_TRACE("Opening Discovery BPF object.");
@@ -39,7 +39,9 @@ void DiscoveryBpf::load(const bpf_object_open_opts& openOpts) {
 
 	LOG_TRACE("Attaching Discovery BPF program.");
 	attachSyscallProbes();
-	attachLibSSLProbes();
+	if (!disableSSL) {
+		attachLibSSLProbes();
+	}
 }
 
 void DiscoveryBpf::unload() {

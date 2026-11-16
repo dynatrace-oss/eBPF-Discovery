@@ -6,13 +6,10 @@
 /cmake-build-release/
 /CMakeUserPresets.json
 
-### Gradle
-**/.gradle/
-**/build/
-
 **/vmlinux.h
 /compile_commands.json
 /.cache
+/.ebpf-common/
 
 !/.github/actions/build
 
