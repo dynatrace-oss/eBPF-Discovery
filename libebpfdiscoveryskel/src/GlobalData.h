@@ -71,8 +71,10 @@ struct {
 	__uint(max_entries, DISCOVERY_MAX_SESSIONS);
 } savedBuffersMap SEC(".maps");
 
-__attribute__((always_inline)) inline static void deleteSavedSession(struct DiscoverySavedSessionKey* savedSessionKeyPtr) {
-	bpf_map_delete_elem(&savedBuffersMap, savedSessionKeyPtr);
+__attribute__((always_inline)) inline static void deleteSavedSession(struct DiscoverySavedBufferKey* keyPtr) {
+	if (keyPtr != NULL) {
+		bpf_map_delete_elem(&savedBuffersMap, keyPtr);
+	}
 }
 
 struct {
@@ -82,7 +84,7 @@ struct {
 } eventsToUserspaceQueueMap SEC(".maps");
 
 __attribute__((always_inline)) inline static int pushEventToUserspace(
-struct DiscoveryEvent* eventPtr) {
+		struct DiscoveryEvent* eventPtr, struct DiscoverySavedBufferKey* key) {
 	int result = bpf_map_push_elem(&eventsToUserspaceQueueMap, eventPtr, 0);
 	if (result != 0) {
 		struct DiscoveryGlobalState* globalStatePtr = getGlobalState();
@@ -91,6 +93,7 @@ struct DiscoveryEvent* eventPtr) {
 		}
 
 		__sync_fetch_and_add(&globalStatePtr->pushEventFailedCtr, 1);
+		deleteSavedSession(key);
 		return result;
 	}
 
