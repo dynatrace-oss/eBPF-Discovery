@@ -114,7 +114,7 @@ __attribute__((always_inline)) inline static void fillTrackedSessionAndPushEvent
 	event.key = *key;
 	event.sourceIP = sessionPtr->sourceIP;
 	event.flags = sessionPtr->flags | DISCOVERY_FLAG_EVENT_NEW_DATA;
-	pushEventToUserspace(&event);
+	pushEventToUserspace(&event, key);
 }
 
 __attribute__((always_inline)) inline static void advanceTrackedSession(
@@ -194,7 +194,7 @@ __attribute__((always_inline)) inline static void handleNoMoreData(
 	event.key.sessionID = sessionPtr->id;
 	event.key.bufferSeq = sessionPtr->bufferCount;
 	event.flags = DISCOVERY_FLAG_EVENT_DATA_END;
-	pushEventToUserspace(&event);
+	pushEventToUserspace(&event, NULL);
 
 	DEBUG_PRINTLN("Tracked session ended. (pid:`%d`, fd:`%d`, sessionID:`%d`)", event.key.pid, event.key.fd, event.key.sessionID);
 	bpf_map_delete_elem(&trackedSessionsMap, &key);
